@@ -12,35 +12,38 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { useFormPublishing } from "@/hooks/useFormPublishing";
+import { useFormPublishing, FormPublishConfig } from "@/hooks/forms/use-form-publishing";
 import { slugify } from "@/lib/utils/string-utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface PublishFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   formTitle: string;
-  formDescription?: string;
+  formDescription: string;
   onPublished: (slug: string) => void;
 }
 
 export function PublishFormDialog({
   open,
   onOpenChange,
-  formTitle: initialFormTitle,
+  formTitle,
   formDescription,
   onPublished
 }: PublishFormDialogProps) {
   const [slug, setSlug] = useState('');
   const [title, setTitle] = useState('');
   const { isPublishing, publishForm } = useFormPublishing();
+  const { user } = useAuth();
 
   // Actualizar título y slug cuando se abre el diálogo
   useEffect(() => {
-    if (open && initialFormTitle) {
-      setTitle(initialFormTitle);
-      setSlug(slugify(initialFormTitle));
+    if (open && formTitle) {
+      setTitle(formTitle);
+      setSlug(slugify(formTitle));
     }
-  }, [open, initialFormTitle]);
+  }, [open, formTitle]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -56,20 +59,45 @@ export function PublishFormDialog({
   };
 
   const handlePublish = async () => {
+    if (!user) {
+      toast.error("Debes iniciar sesión para publicar");
+      return;
+    }
+
+    if (isPublishing) {
+      return;
+    }
+
     try {
-      const published = await publishForm({
-        title: title,
-        description: formDescription,
-        theme: 'light',
-        settings: {
-          slug
+      const formConfig: FormPublishConfig = {
+        title: title.trim(),
+        description: formDescription.trim(),
+        fields: [], // Aquí deberías pasar los campos del formulario
+        theme: 'light' as const,
+        customization: {
+          colors: {
+            primary: '#000000'
+          }
         }
+      };
+
+      const url = await publishForm(formConfig);
+      
+      // Mostrar mensaje de éxito con acciones
+      toast.success("Formulario publicado exitosamente", {
+        action: {
+          label: "Ver formulario",
+          onClick: () => window.open(url, '_blank')
+        },
+        duration: 5000
       });
 
-      onPublished(published.slug);
+      // Cerrar el diálogo y notificar
+      onPublished(url);
       onOpenChange(false);
     } catch (error) {
       console.error('Error al publicar:', error);
+      toast.error("Error al publicar el formulario");
     }
   };
 

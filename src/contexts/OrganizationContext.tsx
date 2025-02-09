@@ -11,6 +11,7 @@ interface OrganizationContextType {
   organization: Organization | null
   isLoading: boolean
   error: Error | null
+  setOrganization: (org: Organization) => void
 }
 
 interface UserMetadata {
@@ -120,8 +121,15 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     };
   }, [user, authLoading, supabase]);
 
+  const value = {
+    organization,
+    isLoading,
+    error,
+    setOrganization
+  };
+
   return (
-    <OrganizationContext.Provider value={{ organization, isLoading, error }}>
+    <OrganizationContext.Provider value={value}>
       {children}
     </OrganizationContext.Provider>
   )

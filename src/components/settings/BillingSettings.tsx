@@ -31,7 +31,9 @@ export function BillingSettings() {
     <div className="p-6">
       {/* Integración con Mercado Pago */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium">Integración de pagos</h3>
+        <div className="flex items-center mb-6">
+          <h3 className="text-xl font-medium">Integraciones</h3>
+        </div>
         <div className="grid md:grid-cols-3 gap-4">
           <Card className="overflow-hidden">
             <CardHeader className="pb-2 px-4 pt-6">

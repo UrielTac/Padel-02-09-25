@@ -170,21 +170,46 @@ export class FormPublishService {
     try {
       FormPublishService.debug.log('📝 Iniciando publicación:', form);
 
-      // Validar empresa_id
       if (!form.empresa_id) {
         throw new Error('Se requiere el ID de la empresa');
       }
 
-      // Validar campos del formulario
       if (!Array.isArray(form.fields)) {
         throw new Error('Se requieren los campos del formulario');
       }
+
       this.validateFields(form.fields);
 
-      // Generar slug único basado en el título
-      const slug = this.generateSlug(form.title || 'formulario');
+      // Generar slug base
+      let baseSlug = this.generateSlug(form.title || 'formulario');
+      let slug = baseSlug;
+      let counter = 1;
 
-      // Preparar datos para inserción
+      // Verificar si el slug existe y generar uno único
+      while (true) {
+        const { data, error } = await this.supabase
+          .from('company_links')
+          .select('slug')
+          .eq('slug', slug)
+          .single();
+
+        if (error?.code === 'PGRST116') {
+          // No se encontró el slug, podemos usarlo
+          break;
+        }
+
+        if (error) {
+          FormPublishService.debug.error('Error al verificar slug:', error);
+          throw new Error('Error al verificar disponibilidad del slug');
+        }
+
+        if (data) {
+          // El slug existe, intentar con un nuevo número
+          slug = `${baseSlug}-${counter}`;
+          counter++;
+        }
+      }
+
       const linkData = {
         empresa_id: form.empresa_id,
         type: 'bookings',
@@ -201,7 +226,6 @@ export class FormPublishService {
 
       FormPublishService.debug.log('📝 Datos a insertar:', linkData);
 
-      // Crear link en company_links
       const { data: link, error: linkError } = await this.supabase
         .from('company_links')
         .insert(linkData)
@@ -217,7 +241,8 @@ export class FormPublishService {
         throw new Error('Error: No se pudo generar el slug del formulario');
       }
 
-      const url = `/forms/${link.slug}`;
+      // Usar ruta absoluta para el formulario público
+      const url = `/f/${link.slug}`;
       FormPublishService.debug.log('✅ Formulario publicado:', { url, linkData });
 
       return url;
@@ -228,15 +253,17 @@ export class FormPublishService {
   }
 
   private generateSlug(text: string): string {
-    return text
+    const timestamp = Date.now().toString(36);
+    const slug = text
       .toLowerCase()
       .replace(/[^\w\s-]/g, '')
       .replace(/\s+/g, '-')
       .replace(/--+/g, '-')
       .replace(/^-+|-+$/g, '')
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      || 'formulario-' + Date.now();
+      .replace(/[\u0300-\u036f]/g, '');
+    
+    return slug || `formulario-${timestamp}`;
   }
 }
 

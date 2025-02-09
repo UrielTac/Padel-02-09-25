@@ -27,6 +27,8 @@ import { useFormPublishing } from '@/hooks/forms/use-form-publishing';
 import { toast } from "sonner";
 import { validateStepOrder } from '@/lib/validations';
 import { useRouter } from 'next/navigation'
+import { useAuth } from "@/contexts/AuthContext"
+import { useBranchContext } from "@/contexts/BranchContext"
 
 export default function FormsPage() {
   const router = useRouter()
@@ -44,37 +46,13 @@ export default function FormsPage() {
   const {
     publishForm,
     isPublishing,
-    isLoading,
+    isLoading: isLoadingPublish,
     error: publishError
   } = useFormPublishing();
 
-  // Mostrar estado de carga
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        <p className="mt-4 text-sm text-gray-500">Cargando...</p>
-      </div>
-    );
-  }
-
-  // Mostrar error si existe
-  if (publishError) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <div className="p-4 bg-red-50 rounded-lg">
-          <p className="text-red-600">{publishError.message}</p>
-        </div>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => router.push('/dashboard/forms-a')}
-        >
-          Volver
-        </Button>
-      </div>
-    );
-  }
+  const { isLoading: isLoadingAuth } = useAuth()
+  const { isLoading: isLoadingBranch } = useBranchContext()
+  const isLoading = isLoadingAuth || isLoadingBranch || isPublishing || isLoadingPublish
 
   const handlePublish = async () => {
     try {
@@ -213,7 +191,184 @@ export default function FormsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="fixed inset-0 overflow-hidden z-0">
+      <main className="absolute inset-0 lg:left-[240px]">
+        <div className="absolute inset-[8px]">
+          <div className="bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] w-full h-full overflow-auto scrollbar-none">
+            <div className="px-6 py-4">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
+                    <p className="text-sm text-gray-500">Cargando...</p>
+                  </div>
+                </div>
+              ) : publishError ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="p-4 bg-red-50 rounded-lg">
+                      <p className="text-red-600">{publishError.message}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => router.push('/dashboard/forms-a')}
+                    >
+                      Volver
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="h-full">
+                  {isEditing ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="h-full"
+                    >
+                      {/* Header reorganizado */}
+                      <div className="flex items-center justify-between mb-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleExitClick}
+                          className="h-8 px-0 text-gray-500 hover:text-gray-900 transition-colors duration-200"
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-2" />
+                          <span className="text-sm">Volver</span>
+                        </Button>
+                      </div>
+
+                      {/* Contenido de edición */}
+                      <div className="h-[calc(100%-3rem)]">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
+                          <div className="h-full overflow-auto scrollbar-none">
+                            <FormBuilder 
+                              fields={fields}
+                              onFieldsChange={handleFieldsChange}
+                              onClearFields={handleClearFields}
+                              onThemeChange={handleThemeChange}
+                              onSave={handleSaveClick}
+                              onPublish={handlePublish}
+                              isPublishing={isPublishing}
+                              activeStepId={activeStepId}
+                            />
+                          </div>
+                          <div className="h-full overflow-auto scrollbar-none">
+                            <FormPreview 
+                              fields={fields} 
+                              theme={theme}
+                              onThemeChange={handleThemeChange}
+                              onStepChange={setActiveStepId}
+                              isBlurred={showSaveDialog}
+                              isPublished={isPublished}
+                              urlConfig={urlConfig}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <Tabs defaultValue="general" className="h-full">
+                      <div className="flex-none mb-4">
+                        <TabsList className="hidden">
+                          <TabsTrigger 
+                            value="general"
+                            className="data-[state=inactive]:text-gray-500"
+                          >
+                            General
+                          </TabsTrigger>
+                        </TabsList>
+                      </div>
+
+                      <TabsContent value="general" className="flex-1 mt-0">
+                        <div className="h-full overflow-auto scrollbar-none">
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -20 }}
+                              className="space-y-4"
+                            >
+                              {/* Header con buscador */}
+                              <div className="flex items-center justify-between">
+                                {savedForms.length > 0 && (
+                                  <div className="relative">
+                                    <input
+                                      type="text"
+                                      value={searchQuery}
+                                      onChange={(e) => setSearchQuery(e.target.value)}
+                                      placeholder="Buscar formulario..."
+                                      className={cn(
+                                        "h-8 pr-8 pl-3",
+                                        "text-xs",
+                                        "bg-transparent",
+                                        "border-b border-gray-200",
+                                        "focus:outline-none focus:border-gray-400",
+                                        "placeholder:text-gray-400",
+                                        "transition-colors"
+                                      )}
+                                    />
+                                    <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                                      <Search className="h-3.5 w-3.5 text-gray-400" />
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Lista de formularios guardados */}
+                              {filteredForms.length > 0 ? (
+                                <div className="space-y-3">
+                                  {filteredForms.map((form) => (
+                                    <FormCard
+                                      key={form.id}
+                                      form={form}
+                                      onDelete={handleDeleteForm}
+                                      onToggleActive={handleToggleFormActive}
+                                      onColorChange={handleColorChange}
+                                    />
+                                  ))}
+                                </div>
+                              ) : savedForms.length > 0 ? (
+                                <div className="flex items-center justify-center h-[120px] border-2 border-dashed rounded-lg">
+                                  <p className="text-sm text-gray-500">
+                                    No se encontraron formularios con "{searchQuery}"
+                                  </p>
+                                </div>
+                              ) : null}
+
+                              {/* Contenedor clickeable modificado */}
+                              <motion.div
+                                onClick={handleCreateNew}
+                                className={cn(
+                                  "bg-white rounded-lg border border-dashed p-6",
+                                  "cursor-pointer hover:bg-gray-50 transition-colors",
+                                  "group relative overflow-hidden"
+                                )}
+                                whileHover={{ scale: 1.005 }}
+                                whileTap={{ scale: 0.995 }}
+                              >
+                                <div className="text-center space-y-1.5">
+                                  <h3 className="text-base font-medium text-gray-900">Crear nuevo formulario</h3>
+                                  <p className="text-sm text-gray-500">
+                                    Haz clic aquí para comenzar a crear un nuevo formulario personalizado
+                                  </p>
+                                </div>
+                              </motion.div>
+                            </motion.div>
+                          </AnimatePresence>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Mantener los diálogos fuera del contenedor principal */}
       <AlertDialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <AlertDialogContent className="max-w-[400px]">
           <div className="flex flex-col items-center">
@@ -332,162 +487,6 @@ export default function FormsPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {isEditing ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="space-y-6"
-        >
-          {/* Header reorganizado */}
-          <div className="space-y-6 px-8 pt-8">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleExitClick}
-              className={cn(
-                "h-8 px-0 text-gray-500 hover:text-gray-900",
-                "transition-colors duration-200"
-              )}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              <span className="text-sm">Volver</span>
-            </Button>
-          </div>
-
-          {/* Contenido de edición */}
-          <div className="bg-white rounded-xl border shadow-sm mx-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-6">
-              <div className="space-y-6">
-                <FormBuilder 
-                  fields={fields}
-                  onFieldsChange={handleFieldsChange}
-                  onClearFields={handleClearFields}
-                  onThemeChange={handleThemeChange}
-                  onSave={handleSaveClick}
-                  onPublish={handlePublish}
-                  isPublishing={isPublishing}
-                  activeStepId={activeStepId}
-                />
-              </div>
-
-              <div>
-                <div className="pt-[22px]">
-                  <FormPreview 
-                    fields={fields} 
-                    theme={theme}
-                    onThemeChange={handleThemeChange}
-                    onStepChange={setActiveStepId}
-                    isBlurred={showSaveDialog}
-                    isPublished={isPublished}
-                    urlConfig={urlConfig}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Separador y botón de guardar */}
-            <div className="border-t">
-              <div className="flex justify-end p-4">
-                <Button
-                  onClick={handleSaveClick}
-                  variant="ghost"
-                  className="text-sm font-medium text-black hover:bg-gray-100 gap-2"
-                >
-                  <Save className="h-4 w-4" />
-                  Guardar Formulario
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      ) : (
-        // Vista Principal
-        <Tabs defaultValue="general" className="w-full">
-          <TabsList>
-            <TabsTrigger value="general">General</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="general">
-            <AnimatePresence mode="wait">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="space-y-4"
-              >
-                {/* Header con buscador */}
-                <div className="flex items-center justify-between">
-                  {savedForms.length > 0 && (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Buscar formulario..."
-                        className={cn(
-                          "h-8 pr-8 pl-3",
-                          "text-xs",
-                          "bg-transparent",
-                          "border-b border-gray-200",
-                          "focus:outline-none focus:border-gray-400",
-                          "placeholder:text-gray-400",
-                          "transition-colors"
-                        )}
-                      />
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                        <Search className="h-3.5 w-3.5 text-gray-400" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Lista de formularios guardados */}
-                {filteredForms.length > 0 ? (
-                  <div className="space-y-3">
-                    {filteredForms.map((form) => (
-                      <FormCard
-                        key={form.id}
-                        form={form}
-                        onDelete={handleDeleteForm}
-                        onToggleActive={handleToggleFormActive}
-                        onColorChange={handleColorChange}
-                      />
-                    ))}
-                  </div>
-                ) : savedForms.length > 0 ? (
-                  <div className="flex items-center justify-center h-[120px] border-2 border-dashed rounded-lg">
-                    <p className="text-sm text-gray-500">
-                      No se encontraron formularios con "{searchQuery}"
-                    </p>
-                  </div>
-                ) : null}
-
-                {/* Contenedor clickeable modificado */}
-                <motion.div
-                  onClick={handleCreateNew}
-                  className={cn(
-                    "bg-white rounded-lg border border-dashed p-6",
-                    "cursor-pointer hover:bg-gray-50 transition-colors",
-                    "group relative overflow-hidden"
-                  )}
-                  whileHover={{ scale: 1.005 }}
-                  whileTap={{ scale: 0.995 }}
-                >
-                  <div className="text-center space-y-1.5">
-                    <h3 className="text-base font-medium text-gray-900">Crear nuevo formulario</h3>
-                    <p className="text-sm text-gray-500">
-                      Haz clic aquí para comenzar a crear un nuevo formulario personalizado
-                    </p>
-                  </div>
-                </motion.div>
-              </motion.div>
-            </AnimatePresence>
-          </TabsContent>
-        </Tabs>
-      )}
-
-      {/* Diálogo de confirmación para salir */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>

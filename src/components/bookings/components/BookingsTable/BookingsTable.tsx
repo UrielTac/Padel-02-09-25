@@ -30,8 +30,26 @@ export function BookingsTable() {
   }
 
   return (
-    <>
-      {/* ... resto del código ... */}
+    <div className={cn(
+      "flex flex-col h-full",
+      "overflow-hidden"
+    )}>
+      <div className={cn(
+        "flex-1",
+        "overflow-y-auto scrollbar-hide scrollbar-none",
+        "overscroll-none",
+        "-webkit-overflow-scrolling: touch",
+        "scroll-smooth"
+      )}>
+        <div className={cn(
+          "min-h-full w-full",
+          "relative",
+          "select-none"
+        )}>
+          {/* ... resto del código ... */}
+        </div>
+      </div>
+
       <ViewBookingModal
         isOpen={!!selectedBooking}
         onClose={() => setSelectedBooking(null)}
@@ -39,6 +57,6 @@ export function BookingsTable() {
         setSelectedBooking={setSelectedBooking}
         onCancelSuccess={handleCancelSuccess}
       />
-    </>
+    </div>
   )
 } 

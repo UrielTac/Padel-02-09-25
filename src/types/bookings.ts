@@ -137,7 +137,7 @@ export interface Booking {
   updatedAt: string;
 }
 
-export type BookingType = 'shift' | 'class'
+export type BookingType = 'simple_shift' | 'recurring' | 'class' | 'tournament';
 
 export interface ClassDetails {
   name: string
@@ -155,7 +155,14 @@ export interface ClassScheduleConfig {
   }>
 }
 
-export type BookingStep = 'participants' | 'rentals' | 'payment' | 'confirmation'
+export type BookingStep = 
+  | 'type'
+  | 'court'
+  | 'time'
+  | 'participants'
+  | 'rentals'
+  | 'payment'
+  | 'confirmation';
 
 interface BookingPopupProps {
   selection: Selection | null

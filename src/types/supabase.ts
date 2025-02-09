@@ -332,49 +332,33 @@ export interface Database {
       usuarios: {
         Row: {
           id: string
-          nombre: string
           email: string
-          dni: string | null
-          telefono: string | null
-          genero: string | null
-          fecha_nacimiento: string | null
-          direccion: string | null
-          ciudad: string | null
-          pais: string | null
-          metadata: Record<string, any>
-          estado: string
+          nombre: string
+          empresa_id: string
+          role: string
           created_at: string
           updated_at: string
+          avatar_url?: string
         }
         Insert: {
           id: string
-          nombre: string
           email: string
-          dni?: string
-          telefono?: string
-          genero?: string
-          fecha_nacimiento?: string
-          direccion?: string
-          ciudad?: string
-          pais?: string
-          metadata?: Record<string, any>
-          estado?: string
+          nombre: string
+          empresa_id: string
+          role?: string
           created_at?: string
           updated_at?: string
+          avatar_url?: string
         }
         Update: {
-          nombre?: string
+          id?: string
           email?: string
-          dni?: string
-          telefono?: string
-          genero?: string
-          fecha_nacimiento?: string
-          direccion?: string
-          ciudad?: string
-          pais?: string
-          metadata?: Record<string, any>
-          estado?: string
+          nombre?: string
+          empresa_id?: string
+          role?: string
+          created_at?: string
           updated_at?: string
+          avatar_url?: string
         }
       },
       vinculaciones: {

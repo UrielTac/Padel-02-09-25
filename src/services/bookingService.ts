@@ -6,6 +6,21 @@ import { PAYMENT_METHODS, PAYMENT_STATUS } from '@/types/bookings'
 import { timeToMinutes } from '@/lib/time-utils'
 import type { RentalSelection } from '@/types/items'
 
+// Crear una instancia de Supabase memoizada
+let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
+
+const getSupabaseInstance = () => {
+  if (!supabaseInstance) {
+    supabaseInstance = createSupabaseClient();
+  }
+  return supabaseInstance;
+};
+
+// Función para reiniciar la instancia de Supabase si es necesario
+const resetSupabaseInstance = () => {
+  supabaseInstance = null;
+};
+
 interface ServiceResponse<T> {
   data?: T
   error?: {
@@ -396,75 +411,89 @@ const validateStock = async (rentals: RentalSelection[]): Promise<boolean> => {
   }
 };
 
-export async function checkFutureAvailability(
-  itemId: string,
-  date: string,
-  startTime: string,
-  endTime: string
-): Promise<number> {
-  try {
-    // Obtener primero el stock base del item
-    const { data: itemData, error: itemError } = await supabase
-      .from('items')
-      .select('stock')
-      .eq('id', itemId)
-      .single();
-
-    if (itemError) {
-      console.error('❌ Error al obtener información del item:', {
-        error: itemError,
-        itemId
-      });
-      throw itemError;
+export const bookingService = {
+  getSupabase() {
+    try {
+      const instance = getSupabaseInstance();
+      if (!instance) {
+        throw new Error('No se pudo inicializar Supabase');
+      }
+      return instance;
+    } catch (error) {
+      console.error('Error al obtener instancia de Supabase:', error);
+      resetSupabaseInstance();
+      throw error;
     }
+  },
 
-    console.log('📦 Stock base obtenido:', {
-      itemId,
-      baseStock: itemData?.stock,
-      itemData
-    })
+  async checkFutureAvailability(
+    itemId: string,
+    date: string,
+    startTime: string,
+    endTime: string
+  ): Promise<number> {
+    try {
+      const supabase = this.getSupabase()
+      // Obtener primero el stock base del item
+      const { data: itemData, error: itemError } = await supabase
+        .from('items')
+        .select('stock')
+        .eq('id', itemId)
+        .single();
 
-    console.log('🔄 Consultando get_available_stock con parámetros:', {
-      p_item_id: itemId,
-      p_booking_date: date,
-      p_start_time: startTime,
-      p_end_time: endTime
-    })
+      if (itemError) {
+        console.error('❌ Error al obtener información del item:', {
+          error: itemError,
+          itemId
+        });
+        throw itemError;
+      }
 
-    const { data, error } = await supabase
-      .rpc('get_available_stock', {
+      console.log('📦 Stock base obtenido:', {
+        itemId,
+        baseStock: itemData?.stock,
+        itemData
+      })
+
+      console.log('🔄 Consultando get_available_stock con parámetros:', {
         p_item_id: itemId,
         p_booking_date: date,
         p_start_time: startTime,
         p_end_time: endTime
       })
 
-    if (error) {
-      console.error('❌ Error al verificar disponibilidad:', {
+      const { data, error } = await supabase
+        .rpc('get_available_stock', {
+          p_item_id: itemId,
+          p_booking_date: date,
+          p_start_time: startTime,
+          p_end_time: endTime
+        })
+
+      if (error) {
+        console.error('❌ Error al verificar disponibilidad:', {
+          error,
+          params: { itemId, date, startTime, endTime },
+          errorDetails: {
+            message: error.message,
+            hint: error.hint,
+            details: error.details,
+            code: error.code
+          }
+        })
+        throw error
+      }
+
+      return data || 0
+    } catch (error) {
+      console.error('❌ Error en checkFutureAvailability:', {
         error,
-        params: { itemId, date, startTime, endTime },
-        errorDetails: {
-          message: error.message,
-          hint: error.hint,
-          details: error.details,
-          code: error.code
-        }
+        params: { itemId, date, startTime, endTime }
       })
       throw error
     }
+  },
 
-    return data || 0
-  } catch (error) {
-    console.error('❌ Error en checkFutureAvailability:', {
-      error,
-      params: { itemId, date, startTime, endTime }
-    })
-    throw error
-  }
-}
-
-export const bookingService = {
-  checkFutureAvailability,
   async checkAvailability(data: BookingCreationData): Promise<ServiceResponse<boolean>> {
     try {
       console.log('Verificando disponibilidad para:', {
@@ -486,6 +515,7 @@ export const bookingService = {
 
       try {
         // Verificar si la cancha existe y está activa
+        const supabase = this.getSupabase()
         const { data: court, error: courtError } = await supabase
           .from('courts')
           .select('id, is_active, name')
@@ -750,6 +780,7 @@ export const bookingService = {
 
   async createBooking(data: BookingCreationData): Promise<ServiceResponse<any>> {
     try {
+      const supabase = this.getSupabase()
       // Log detallado de los datos de entrada
       console.info('📝 Datos de entrada para la reserva:', {
         ...data,
@@ -798,7 +829,6 @@ export const bookingService = {
         });
 
         // Llamada RPC
-        const supabase = createSupabaseClient()
         const { data: result, error: dbError } = await supabase
           .rpc('create_booking_v2', bookingData);
 
@@ -1040,6 +1070,7 @@ export const bookingService = {
 
       console.log('BookingService - Consultando reservas para fecha:', date)
 
+      const supabase = this.getSupabase()
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select(`
@@ -1141,6 +1172,7 @@ export const bookingService = {
 
   async getBookingById(id: string): Promise<SelectedBooking> {
     try {
+      const supabase = this.getSupabase()
       const { data: booking, error } = await supabase
         .from('bookings')
         .select(`
@@ -1212,6 +1244,7 @@ export const bookingService = {
         }
       }
 
+      const supabase = this.getSupabase()
       const { data: booking, error: fetchError } = await supabase
         .from('bookings')
         .update({
@@ -1249,12 +1282,12 @@ export const bookingService = {
   },
 
   async updateBooking(id: string, data: Partial<BookingCreationData>) {
-    const supabase = createSupabaseClient()
+    const supabase = this.getSupabase()
     // ... existing code ...
   },
 
   async deleteBooking(id: string) {
-    const supabase = createSupabaseClient()
+    const supabase = this.getSupabase()
     // ... existing code ...
   }
 } 

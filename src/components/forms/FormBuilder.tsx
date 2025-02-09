@@ -152,7 +152,7 @@ export function FormBuilder({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 overflow-y-auto no-scrollbar">
       {/* Header */}
       <div className="space-y-2">
         <div className="space-y-1">

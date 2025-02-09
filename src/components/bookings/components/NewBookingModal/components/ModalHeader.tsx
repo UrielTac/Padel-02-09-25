@@ -13,6 +13,23 @@ export function ModalHeader({
   isClassCreated = false
 }: ModalHeaderProps) {
   const getStepTitle = () => {
+    // Primero manejamos el caso de simple_shift
+    if (selectedBookingType === 'simple_shift') {
+      switch (currentStep) {
+        case 'participants':
+          return 'Participantes'
+        case 'rentals':
+          return 'Artículos Adicionales'
+        case 'payment':
+          return 'Método de Pago'
+        case 'confirmation':
+          return 'Confirmar Reserva'
+        default:
+          return 'Nueva Reserva'
+      }
+    }
+
+    // Luego manejamos los casos existentes
     switch (currentStep) {
       case 'class-details':
         return 'Detalles de la Clase'
@@ -28,6 +45,23 @@ export function ModalHeader({
   }
 
   const getStepDescription = () => {
+    // Primero manejamos el caso de simple_shift
+    if (selectedBookingType === 'simple_shift') {
+      switch (currentStep) {
+        case 'participants':
+          return 'Selecciona los participantes de la reserva'
+        case 'rentals':
+          return 'Añade artículos adicionales a tu reserva'
+        case 'payment':
+          return 'Configura el método y estado del pago'
+        case 'confirmation':
+          return 'Revisa los detalles de la reserva antes de confirmar'
+        default:
+          return ''
+      }
+    }
+
+    // Luego manejamos los casos existentes
     switch (currentStep) {
       case 'class-details':
         return 'Ingresa los detalles básicos de la clase'

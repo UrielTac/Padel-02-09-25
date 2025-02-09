@@ -2,7 +2,7 @@
 
 import { createSupabaseClient } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
-import type { Branch, BranchFormData } from '@/types/branch'
+import type { Branch, BranchFormData, OpeningHours } from '@/types/branch'
 
 // Singleton instance
 const supabase = createSupabaseClient('client')
@@ -146,40 +146,88 @@ export const branchService = {
 
   async updateBranch(branchId: string, formData: BranchFormData, empresaId: string): Promise<{ data: Branch | null, error: any }> {
     try {
-      console.log('📍 Actualizando sede:', { branchId, formData })
+      console.log('📍 Iniciando actualización de sede:', { branchId, formData, empresaId })
 
-      const branchData = {
-        name: formData.name,
-        address: formData.address,
-        phone: formData.phone,
+      // Validaciones básicas
+      if (!branchId) {
+        throw new Error('ID de sede inválido')
+      }
+
+      if (!formData.name?.trim() || !formData.address?.trim() || !formData.phone?.trim()) {
+        throw new Error('Faltan campos requeridos')
+      }
+
+      // Validar y formatear horarios
+      const opening_hours = Object.entries(formData.opening_hours).reduce<OpeningHours>((acc, [day, schedule]) => {
+        if (!schedule || typeof schedule !== 'object') {
+          throw new Error(`Formato inválido para el horario del día ${day}`)
+        }
+
+        // Validar y formatear cada rango de tiempo
+        const timeRanges = Array.isArray(schedule.timeRanges) 
+          ? schedule.timeRanges.map(range => {
+              if (!range.openTime || !range.closeTime) {
+                throw new Error(`Rango de tiempo inválido para el día ${day}`)
+              }
+              return {
+                openTime: range.openTime.trim(),
+                closeTime: range.closeTime.trim()
+              }
+            })
+          : [{ openTime: "08:00", closeTime: "22:00" }]
+
+        return {
+          ...acc,
+          [day]: {
+            isOpen: Boolean(schedule.isOpen),
+            timeRanges
+          }
+        }
+      }, {})
+
+      // Preparar datos para Supabase
+      const branchData: Partial<Branch> = {
+        name: formData.name.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
         manager_id: formData.manager_id,
         is_active: formData.is_active,
-        opening_hours: formData.opening_hours,
-        settings: formData.settings,
+        opening_hours,
+        settings: formData.settings || {},
+        empresa_id: empresaId,
         updated_at: new Date().toISOString()
       }
 
-      const { data, error } = await supabase
+      console.log('📤 Datos a enviar:', JSON.stringify(branchData, null, 2))
+
+      // Actualizar en Supabase
+      const { data, error: updateError } = await supabase
         .from('sedes')
         .update(branchData)
         .eq('id', branchId)
+        .eq('empresa_id', empresaId)
         .select()
         .single()
 
-      if (error) {
-        console.error('❌ Error al actualizar sede:', error)
-        throw error
+      if (updateError) {
+        console.error('❌ Error en actualización:', updateError)
+        throw updateError
+      }
+
+      if (!data) {
+        throw new Error('No se recibieron datos de la actualización')
       }
 
       console.log('✅ Sede actualizada exitosamente:', data)
       return { data, error: null }
+
     } catch (error: any) {
-      console.error('❌ Error al actualizar sede:', error)
+      console.error('❌ Error en updateBranch:', error)
       return {
         data: null,
         error: {
           message: error.message || 'Error al actualizar la sede',
-          details: error.details
+          details: error.details || error
         }
       }
     }

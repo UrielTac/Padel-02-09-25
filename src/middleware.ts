@@ -31,18 +31,80 @@ function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.some(route => pathname === route)
 }
 
+// Función para obtener empresa_id desde diferentes fuentes
+async function getEmpresaId(req: NextRequest, session: any, supabase: any) {
+  // 1. Intentar obtener de los metadatos del usuario
+  const empresaIdFromMeta = session?.user?.app_metadata?.empresa_id || session?.user?.user_metadata?.empresa_id
+  if (empresaIdFromMeta) {
+    console.log('Middleware: Empresa ID encontrada en metadatos:', empresaIdFromMeta)
+    return empresaIdFromMeta
+  }
+
+  // 2. Intentar obtener de las cookies
+  const empresaIdFromCookie = req.cookies.get('empresa_id')?.value
+  if (empresaIdFromCookie) {
+    console.log('Middleware: Empresa ID encontrada en cookie:', empresaIdFromCookie)
+    return empresaIdFromCookie
+  }
+
+  // 3. Si no hay cookie, buscar en la base de datos
+  console.log('Middleware: Buscando empresa en base de datos para usuario:', session.user.id)
+  
+  // Primero buscar en empresas directamente
+  const { data: empresaData } = await supabase
+    .from('empresas')
+    .select('id')
+    .eq('auth_user_id', session.user.id)
+    .single()
+
+  if (empresaData?.id) {
+    console.log('Middleware: Empresa encontrada directamente:', empresaData.id)
+    await persistEmpresaId(empresaData.id, session, supabase)
+    return empresaData.id
+  }
+
+  // Si no se encuentra, buscar en vinculaciones
+  const { data: vinculacionData } = await supabase
+    .from('vinculaciones')
+    .select('empresa_id')
+    .eq('user_id', session.user.id)
+    .eq('estado', 'activo')
+    .single()
+
+  if (vinculacionData?.empresa_id) {
+    console.log('Middleware: Empresa encontrada en vinculaciones:', vinculacionData.empresa_id)
+    await persistEmpresaId(vinculacionData.empresa_id, session, supabase)
+    return vinculacionData.empresa_id
+  }
+
+  return null
+}
+
+// Función para persistir el empresa_id
+async function persistEmpresaId(empresaId: string, session: any, supabase: any) {
+  // 1. Actualizar metadatos del usuario
+  await supabase.auth.updateUser({
+    data: { empresa_id: empresaId }
+  })
+
+  // 2. Devolver la respuesta con la cookie actualizada
+  const response = NextResponse.next()
+  response.cookies.set('empresa_id', empresaId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 30 * 24 * 60 * 60 // 30 días
+  })
+  
+  return response
+}
+
 // Middleware principal
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const { pathname } = req.nextUrl
 
-  // Permitir acceso a assets estáticos
-  if (isStaticAsset(pathname)) {
-    return res
-  }
-
-  // Permitir acceso a rutas públicas específicas
-  if (isPublicRoute(pathname)) {
+  if (isStaticAsset(pathname) || isPublicRoute(pathname)) {
     return res
   }
 
@@ -50,63 +112,45 @@ export async function middleware(req: NextRequest) {
     const supabase = createMiddlewareClient<Database>({ req, res })
     const { data: { session } } = await supabase.auth.getSession()
 
-    // Obtener el rol del usuario desde app_metadata
     const userRole = session?.user?.app_metadata?.role || 'client'
-    const empresaId = session?.user?.app_metadata?.empresa_id
+
+    console.log('Middleware - Verificación de sesión:', {
+      hasSession: !!session,
+      userRole,
+      pathname,
+      userId: session?.user?.id
+    })
 
     // Verificar acceso según el rol y la ruta
     if (pathname.startsWith('/admin')) {
-      // Si no hay sesión o el rol no es admin, redirigir a login de admin
-      if (!session || userRole !== 'admin') {
-        console.log('Middleware: Acceso denegado a ruta admin:', {
-          session: !!session,
-          role: userRole,
-          path: pathname
-        })
-        const redirectUrl = new URL('/admin/login', req.url)
-        redirectUrl.searchParams.set('returnUrl', pathname)
-        return NextResponse.redirect(redirectUrl)
-      }
-    }
-
-    // Verificar acceso a rutas de formularios
-    if (pathname.startsWith('/dashboard/forms')) {
       if (!session) {
-        console.log('Middleware: No hay sesión para forms, redirigiendo a login')
-        const redirectUrl = new URL('/admin/login', req.url)
-        redirectUrl.searchParams.set('returnUrl', pathname)
-        return NextResponse.redirect(redirectUrl)
+        console.log('Middleware: No hay sesión, redirigiendo a login')
+        return NextResponse.redirect(new URL('/admin/login?returnUrl=' + pathname, req.url))
       }
 
-      if (!empresaId) {
-        console.log('Middleware: Usuario sin empresa asignada')
+      if (userRole !== 'admin' && userRole !== 'superadmin') {
+        console.log('Middleware: Usuario sin rol admin')
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
 
-      // Verificar permisos específicos para formularios si es necesario
-      if (userRole !== 'admin' && !session.user?.app_metadata?.can_manage_forms) {
-        console.log('Middleware: Usuario sin permisos para gestionar formularios')
-        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      // Verificar empresa_id para rutas específicas
+      if (pathname.includes('/dashboard/forms-a/')) {
+        const empresaId = await getEmpresaId(req, session, supabase)
+        
+        if (!empresaId) {
+          console.log('Middleware: No se encontró empresa asociada al usuario')
+          return NextResponse.redirect(new URL('/unauthorized', req.url))
+        }
+
+        // Actualizar la respuesta con la cookie
+        const response = await persistEmpresaId(empresaId, session, supabase)
+        return response
       }
     }
 
-    // Verificar acceso a rutas de clases
-    if (pathname.startsWith('/clases/')) {
-      // Permitir acceso a la página de login sin autenticación
-      if (pathname === '/clases/login') {
-        return res
-      }
-
-      // Si no hay sesión, redirigir al login de clases con returnUrl
-      if (!session) {
-        console.log('Middleware: No hay sesión, redirigiendo a login con returnUrl:', pathname)
-        const redirectUrl = new URL('/clases/login', req.url)
-        redirectUrl.searchParams.set('returnUrl', pathname)
-        return NextResponse.redirect(redirectUrl)
-      }
-
-      // Si hay una sesión válida y estamos en una ruta protegida, permitir el acceso
-      return res
+    // Redirigir /dashboard a /admin/dashboard
+    if (pathname.startsWith('/dashboard')) {
+      return NextResponse.redirect(new URL(pathname.replace('/dashboard', '/admin/dashboard'), req.url))
     }
 
     return res

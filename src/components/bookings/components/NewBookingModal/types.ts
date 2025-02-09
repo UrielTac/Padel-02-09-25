@@ -1,11 +1,12 @@
-export type BookingType = 'class' | 'package'
+export type BookingType = 'simple_shift' | 'class';
 
 export type BookingStep = 
-  | 'class-details'
-  | 'class-schedule'
+  | 'participants'
+  | 'rentals'
   | 'payment'
   | 'confirmation'
-  | 'package-details'
+  | 'class-details'
+  | 'class-schedule';
 
 export interface ClassDetails {
   name: string

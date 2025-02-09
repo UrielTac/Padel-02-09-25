@@ -4,7 +4,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { MembersTable } from "@/components/usersSection/MembersTable"
 import { useAuth } from "@/contexts/AuthContext"
 import { useBranchContext } from "@/contexts/BranchContext"
-import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAppStore } from "@/store/appStore"
 
@@ -14,47 +13,58 @@ export default function UsersPage() {
   const router = useRouter()
   const { currentBranch: appStoreBranch } = useAppStore()
 
-  useEffect(() => {
-    if (!isLoadingAuth && !user) {
-      router.push('/admin/login')
-    }
-  }, [user, isLoadingAuth, router])
-
   // Estado de carga general
   const isLoading = isLoadingAuth || isLoadingBranch
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">Cargando...</div>
-      </div>
-    )
-  }
-
-  if (!user) return null
-
-  // Verificar que tengamos una sede seleccionada
-  if (!currentBranch) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-500">No hay una sede seleccionada</div>
-      </div>
-    )
-  }
-
   return (
-    <div className="flex flex-col gap-4">
-      <Tabs defaultValue="members" className="w-full">
-        <TabsList className="border-b border-slate-200/10">
-          <TabsTrigger value="members">Miembros</TabsTrigger>
-        </TabsList>
+    <div className="fixed inset-0 overflow-hidden z-0">
+      <main className="absolute inset-0 lg:left-[240px]">
+        <div className="absolute inset-[8px]">
+          <div className="bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] w-full h-full overflow-auto scrollbar-none">
+            <div className="px-6 py-4">
+              {isLoading ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
+                    <p className="text-sm text-gray-500">Cargando...</p>
+                  </div>
+                </div>
+              ) : !user ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-sm text-gray-500">No hay sesión activa</p>
+                  </div>
+                </div>
+              ) : !currentBranch ? (
+                <div className="h-full w-full flex items-center justify-center">
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-sm text-gray-500">No hay una sede seleccionada</p>
+                  </div>
+                </div>
+              ) : (
+                <Tabs defaultValue="members" className="flex flex-col h-full">
+                  <div className="flex-none mb-4">
+                    <TabsList>
+                      <TabsTrigger 
+                        value="members"
+                        className="data-[state=inactive]:text-gray-500"
+                      >
+                        Miembros
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
 
-        <TabsContent value="members">
-          <div className="bg-card">
-            <MembersTable />
+                  <TabsContent value="members" className="flex-1">
+                    <div className="h-full overflow-auto scrollbar-none">
+                      <MembersTable />
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              )}
+            </div>
           </div>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </main>
     </div>
   )
 }

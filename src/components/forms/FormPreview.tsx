@@ -217,7 +217,7 @@ export function FormPreview({
 
   return (
     <div className={cn(
-      "bg-gray-50 rounded-xl p-6 space-y-6",
+      "bg-gray-50 rounded-xl p-6 space-y-6 overflow-y-auto no-scrollbar",
       "transition-all duration-200",
       isBlurred && "opacity-50 pointer-events-none"
     )}>

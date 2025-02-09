@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { Branch, BranchFormData } from "@/types/branch"
 import { branchService } from "@/services/branchService"
-import { useOrganization } from "@/hooks/useOrganization"
+import useOrganization from "@/hooks/useOrganization"
 import { NewBranchModal } from "./NewBranchModal"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { Button } from "@/components/ui/button"
@@ -27,8 +27,12 @@ export function BranchSettings() {
     refetch
   } = useQuery({
     queryKey: ['branches', organization?.id],
-    queryFn: () => branchService.getBranches(organization?.id!).then(res => res.data || []),
-    enabled: !!organization?.id,
+    queryFn: async () => {
+      if (!organization?.id) throw new Error('No hay organización seleccionada')
+      const res = await branchService.getBranches(organization.id)
+      return res.data || []
+    },
+    enabled: !!organization?.id
   })
 
   // Mutación para crear sedes
@@ -87,23 +91,55 @@ export function BranchSettings() {
 
   // Mutación para actualizar sedes
   const updateBranchMutation = useMutation({
-    mutationFn: ({ branchId, formData }: { branchId: string, formData: BranchFormData }) => 
-      branchService.updateBranch(branchId, formData, organization?.id!),
-    onSuccess: (response) => {
-      if (response.data) {
-        queryClient.setQueryData(['branches', organization?.id], 
-          (old: Branch[] = []) => old.map(b => 
-            b.id === response.data!.id ? response.data! : b
-          )
-        )
-        setBranchToEdit(null)
-        toast({
-          title: "Éxito",
-          description: "La sede se ha actualizado correctamente",
-        })
+    mutationFn: async ({ branchId, formData }: { branchId: string, formData: BranchFormData }) => {
+      if (!organization?.id) throw new Error('No hay organización seleccionada')
+      console.log('🔄 Iniciando mutación de actualización:', { branchId, formData })
+      
+      // Validar datos antes de enviar
+      if (!formData.name || !formData.address || !formData.phone) {
+        throw new Error('Faltan campos requeridos')
       }
+
+      const result = await branchService.updateBranch(branchId, formData, organization.id)
+      console.log('📥 Respuesta del servidor:', result)
+
+      if (result.error) {
+        console.error('❌ Error del servidor:', result.error)
+        throw new Error(result.error.message || 'Error al actualizar la sede')
+      }
+
+      if (!result.data) {
+        throw new Error('No se recibieron datos de la actualización')
+      }
+
+      return result.data
     },
-    onError: (error: any) => {
+    onMutate: async ({ branchId, formData }) => {
+      await queryClient.cancelQueries({ queryKey: ['branches', organization?.id] })
+      const previousBranches = queryClient.getQueryData(['branches', organization?.id])
+      
+      // Actualización optimista
+      queryClient.setQueryData(['branches', organization?.id], (old: Branch[] = []) => 
+        old.map(b => b.id === branchId ? { ...b, ...formData } : b)
+      )
+      
+      return { previousBranches }
+    },
+    onSuccess: (data) => {
+      console.log('✅ Sede actualizada exitosamente:', data)
+      queryClient.invalidateQueries({ queryKey: ['branches', organization?.id] })
+      setBranchToEdit(null)
+      toast({
+        title: "Éxito",
+        description: "La sede se ha actualizado correctamente",
+      })
+    },
+    onError: (error: any, _, context) => {
+      console.error('❌ Error al actualizar sede:', error)
+      // Revertir a los datos anteriores
+      if (context?.previousBranches) {
+        queryClient.setQueryData(['branches', organization?.id], context.previousBranches)
+      }
       toast({
         title: "Error al actualizar sede",
         description: error.message || "No se pudo actualizar la sede",
@@ -111,6 +147,15 @@ export function BranchSettings() {
       })
     }
   })
+
+  const handleUpdateBranch = async (branchId: string, formData: BranchFormData) => {
+    try {
+      console.log('📝 Iniciando actualización de sede:', { branchId, formData })
+      await updateBranchMutation.mutateAsync({ branchId, formData })
+    } catch (error) {
+      console.error('❌ Error en handleUpdateBranch:', error)
+    }
+  }
 
   // Memoizar el renderizado de las tarjetas para evitar re-renders innecesarios
   const renderBranchCards = useMemo(() => {
@@ -167,11 +212,11 @@ export function BranchSettings() {
         <div className="space-y-3 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
             <IconMapPin className="h-4 w-4 flex-shrink-0" />
-            <span>{branch.address}</span>
+            <span>{branch.address || 'Sin dirección'}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600">
             <IconPhone className="h-4 w-4 flex-shrink-0" />
-            <span>{branch.phone}</span>
+            <span>{branch.phone || 'Sin teléfono'}</span>
           </div>
           {branch.manager_id && (
             <div className="flex items-center gap-2 text-gray-600">
@@ -181,11 +226,13 @@ export function BranchSettings() {
           )}
         </div>
 
-        {/* Contador de canchas */}
+        {/* Información adicional */}
         <div className="mt-4 pt-4 border-t border-gray-100">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Canchas disponibles</span>
-            <span className="text-sm font-medium">{branch.courts}</span>
+            <span className="text-sm text-gray-600">Estado</span>
+            <span className="text-sm font-medium">
+              {branch.is_active ? 'Activa' : 'Inactiva'}
+            </span>
           </div>
         </div>
       </div>
@@ -246,9 +293,7 @@ export function BranchSettings() {
         branch={branchToEdit}
         isOpen={!!branchToEdit}
         onClose={() => setBranchToEdit(null)}
-        onSave={(branchId, formData) => 
-          updateBranchMutation.mutate({ branchId, formData })
-        }
+        onSave={handleUpdateBranch}
       />
     </div>
   )

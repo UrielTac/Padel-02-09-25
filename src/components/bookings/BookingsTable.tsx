@@ -18,6 +18,25 @@ import { ViewBookingModal } from "./components/ViewBookingModal/ViewBookingModal
 import { timeToMinutes } from "./utils"
 import { Z_LAYERS } from "@/constants/zIndex"
 import { useBookings } from "@/hooks/useBookings"
+import { cn } from "@/lib/utils"
+import { IconCircleCheck } from "@tabler/icons-react"
+import { toast } from "@/components/ui/use-toast"
+
+const ScrollContainer = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="flex-1 min-h-0 relative">
+      <div 
+        className={cn(
+          "absolute inset-0",
+          "overflow-y-auto",
+          "bookings-scroll-container"
+        )}
+      >
+        {children}
+      </div>
+    </div>
+  );
+};
 
 export function BookingsTable() {
   // Estados principales
@@ -153,47 +172,60 @@ export function BookingsTable() {
   }
 
   return (
-    <div className="w-full" style={{ zIndex: Z_LAYERS.TABLE_BASE }}>
-      <TableHeader
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        onConfigClick={handleConfigButtonClick}
-        onCreateClassClick={() => setShowNewBookingModal(true)}
-      />
+    <div className="h-full flex flex-col">
+      <div className="flex-none">
+        <TableHeader
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          onConfigClick={handleConfigButtonClick}
+          onCreateClassClick={() => setShowNewBookingModal(true)}
+        />
+      </div>
 
+      <div className="flex-1 min-h-0">
+        <div className={cn(
+          "h-full overflow-y-auto",
+          "bookings-scroll-container"
+        )}>
+          <div className="p-4">
+            <div ref={tableContainerRef} 
+                 className="w-full border rounded-lg">
+              <TableBody
+                timeSlots={timeSlots}
+                visibleCourts={visibleCourts}
+                selection={selection}
+                isMouseDown={isMouseDown}
+                isDragging={isDragging}
+                getExistingBooking={getExistingBooking}
+                onMouseDown={handleCellMouseDown}
+                onMouseMove={handleCellMouseMove}
+                onMouseEnter={handleCellMouseMove}
+                onBookingClick={setSelectedBooking}
+                isSlotSelected={isSlotSelected}
+                getCourtColumnWidth={getCourtColumnWidth}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-none">
+        <TableNavigationButtons
+          totalItems={allCourts.length}
+          visibleItems={4}
+          currentStart={visibleCourtsStart}
+          onNavigate={handleTableNavigation}
+          className="border-t border-gray-200 bg-white py-3"
+        />
+      </div>
+
+      {/* Modales y menús */}
       <ConfigurationMenu
         isOpen={configMenuOpen}
         onClose={() => setConfigMenuOpen(false)}
         position={configButtonPosition}
         currentConfig={tableConfig}
         onConfigChange={setTableConfig}
-      />
-
-      <div className="p-4 overflow-x-auto select-none">
-        <div ref={tableContainerRef} className="overflow-x-auto border rounded-lg">
-          <TableBody
-            timeSlots={timeSlots}
-            visibleCourts={visibleCourts}
-            selection={selection}
-            isMouseDown={isMouseDown}
-            isDragging={isDragging}
-            getExistingBooking={getExistingBooking}
-            onMouseDown={handleCellMouseDown}
-            onMouseMove={handleCellMouseMove}
-            onMouseEnter={handleCellMouseMove}
-            onBookingClick={setSelectedBooking}
-            isSlotSelected={isSlotSelected}
-            getCourtColumnWidth={getCourtColumnWidth}
-          />
-        </div>
-      </div>
-
-      <TableNavigationButtons
-        totalItems={allCourts.length}
-        visibleItems={4}
-        currentStart={visibleCourtsStart}
-        onNavigate={handleTableNavigation}
-        className="border-t border-gray-200 bg-white py-3"
       />
 
       <NewBookingModal 
@@ -214,6 +246,18 @@ export function BookingsTable() {
         isOpen={!!selectedBooking}
         onClose={() => setSelectedBooking(null)}
         booking={selectedBooking}
+        setSelectedBooking={setSelectedBooking}
+        onCancelSuccess={() => {
+          toast({
+            title: "Reserva cancelada",
+            description: (
+              <div className="flex items-center gap-2">
+                <IconCircleCheck className="h-4 w-4 text-green-600" />
+                <span>La reserva ha sido cancelada exitosamente</span>
+              </div>
+            )
+          })
+        }}
       />
     </div>
   )

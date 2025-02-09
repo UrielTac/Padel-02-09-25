@@ -1,5 +1,4 @@
-import '@/styles/globals.css'
-import '@/styles/theme.css'
+import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'

@@ -180,7 +180,7 @@ export function TableBody({
 
                             {!isSlotAvailable && (
                               <div className="absolute inset-0 flex items-center justify-center border-0">
-                                <div className="w-full border-t border-gray-200/10" />
+                                <div className="w-full border-t border-gray-100/10" />
                               </div>
                             )}
                             

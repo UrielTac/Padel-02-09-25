@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/providers/AuthProvider';
+import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
 import { formPublishService } from '@/lib/services/forms/publish-service';
 import { toast } from 'sonner';
 
-interface FormPublishConfig {
+export interface FormPublishConfig {
   title: string;
   description?: string;
   fields: any[];

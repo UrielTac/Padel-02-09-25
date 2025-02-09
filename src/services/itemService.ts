@@ -67,7 +67,11 @@ export const itemService = {
 
       // Validaciones
       const { stock, defaultDuration } = this.validateItemData(item)
-      const duration_pricing = this.validatePricing(item.pricing)
+      const duration_pricing = this.validatePricing(item.duration_pricing || {})
+
+      // Validar y preparar campos de depósito
+      const requires_deposit = item.requires_deposit ?? false
+      const deposit_amount = requires_deposit ? this.validateDepositAmount(item.deposit_amount) : null
 
       // Crear item
       const { data, error } = await supabase
@@ -78,8 +82,8 @@ export const itemService = {
           duration_pricing,
           default_duration: defaultDuration,
           stock,
-          requires_deposit: item.requiresDeposit,
-          deposit_amount: item.depositAmount,
+          requires_deposit,
+          deposit_amount,
           is_active: true,
           empresa_id: sede.empresa_id,
           sede_id: sedeId,
@@ -109,7 +113,11 @@ export const itemService = {
 
       // Validaciones
       const { stock, defaultDuration } = this.validateItemData(item)
-      const duration_pricing = this.validatePricing(item.pricing)
+      const duration_pricing = this.validatePricing(item.duration_pricing || {})
+
+      // Validar y preparar campos de depósito
+      const requires_deposit = item.requires_deposit ?? false
+      const deposit_amount = requires_deposit ? this.validateDepositAmount(item.deposit_amount) : null
 
       // Obtener la sede y verificar empresa_id
       const { data: sede, error: sedeError } = await supabase
@@ -130,9 +138,9 @@ export const itemService = {
           duration_pricing,
           default_duration: defaultDuration,
           stock,
-          requires_deposit: item.requiresDeposit,
-          deposit_amount: item.depositAmount,
-          is_active: item.isActive,
+          requires_deposit,
+          deposit_amount,
+          is_active: item.is_active ?? true,
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
@@ -179,12 +187,12 @@ export const itemService = {
       id: dbItem.id,
       name: dbItem.name,
       type: dbItem.type,
-      pricing: dbItem.duration_pricing || {},
-      defaultDuration: dbItem.default_duration || 60,
+      duration_pricing: dbItem.duration_pricing || {},
+      default_duration: dbItem.default_duration || 60,
       stock: dbItem.stock,
-      requiresDeposit: dbItem.requires_deposit,
-      depositAmount: dbItem.deposit_amount || undefined,
-      isActive: dbItem.is_active
+      requires_deposit: dbItem.requires_deposit ?? false,
+      deposit_amount: dbItem.deposit_amount,
+      is_active: dbItem.is_active ?? true
     }
   },
 
@@ -196,7 +204,7 @@ export const itemService = {
     const stock = Number(item.stock)
     if (isNaN(stock) || stock < 0) throw new Error('El stock debe ser un número válido no negativo')
 
-    const defaultDuration = Number(item.defaultDuration) || 60
+    const defaultDuration = Number(item.default_duration) || 60
     if (isNaN(defaultDuration) || defaultDuration <= 0) {
       throw new Error('La duración por defecto debe ser un número válido mayor a 0')
     }
@@ -222,5 +230,18 @@ export const itemService = {
     })
 
     return duration_pricing
+  },
+
+  validateDepositAmount(amount: number | null | undefined): number | null {
+    if (amount === null || amount === undefined) {
+      throw new Error('El monto del depósito es requerido cuando requires_deposit es true')
+    }
+
+    const depositAmount = Number(amount)
+    if (isNaN(depositAmount) || depositAmount < 0) {
+      throw new Error('El monto del depósito debe ser un número válido no negativo')
+    }
+
+    return depositAmount
   }
 } 

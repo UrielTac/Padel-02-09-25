@@ -12,12 +12,38 @@ export interface PublishedFormSettings {
   isCustomizable?: boolean;
 }
 
-export interface FormPublishConfig {
-  id?: string;
+export interface FormField {
+  id: string;
+  type: string;
+  label: string;
+  required: boolean;
+  order: number;
+  options?: any;
+}
+
+export interface FormSettings {
   title: string;
   description?: string;
-  fields: any[];
-  theme?: 'light' | 'dark';
+  business_name?: string;
+  theme?: {
+    mode?: 'light' | 'dark';
+    primary_color?: string;
+    logo_url?: string;
+  };
+  fields: FormField[];
+  isCustomizable?: boolean;
+  analytics?: {
+    views: number;
+    submissions: number;
+  };
+}
+
+export interface PublishedForm {
+  id: string;
+  empresa_id: string;
+  slug: string;
+  settings: FormSettings;
+  status: 'published' | 'draft' | 'archived';
   customization?: {
     colors?: {
       primary?: string;
@@ -26,14 +52,12 @@ export interface FormPublishConfig {
       url?: string;
     };
   };
-}
-
-export interface PublishedForm {
-  id: string;
-  empresa_id: string;
-  slug: string;
-  status: 'published';
-  isCustomizable?: boolean;
+  metadata?: {
+    createdBy?: string;
+    updatedBy?: string;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface FormPublishResponse {

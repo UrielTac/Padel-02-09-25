@@ -20,7 +20,8 @@ import type {
   RentalItem, 
   Participant,
   PaymentMethodEnum,
-  PaymentStatusEnum 
+  PaymentStatusEnum,
+  BookingType
 } from "@/types/bookings"
 import type { RentalSelection } from "@/types/items"
 import { useQueryClient } from '@tanstack/react-query'
@@ -70,6 +71,12 @@ const initialPaymentDetails: PaymentDetails = {
   paymentStatus: 'pending' as PaymentStatusEnum,
   paymentMethod: 'cash' as PaymentMethodEnum,
   isPaid: false
+}
+
+interface SimpleShiftBookingModalProps {
+  isOpen: boolean
+  onClose: () => void
+  selection: Selection
 }
 
 export function SimpleShiftBookingModal({ 
@@ -357,7 +364,7 @@ export function SimpleShiftBookingModal({
             <div className="h-full flex flex-col">
               <ModalHeader 
                 currentStep={currentStep}
-                selectedBookingType="shift"
+                selectedBookingType="simple_shift"
               />
 
               <div className="flex-1 overflow-y-auto">
@@ -369,9 +376,8 @@ export function SimpleShiftBookingModal({
                   onTimeSelect={setTimeSelection}
                   onValidationChange={setIsStepValid}
                   onPaymentChange={setPaymentDetails}
-                  onRentalChange={handleRentalChange}
-                  participants={participants}
                   onParticipantChange={setParticipants}
+                  participants={participants}
                   startTime={timeSelection?.startTime}
                   endTime={timeSelection?.endTime}
                 />
@@ -382,7 +388,6 @@ export function SimpleShiftBookingModal({
                 onBack={handleBackAction}
                 onContinue={handleContinueAction}
                 isValid={isStepValid}
-                isSimpleShift={true}
               />
             </div>
           </motion.div>

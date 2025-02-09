@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { TimeSelector } from "@/components/ui/time-selector"
 import { IconPlus, IconTrash, IconLoader, IconBuilding, IconClock, IconMapPin, IconPhone } from "@tabler/icons-react"
-import { Branch, BranchFormData } from "@/types/branch"
+import { Branch, BranchFormData, BranchSchedule } from "@/types/branch"
 import { toast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -17,13 +17,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-
-interface EditBranchModalProps {
-  branch: Branch | null
-  isOpen: boolean
-  onClose: () => void
-  onSave: (branchId: string, data: BranchFormData) => void
-}
+import { formatScheduleFromDB, formatScheduleForDB } from '@/lib/utils/schedule-utils'
 
 const DAYS = [
   { id: 'monday', label: 'Lunes' },
@@ -33,7 +27,14 @@ const DAYS = [
   { id: 'friday', label: 'Viernes' },
   { id: 'saturday', label: 'Sábado' },
   { id: 'sunday', label: 'Domingo' }
-]
+] as const
+
+interface EditBranchModalProps {
+  branch: Branch | null
+  isOpen: boolean
+  onClose: () => void
+  onSave: (branchId: string, data: BranchFormData) => void
+}
 
 export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -41,40 +42,21 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
     name: '',
     address: '',
     phone: '',
-    manager: '',
-    isActive: true,
-    schedule: DAYS.map(day => ({
-      day: day.id,
-      isOpen: true,
-      timeRanges: [{
-        openTime: '08:00',
-        closeTime: '22:00'
-      }]
-    }))
+    manager_id: '',
+    is_active: true,
+    opening_hours: formatScheduleFromDB(null)
   })
 
-  // Cargar datos de la sede cuando se abre el modal
   useEffect(() => {
     if (branch) {
-      const schedule = DAYS.map(day => {
-        const daySchedule = branch.opening_hours[day.id]
-        return {
-          day: day.id,
-          isOpen: daySchedule?.isOpen ?? false,
-          timeRanges: daySchedule?.timeRanges ?? [{
-            openTime: '08:00',
-            closeTime: '22:00'
-          }]
-        }
-      })
-
+      console.log('📝 Cargando datos de la sede:', branch)
       setFormData({
         name: branch.name,
         address: branch.address || '',
         phone: branch.phone || '',
-        manager: branch.manager_id || '',
-        isActive: branch.is_active,
-        schedule
+        manager_id: branch.manager_id || '',
+        is_active: branch.is_active || false,
+        opening_hours: formatScheduleFromDB(branch.opening_hours)
       })
     }
   }, [branch])
@@ -84,13 +66,30 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
 
     try {
       setIsSubmitting(true)
-      await onSave(branch.id, formData)
+      console.log('🔄 Iniciando actualización de sede...')
+      
+      // Formatear los horarios antes de guardar
+      const formattedHours = formatScheduleForDB(formData.opening_hours)
+      console.log('📅 Horarios formateados:', formattedHours)
+      
+      const dataToSave: BranchFormData = {
+        ...formData,
+        opening_hours: formattedHours
+      }
+
+      console.log('📤 Datos a guardar:', dataToSave)
+      
+      await onSave(branch.id, dataToSave)
+      console.log('✅ Sede actualizada exitosamente')
+      
       toast({
-        title: "Sede actualizada",
-        description: "Los cambios se han guardado correctamente",
+        title: "Éxito",
+        description: "La sede se ha actualizado correctamente",
       })
+      
       onClose()
     } catch (error) {
+      console.error('❌ Error al guardar:', error)
       toast({
         title: "Error",
         description: "No se pudieron guardar los cambios. Por favor, inténtalo de nuevo.",
@@ -100,6 +99,95 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
       setIsSubmitting(false)
     }
   }
+
+  const updateDaySchedule = (dayId: string, updates: Partial<BranchSchedule[string]>) => {
+    console.log('Actualizando horario del día:', dayId, updates)
+    setFormData(prev => ({
+      ...prev,
+      opening_hours: {
+        ...prev.opening_hours,
+        [dayId]: {
+          ...prev.opening_hours[dayId],
+          ...updates
+        }
+      }
+    }))
+  }
+
+  const updateTimeRange = (dayId: string, rangeIndex: number, updates: Partial<{ openTime: string, closeTime: string }>) => {
+    setFormData(prev => {
+      const daySchedule = prev.opening_hours[dayId];
+      const newTimeRanges = [...daySchedule.timeRanges];
+      
+      // Asegurarse de que el rango existe
+      if (rangeIndex >= newTimeRanges.length) {
+        console.warn('Índice de rango inválido:', rangeIndex);
+        return prev;
+      }
+
+      // Actualizar el rango específico
+      newTimeRanges[rangeIndex] = {
+        ...newTimeRanges[rangeIndex],
+        ...updates
+      };
+
+      console.log(`🕒 Actualizando rango ${rangeIndex} para ${dayId}:`, newTimeRanges[rangeIndex]);
+      
+      return {
+        ...prev,
+        opening_hours: {
+          ...prev.opening_hours,
+          [dayId]: {
+            ...daySchedule,
+            timeRanges: newTimeRanges
+          }
+        }
+      };
+    });
+  };
+
+  const addTimeRange = (dayId: string) => {
+    setFormData(prev => {
+      const daySchedule = prev.opening_hours[dayId];
+      const newTimeRanges = [
+        ...daySchedule.timeRanges,
+        { openTime: '08:00', closeTime: '22:00' }
+      ];
+
+      console.log(`➕ Agregando nuevo rango para ${dayId}:`, newTimeRanges);
+
+      return {
+        ...prev,
+        opening_hours: {
+          ...prev.opening_hours,
+          [dayId]: {
+            ...daySchedule,
+            timeRanges: newTimeRanges
+          }
+        }
+      };
+    });
+  };
+
+  const removeTimeRange = (dayId: string, rangeIndex: number) => {
+    setFormData(prev => {
+      const daySchedule = prev.opening_hours[dayId];
+      const newTimeRanges = daySchedule.timeRanges.filter((_, index) => index !== rangeIndex);
+
+      console.log(`🗑️ Eliminando rango ${rangeIndex} para ${dayId}:`, newTimeRanges);
+
+      return {
+        ...prev,
+        opening_hours: {
+          ...prev.opening_hours,
+          [dayId]: {
+            ...daySchedule,
+            timeRanges: newTimeRanges
+          }
+        }
+      };
+    });
+  };
 
   if (!branch) return null
 
@@ -169,8 +257,8 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
                       <Label htmlFor="manager">Encargado</Label>
                       <Input
                         id="manager"
-                        value={formData.manager || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, manager: e.target.value }))}
+                        value={formData.manager_id || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, manager_id: e.target.value }))}
                         placeholder="Ej: Juan Pérez"
                       />
                       <p className="text-xs text-gray-500">
@@ -186,8 +274,8 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
                         </div>
                       </div>
                       <Switch
-                        checked={formData.isActive}
-                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                        checked={formData.is_active}
+                        onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
                       />
                     </div>
                   </div>
@@ -209,85 +297,61 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
                 </AccordionTrigger>
                 <AccordionContent className="px-4 pb-4">
                   <div className="space-y-4 pt-4">
-                    {formData.schedule.map((daySchedule, dayIndex) => (
+                    {DAYS.map((day) => (
                       <div
-                        key={daySchedule.day}
+                        key={day.id}
                         className="p-4 rounded-lg border bg-white space-y-4"
                       >
                         <div className="flex items-center justify-between">
                           <div className="space-y-0.5">
-                            <Label>{DAYS.find(d => d.id === daySchedule.day)?.label}</Label>
+                            <Label>{day.label}</Label>
                             <div className="text-sm text-gray-500">
                               Configura los horarios para este día
                             </div>
                           </div>
                           <Switch
-                            checked={daySchedule.isOpen}
-                            onCheckedChange={(checked) => {
-                              const newSchedule = [...formData.schedule]
-                              newSchedule[dayIndex].isOpen = checked
-                              setFormData(prev => ({ ...prev, schedule: newSchedule }))
-                            }}
+                            checked={formData.opening_hours[day.id].isOpen}
+                            onCheckedChange={(checked) => updateDaySchedule(day.id, { isOpen: checked })}
                           />
                         </div>
 
-                        {daySchedule.isOpen && (
+                        {formData.opening_hours[day.id].isOpen && (
                           <div className="space-y-3 pl-6">
-                            {daySchedule.timeRanges.map((timeRange, rangeIndex) => (
-                              <div key={rangeIndex} className="flex items-center gap-3">
+                            {formData.opening_hours[day.id].timeRanges.map((range, index) => (
+                              <div key={`${day.id}-range-${index}`} className="flex items-center gap-3">
                                 <div className="flex-1 grid grid-cols-2 gap-4">
                                   <div className="space-y-1.5">
                                     <Label className="text-xs text-gray-500">Apertura</Label>
                                     <TimeSelector
-                                      value={timeRange.openTime}
-                                      onChange={(time) => {
-                                        const newSchedule = [...formData.schedule]
-                                        newSchedule[dayIndex].timeRanges[rangeIndex].openTime = time
-                                        setFormData(prev => ({ ...prev, schedule: newSchedule }))
-                                      }}
+                                      value={range.openTime}
+                                      onChange={(time) => updateTimeRange(day.id, index, { openTime: time })}
                                     />
                                   </div>
                                   <div className="space-y-1.5">
                                     <Label className="text-xs text-gray-500">Cierre</Label>
                                     <TimeSelector
-                                      value={timeRange.closeTime}
-                                      onChange={(time) => {
-                                        const newSchedule = [...formData.schedule]
-                                        newSchedule[dayIndex].timeRanges[rangeIndex].closeTime = time
-                                        setFormData(prev => ({ ...prev, schedule: newSchedule }))
-                                      }}
+                                      value={range.closeTime}
+                                      onChange={(time) => updateTimeRange(day.id, index, { closeTime: time })}
                                     />
                                   </div>
                                 </div>
 
-                                {daySchedule.timeRanges.length > 1 && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      const newSchedule = [...formData.schedule]
-                                      newSchedule[dayIndex].timeRanges.splice(rangeIndex, 1)
-                                      setFormData(prev => ({ ...prev, schedule: newSchedule }))
-                                    }}
-                                    className="h-9 w-9 text-gray-400 hover:text-red-500"
-                                  >
-                                    <IconTrash className="h-4 w-4" />
-                                  </Button>
-                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeTimeRange(day.id, index)}
+                                  className="h-9 w-9 text-gray-400 hover:text-red-500"
+                                  disabled={formData.opening_hours[day.id].timeRanges.length === 1}
+                                >
+                                  <IconTrash className="h-4 w-4" />
+                                </Button>
                               </div>
                             ))}
 
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => {
-                                const newSchedule = [...formData.schedule]
-                                newSchedule[dayIndex].timeRanges.push({
-                                  openTime: '08:00',
-                                  closeTime: '22:00'
-                                })
-                                setFormData(prev => ({ ...prev, schedule: newSchedule }))
-                              }}
+                              onClick={() => addTimeRange(day.id)}
                               className="w-full"
                             >
                               <IconPlus className="h-4 w-4 mr-2" />

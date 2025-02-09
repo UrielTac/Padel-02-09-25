@@ -1,0 +1,606 @@
+ Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+ Multiple GoTrueClient instances detected in the same browser context. It is not an error, but this should be avoided as it may produce undefined behavior when used concurrently under the same storage key.
+GoTrueClient @ webpack-internal:///…/GoTrueClient.js:74
+:3000/favicon.ico:1  Failed to load resource: the server responded with a status of 404 (Not Found)
+ 🚀 Iniciando carga de datos...
+ 🚀 Iniciando carga de datos...
+ ✅ Empresa cargada: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🚀 Iniciando carga de datos...
+ ✅ Empresa cargada: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Sedes cargadas: 1
+ ✅ Sede actual: Sede Principal
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Estado del usuario: Object
+ 🔍 Buscando empresa para usuario: 02930a7e-1072-4e7c-a47d-7f5305f15dbd
+ ⏳ Esperando carga de dependencias...
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ ⏳ Esperando carga de dependencias...
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Empresa cargada: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Sedes cargadas: 1
+ ✅ Sede actual: Sede Principal
+ ✅ Empresa encontrada: c3adb550-4eb3-4570-afaa-30810730cee9
+ 💾 Empresa ID guardado en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando sedes para empresa: c3adb550-4eb3-4570-afaa-30810730cee9
+ ⏳ Esperando carga de dependencias...
+ ✅ Empresa cargada desde caché: Object
+ ✅ Sedes cargadas: 1
+ ✅ Sede actual: Sede Principal
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ 🔄 useInitialForm - Estado: Object
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔄 useInitialForm - Estado: Object
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Sedes encontradas: 1
+ ✅ Usando sede guardada: Sede Principal
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ AuthGuard - Estado del usuario: Object
+ AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+ 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Empresa cargada desde caché: Object
+ 🔄 useInitialForm - Estado: Object
+ ✅ Configurando formulario inicial con empresa: c3adb550-4eb3-4570-afaa-30810730cee9
+ ✅ Formulario inicial configurado: Object
+ ✅ Renderizando FormProvider con initialForm: Object
+ ✅ Renderizando FormProvider con initialForm: Object
+ [FormContext] Estado de initialForm: Object
+ [FormContext] Actualizando empresa_id: c3adb550-4eb3-4570-afaa-30810730cee9
+ [FormContext] Estado de initialForm: Object
+ [FormContext] Actualizando empresa_id: c3adb550-4eb3-4570-afaa-30810730cee9
+ [Fast Refresh] rebuilding
+ [Fast Refresh] done in 2586ms
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ BookingService - Consultando reservas para fecha: 2025-02-09
+ Error inesperado al obtener reservas: 
+window.console.error @ webpack-internal:///…ent/app-index.js:33
+ BookingService - Consultando reservas para fecha: 2025-02-10
+ Error inesperado al obtener reservas: 
+window.console.error @ webpack-internal:///…ent/app-index.js:33
+ BookingService - Consultando reservas para fecha: 2025-02-08
+ Error inesperado al obtener reservas: 
+window.console.error @ webpack-internal:///…ent/app-index.js:33
+ 🔍 Consultando horarios para: Object
+ ⚠️ No hay horarios definidos
+ ⚠️ No hay horarios definidos
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 🔍 Iniciando carga de artículos para sede: 2d766ca3-cc6e-4699-b4a5-d30aadd48797
+ 👉 Verificando existencia de la sede: 2d766ca3-cc6e-4699-b4a5-d30aadd48797
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Horarios de la sede: Object
+ ⏰ Procesando rango: Object
+ ⏰ Procesando rango: Object
+ ✅ Resultado final: Object
+ 📅 Día actual: Object
+ 📊 Horario calculado: Object
+ 📊 Horario calculado: Object
+ 📅 Día actual: Object
+ 📍 Generando slots para horario: Object
+ 🔄 Actualizando slots por cambio significativo
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📍 Generando slots para horario: Object
+ ✅ Sede verificada: Sede Principal
+ 👉 Obteniendo artículos de la sede
+ ✅ 0 artículos encontrados
+ ✅ Datos transformados correctamente
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Datos procesados de la cancha: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Calculando duración para timeSelection: Object
+ Total amount calculation: Object
+ Total amount calculation: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Calculando duración para timeSelection: Object
+ Total amount calculation: Object
+ Total amount calculation: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Calculando duración para timeSelection: Object
+ Total amount calculation: Object
+ Total amount calculation: Object
+ 🔄 Iniciando inicialización de stock: Object
+ ℹ️ No hay items para procesar
+ 🔄 Iniciando inicialización de stock: Object
+ ℹ️ No hay items para procesar
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Calculando nuevo total: Object
+ Payment details updated: Object
+ Sincronizando estado con nuevo total: Object
+ Payment details updated: Object
+ Calculando nuevo total: Object
+ Payment details updated: Object
+ Sincronizando estado con nuevo total: Object
+ Payment details updated: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 🔍 Consultando horarios para: Object
+ ⚠️ No hay horarios definidos
+ ⚠️ No hay horarios definidos
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Horarios de la sede: Object
+ ⏰ Procesando rango: Object
+ ⏰ Procesando rango: Object
+ ✅ Resultado final: Object
+ 📅 Día actual: Object
+ 📊 Horario calculado: Object
+ 📊 Horario calculado: Object
+ 📅 Día actual: Object
+ 📍 Generando slots para horario: Object
+ 🔄 Actualizando slots por cambio significativo
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📍 Generando slots para horario: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 🔍 Iniciando carga de clases... Object
+ 🔍 Filtrando por sede: 2d766ca3-cc6e-4699-b4a5-d30aadd48797
+ ✅ Clases cargadas: Object
+ 🔍 Iniciando carga de paquetes... Object
+ ✅ Paquetes procesados: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ Procesando cancha en hook: Object
+ 🔍 Consultando horarios para: Object
+ ⚠️ No hay horarios definidos
+ ⚠️ No hay horarios definidos
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Día actual: Object
+ 📅 Horarios de la sede: Object
+ ⏰ Procesando rango: Object
+ ⏰ Procesando rango: Object
+useBusinessHours.ts:126 ✅ Resultado final: Object
+useBusinessHours.ts:41 📅 Día actual: Object
+useBusinessHours.ts:145 📊 Horario calculado: Object
+useBusinessHours.ts:145 📊 Horario calculado: Object
+useBusinessHours.ts:41 📅 Día actual: Object
+useTimeSlots.ts:28 📍 Generando slots para horario: Object
+useTimeSlots.ts:63 🔄 Actualizando slots por cambio significativo
+useBusinessHours.ts:41 📅 Día actual: Object
+useBusinessHours.ts:41 📅 Día actual: Object
+useTimeSlots.ts:28 📍 Generando slots para horario: Object
+useBusinessHours.ts:41 📅 Día actual: Object
+useBusinessHours.ts:41 📅 Día actual: Object
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+use-initial-form.ts:22 🔄 useInitialForm - Estado: Object
+OrganizationContext.tsx:72 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+OrganizationContext.tsx:83 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+use-initial-form.ts:22 🔄 useInitialForm - Estado: Object
+OrganizationContext.tsx:72 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+OrganizationContext.tsx:83 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+OrganizationContext.tsx:72 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+OrganizationContext.tsx:83 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+layout.tsx:20 AuthGuard - Estado del usuario: Object
+layout.tsx:54 AuthGuard - Acceso autorizado para: soportesimplelink@gmail.com
+OrganizationContext.tsx:72 🔍 Buscando empresa_id en caché: c3adb550-4eb3-4570-afaa-30810730cee9
+OrganizationContext.tsx:83 🔍 Buscando empresa desde caché: c3adb550-4eb3-4570-afaa-30810730cee9
+OrganizationContext.tsx:102 ✅ Empresa cargada desde caché: Object
+use-initial-form.ts:22 🔄 useInitialForm - Estado: Object
+use-initial-form.ts:52 ✅ Configurando formulario inicial con empresa: c3adb550-4eb3-4570-afaa-30810730cee9
+use-initial-form.ts:65 ✅ Formulario inicial configurado: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+layout.tsx:107 ✅ Renderizando FormProvider con initialForm: Object
+FormContext.tsx:150 [FormContext] Estado de initialForm: Object
+FormContext.tsx:156 [FormContext] Actualizando empresa_id: c3adb550-4eb3-4570-afaa-30810730cee9
+FormContext.tsx:150 [FormContext] Estado de initialForm: Object
+FormContext.tsx:156 [FormContext] Actualizando empresa_id: c3adb550-4eb3-4570-afaa-30810730cee9
+hot-reloader-client.js:187 [Fast Refresh] rebuilding
+hot-reloader-client.js:44 [Fast Refresh] done in 674ms
+app-index.js:33 Warning: In HTML, <button> cannot be a descendant of <button>.
+This will cause a hydration error.
+    at button
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-collection/dist/index.mjs:61:17)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-roving-focus/dist/index.mjs:143:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:116:13)
+    at _c2 (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:111:11)
+    at button
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:69:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tooltip/dist/index.mjs:204:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at Popper (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-popper/dist/index.mjs:54:13)
+    at Tooltip (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tooltip/dist/index.mjs:95:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at TooltipProvider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tooltip/dist/index.mjs:58:13)
+    at div
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-roving-focus/node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-roving-focus/dist/index.mjs:60:13)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:34:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-slot/dist/index.mjs:15:11)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-collection/dist/index.mjs:43:17)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-collection/node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at CollectionProvider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-collection/dist/index.mjs:28:17)
+    at _c (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-roving-focus/dist/index.mjs:46:22)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:84:13)
+    at eval (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:20:11)
+    at div
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)
+    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:44:13)
+    at div
+    at PricingPage
+    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:24
+window.console.error @ app-index.js:33
+NewItemModal.tsx:172 Guardando formulario: Object
+NewItemModal.tsx:183 Duration pricing generado: Object
+NewItemModal.tsx:202 Datos a guardar: Object
+itemService.ts:53 📍 Iniciando creación de item: Object
+rwyrbfilvaomnwumbpxu.supabase.co/rest/v1/items?columns=%22name%22%2C%22type%22%2C%22duration_pricing%22%2C%22default_duration%22%2C%22stock%22%2C%22requires_deposit%22%2C%22deposit_amount%22%2C%22is_active%22%2C%22empresa_id%22%2C%22sede_id%22%2C%22created_at%22%2C%22updated_at%22&select=*:1 
+            
+            
+           Failed to load resource: the server responded with a status of 400 ()
+app-index.js:33 ❌ Error en createItem: Object
+window.console.error @ app-index.js:33
+app-index.js:33 Error al guardar el artículo: Error: Error al crear item: null value in column "requires_deposit" of relation "items" violates not-null constraint
+    at Object.createItem (itemService.ts:99:13)
+window.console.error @ app-index.js:33
+app-index.js:33 Warning: Cannot update a component (`ForwardRef`) while rendering a different component (`ForwardRef`). To locate the bad setState() call inside `ForwardRef`, follow the stack trace as described in https://reactjs.org/link/setstate-in-render
+    at eval (webpack-internal:///(app-pages-browser)/./node_modules/sonner/dist/index.mjs:598:19)
+    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)
+    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:25:11)
+    at DateProvider (webpack-internal:///(app-pages-browser)/./src/contexts/DateContext.tsx:14:11)
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)
+window.console.error @ app-index.js:33
+NewItemModal.tsx:172 Guardando formulario: Object
+NewItemModal.tsx:183 Duration pricing generado: Object
+NewItemModal.tsx:202 Datos a guardar: Object
+itemService.ts:53 📍 Iniciando creación de item: Object
+rwyrbfilvaomnwumbpxu.supabase.co/rest/v1/items?columns=%22name%22%2C%22type%22%2C%22duration_pricing%22%2C%22default_duration%22%2C%22stock%22%2C%22requires_deposit%22%2C%22deposit_amount%22%2C%22is_active%22%2C%22empresa_id%22%2C%22sede_id%22%2C%22created_at%22%2C%22updated_at%22&select=*:1 
+            
+            
+           Failed to load resource: the server responded with a status of 400 ()
+app-index.js:33 ❌ Error en createItem: Objectcode: "23502"details: nullhint: nullmessage: "null value in column \"requires_deposit\" of relation \"items\" violates not-null constraint"[[Prototype]]: Object
+window.console.error @ app-index.js:33
+app-index.js:33 Error al guardar el artículo: Error: Error al crear item: null value in column "requires_deposit" of relation "items" violates not-null constraint
+    at Object.createItem (itemService.ts:99:13)
+window.console.error @ app-index.js:33
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
+Chrome is moving towards a new experience that allows users to choose to browse without third-party cookies.
