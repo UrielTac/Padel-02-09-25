@@ -1,0 +1,44 @@
+*Administrative Panel Context*
+This panel is designed to manage a padel court rental system, integrating functionalities such as user management, booking, pricing, classes, tournaments, promotions, and key business statistics. The frontend will be built with *Next.js, **React, and styled using **TailwindCSS, **Shadcn UI, and **Radix UI* to ensure a modern, professional, and aesthetic design. This project will only serve as a demo of the frontend, so it won't be connected to any database or backend.
+
+*Panel Sections*:
+1. *Users*: Form to create new users.
+2. *Bookings*: Form to register bookings, along with an interactive table to edit or delete bookings.
+3. *Pricing*: A table or form to manage court and accessory pricing.
+4. *Classes*: Form to create and assign schedules to classes.
+5. *Tournaments*: Form to create new tournaments with details such as dates, participants, and prizes.
+6. *Company Info*: Editable general information about the company.
+7. *Promotions*: Manage promotions with options to add, modify, or delete them.
+8. *Analytics*: Interactive graphs showing key system data (number of bookings, revenue, etc.).
+
+ *Implementation Rules*:
+You are an expert frontend developer specialized in *ReactJS, **NextJS, **JavaScript, **TypeScript, **HTML, **CSS, and modern **UI/UX frameworks* like *TailwindCSS, **Shadcn UI, and **Radix UI*. Make sure the code follows the provided guidelines and is fully functional.
+
+- *Code Style*:
+  - Write concise and correct *TypeScript code, following best practices (DRY principle*).
+  - Use *functional components* with *TypeScript interfaces*. Avoid classes.
+  - Use *functional* and *declarative programming patterns*.
+  - Variable names should be descriptive and clear.
+  - Prefer *interfaces* over types. Avoid enums, use maps where necessary.
+
+- *Naming Conventions*:
+  - Directories should follow a *lowercase-kebab-case* convention (e.g., components/form-users).
+  - Use *named exports* for components.
+
+- *Syntax and Formatting*:
+  - Use the function keyword for pure functions.
+  - Avoid unnecessary braces in conditionals; use concise syntax for simple statements.
+  - Use *declarative JSX*.
+
+- *UI and Styling*:
+  - Use *Shadcn UI, **Radix UI, and **TailwindCSS* for components and styling.
+  - Ensure the layout is fully *responsive*.
+  - Components should be *interactive* and *aesthetically pleasing*.
+
+- *Performance Optimization*:
+  - Ensure the code is optimized for *performance* and scalable.
+  - Avoid unnecessary code duplication.
+
+- *Key Conventions*:
+  - Follow the *Next.js documentation* for data fetching, rendering, and routing.
+  - Organize components in a *modular* and *reusable* manner.

@@ -1,0 +1,63 @@
+"use client"
+
+import { useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useAuth } from '@/contexts/AuthContext'
+import { ClassRegistrationProvider } from '@/components/classes-registration'
+import { AuthStep } from '@/components/classes-registration/steps/AuthStep'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user, isLoading } = useAuth()
+  
+  // Obtener y decodificar returnUrl
+  const returnUrl = searchParams.get('returnUrl')
+  const decodedReturnUrl = returnUrl ? decodeURIComponent(returnUrl) : ''
+  const empresaId = decodedReturnUrl ? decodedReturnUrl.split('/')[2] : ''
+
+  // Redirigir si ya hay una sesión activa
+  useEffect(() => {
+    if (!isLoading && user) {
+      // Verificar que el returnUrl sea válido (debe empezar con /clases/)
+      if (decodedReturnUrl && decodedReturnUrl.startsWith('/clases/') && decodedReturnUrl !== '/clases/login') {
+        console.log('Redirigiendo a:', decodedReturnUrl)
+        router.push(decodedReturnUrl)
+      } else {
+        console.log('Redirigiendo a página principal de clases')
+        router.push('/clases')
+      }
+    }
+  }, [user, isLoading, router, decodedReturnUrl])
+
+  // Si está cargando o hay usuario, mostrar loading
+  if (isLoading || user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">Cargando...</div>
+      </div>
+    )
+  }
+
+  // Si tenemos empresaId, envolver en ClassRegistrationProvider
+  if (empresaId) {
+    return (
+      <div className="min-h-screen bg-white w-full">
+        <ClassRegistrationProvider empresaId={empresaId}>
+          <AuthStep onLoginSuccess={() => {
+            if (decodedReturnUrl) {
+              router.push(decodedReturnUrl)
+            }
+          }} />
+        </ClassRegistrationProvider>
+      </div>
+    )
+  }
+
+  // Si no hay empresaId, mostrar AuthStep directamente
+  return (
+    <div className="min-h-screen bg-white w-full">
+      <AuthStep onLoginSuccess={() => router.push('/clases')} />
+    </div>
+  )
+} 

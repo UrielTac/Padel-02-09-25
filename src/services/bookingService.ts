@@ -1,0 +1,1260 @@
+import { createSupabaseClient } from '@/lib/supabase'
+import { type Database } from '@/types/supabase'
+import { type BookingCreationData, PaymentStatusEnum, PaymentMethodEnum } from '@/types/bookings'
+import type { BookingParticipant, SelectedBooking } from '@/types/bookings'
+import { PAYMENT_METHODS, PAYMENT_STATUS } from '@/types/bookings'
+import { timeToMinutes } from '@/lib/time-utils'
+import type { RentalSelection } from '@/types/items'
+
+interface ServiceResponse<T> {
+  data?: T
+  error?: {
+    message: string
+    code: string
+    details?: string
+  }
+}
+
+interface BookingFromDB {
+  id: string
+  court_id: string
+  date: string
+  start_time: string
+  end_time: string
+  total_price: number
+  court_price: number
+  rental_items_price: number
+  payment_status: PaymentStatusEnum
+  payment_method: PaymentMethodEnum
+  deposit_amount: number
+  title?: string
+  description?: string
+  courts: {
+    id: string
+    name: string
+    branch_id: string
+  }
+  booking_participants: Array<{
+    id: string
+    member_id: string
+    role: string
+    members?: {
+      id: string
+      first_name: string
+      last_name: string
+      email?: string
+      phone?: string
+    }
+  }>
+}
+
+interface BookingParticipantDB {
+  id: string;
+  member_id: string;
+  role: string;
+}
+
+interface RentalItemDB {
+  item_id: string;
+  quantity: number;
+  price_per_unit: number;
+  total_price: number;
+}
+
+interface CreateBookingParams {
+  p_court_id: string;
+  p_date: string;
+  p_start_time: string;
+  p_end_time: string;
+  p_court_price: number;
+  p_rental_items_price: number;
+  p_payment_method: PaymentMethodEnum;
+  p_payment_status: PaymentStatusEnum;
+  p_deposit_amount: number;
+  p_title?: string;
+  p_description?: string;
+  p_participants: Array<{
+    member_id: string;
+    role: string;
+  }>;
+  p_rental_items: RentalItemDB[];
+}
+
+const validatePaymentMethod = (method: string): PaymentMethodEnum => {
+  const validMethods = ['cash', 'stripe', 'transfer']
+  if (!validMethods.includes(method)) {
+    console.warn(`Método de pago inválido: ${method}, usando 'cash' por defecto`)
+    return 'cash'
+  }
+  return method as PaymentMethodEnum
+}
+
+const validatePaymentStatus = (status: string): PaymentStatusEnum => {
+  const validStatus = ['pending', 'partial', 'completed']
+  if (!validStatus.includes(status)) {
+    console.warn(`Estado de pago inválido: ${status}, usando 'pending' por defecto`)
+    return 'pending'
+  }
+  return status as PaymentStatusEnum
+}
+
+const transformBookingDataForDB = (data: BookingCreationData): CreateBookingParams => {
+  // Validar y transformar participantes
+  const participants = (data.participants || []).map(participant => ({
+    member_id: participant.memberId || '',
+    role: participant.role || 'player'
+  }))
+
+  // Validar y transformar rental items con validaciones estrictas
+  const rentalItems: RentalItemDB[] = (data.rentalItems || []).map(rental => {
+    // Validaciones básicas
+    if (!rental.quantity || rental.quantity <= 0) {
+      throw new Error(`Cantidad inválida para el item ${rental.itemId}`)
+    }
+    if (!rental.pricePerUnit || rental.pricePerUnit <= 0) {
+      throw new Error(`Precio por unidad inválido para el item ${rental.itemId}`)
+    }
+
+    // Calcular el precio total
+    const calculatedTotal = Number((rental.quantity * rental.pricePerUnit).toFixed(2))
+
+    // Validar que el precio total sea válido
+    if (isNaN(calculatedTotal) || calculatedTotal <= 0) {
+      throw new Error(`Error al calcular el precio total para el item ${rental.itemId}`)
+    }
+
+    return {
+      item_id: rental.itemId,
+      quantity: rental.quantity,
+      price_per_unit: rental.pricePerUnit,
+      total_price: calculatedTotal
+    }
+  })
+
+  // Log detallado de rentals transformados
+  console.log('Rentals transformados:', {
+    original: data.rentalItems?.length || 0,
+    transformed: rentalItems.length,
+    items: rentalItems.map(item => ({
+      ...item,
+      validation: {
+        hasQuantity: item.quantity > 0,
+        hasPricePerUnit: item.price_per_unit > 0,
+        hasTotalPrice: item.total_price > 0,
+        priceConsistency: Math.abs(item.quantity * item.price_per_unit - item.total_price) <= 0.01
+      }
+    }))
+  })
+
+  // Calcular y validar precios
+  const courtPrice = Math.max(0, Number(data.courtPrice) || 0)
+  
+  // Calcular precio total de rentals basado en los items validados
+  const calculatedRentalPrice = rentalItems.reduce((total, rental) => 
+    total + rental.total_price, 0
+  )
+  
+  // Validar y asegurar el precio total de rentals
+  const providedRentalPrice = Number(data.rentalItemsPrice)
+  const rentalItemsPrice = !isNaN(providedRentalPrice) && providedRentalPrice >= 0
+    ? providedRentalPrice
+    : calculatedRentalPrice
+
+  return {
+    p_court_id: data.courtId,
+    p_date: data.date,
+    p_start_time: data.startTime,
+    p_end_time: data.endTime,
+    p_court_price: courtPrice,
+    p_rental_items_price: rentalItemsPrice,
+    p_payment_method: validatePaymentMethod(data.paymentMethod),
+    p_payment_status: validatePaymentStatus(data.paymentStatus),
+    p_deposit_amount: data.depositAmount || 0,
+    p_title: data.title || '',
+    p_description: data.description || '',
+    p_participants: participants,
+    p_rental_items: rentalItems
+  }
+}
+
+const validateBookingDataTypes = (data: any): boolean => {
+  try {
+    // Validar UUID
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.p_court_id)) {
+      console.error('UUID inválido:', data.p_court_id);
+      return false;
+    }
+
+    // Validar fecha
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.p_date)) {
+      console.error('Fecha inválida:', data.p_date);
+      return false;
+    }
+
+    // Validar horas
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(data.p_start_time)) {
+      console.error('Hora de inicio inválida:', data.p_start_time);
+      return false;
+    }
+    if (!timeRegex.test(data.p_end_time)) {
+      console.error('Hora de fin inválida:', data.p_end_time);
+      return false;
+    }
+
+    // Validar precios
+    if (typeof data.p_court_price !== 'number' || isNaN(data.p_court_price) || data.p_court_price < 0) {
+      console.error('Precio de cancha inválido:', data.p_court_price);
+      return false;
+    }
+
+    if (typeof data.p_rental_items_price !== 'number' || isNaN(data.p_rental_items_price) || data.p_rental_items_price < 0) {
+      console.error('Precio de rentals inválido:', data.p_rental_items_price);
+      return false;
+    }
+
+    if (typeof data.p_deposit_amount !== 'number' || isNaN(data.p_deposit_amount) || data.p_deposit_amount < 0) {
+      console.error('Depósito inválido:', data.p_deposit_amount);
+      return false;
+    }
+
+    const totalPrice = data.p_court_price + data.p_rental_items_price;
+
+    // Validar estado de pago
+    if (!['pending', 'partial', 'completed'].includes(data.p_payment_status)) {
+      console.error('Estado de pago inválido:', data.p_payment_status);
+      return false;
+    }
+
+    // Validar método de pago
+    if (!['cash', 'stripe', 'transfer'].includes(data.p_payment_method)) {
+      console.error('Método de pago inválido:', data.p_payment_method);
+      return false;
+    }
+
+    // Validar consistencia de pagos
+    if (data.p_payment_status === 'completed' && data.p_deposit_amount !== totalPrice) {
+      console.error('Inconsistencia en pago completed:', {
+        deposit: data.p_deposit_amount,
+        total: totalPrice
+      });
+      return false;
+    }
+
+    if (data.p_payment_status === 'partial' && 
+        (data.p_deposit_amount >= totalPrice || data.p_deposit_amount <= 0)) {
+      console.error('Inconsistencia en pago partial:', {
+        deposit: data.p_deposit_amount,
+        total: totalPrice
+      });
+      return false;
+    }
+
+    if (data.p_payment_status === 'pending' && data.p_deposit_amount > 0) {
+      console.error('Inconsistencia en pago pending:', {
+        deposit: data.p_deposit_amount
+      });
+      return false;
+    }
+
+    // Validar participantes
+    try {
+      const participants = JSON.parse(data.p_participants)
+      if (!Array.isArray(participants)) {
+        console.error('Formato de participantes inválido:', participants)
+        return false
+      }
+      
+      // Validar estructura de cada participante
+      for (const participant of participants) {
+        if (!participant.member_id || typeof participant.member_id !== 'string' || 
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.member_id)) {
+          console.error('ID de participante inválido:', participant)
+          return false
+        }
+        if (!participant.role || !['player', 'guest'].includes(participant.role)) {
+          console.error('Rol de participante inválido:', participant)
+          return false
+        }
+      }
+    } catch (error) {
+      console.error('Error al parsear participantes:', error)
+      return false
+    }
+
+    // Validar items rentados
+    if (data.p_rental_items) {
+      try {
+        const rentals = JSON.parse(data.p_rental_items)
+        if (!Array.isArray(rentals)) {
+          console.error('Formato de rentals inválido:', rentals)
+          return false
+        }
+        
+        // Validar estructura de cada rental
+        for (const rental of rentals) {
+          if (!rental.item_id || typeof rental.item_id !== 'string' ||
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rental.item_id)) {
+            console.error('ID de item inválido:', rental)
+            return false
+          }
+          if (typeof rental.quantity !== 'number' || rental.quantity <= 0) {
+            console.error('Cantidad inválida:', rental)
+            return false
+          }
+          if (typeof rental.price_per_unit !== 'number' || rental.price_per_unit <= 0) {
+            console.error('Precio por unidad inválido:', rental)
+            return false
+          }
+        }
+      } catch (error) {
+        console.error('Error al parsear rentals:', error)
+        return false
+      }
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error en validación de tipos:', error)
+    return false
+  }
+};
+
+const transformRentalForDB = (rental: RentalSelection) => {
+  console.log('Transformando rental para DB:', {
+    original: rental,
+    transformed: {
+      item_id: rental.itemId,
+      quantity: rental.quantity,
+      price_per_unit: rental.pricePerUnit
+    }
+  });
+
+  if (!rental.quantity || !rental.pricePerUnit) {
+    throw new Error('Cantidad y precio por unidad son requeridos');
+  }
+
+  return {
+    item_id: rental.itemId,
+    quantity: rental.quantity,
+    price_per_unit: rental.pricePerUnit
+  };
+};
+
+const validateStock = async (rentals: RentalSelection[]): Promise<boolean> => {
+  try {
+    const itemIds = rentals.map(r => r.itemId);
+    
+    // Obtener stock actual
+    const { data: items, error: itemsError } = await supabase
+      .from('items')
+      .select('id, stock')
+      .in('id', itemIds);
+
+    if (itemsError) throw itemsError;
+
+    // Obtener rentals activos
+    const { data: activeRentals, error: rentalsError } = await supabase
+      .from('booking_rentals')
+      .select(`
+        item_id,
+        quantity,
+        bookings!inner (
+          payment_status
+        )
+      `)
+      .in('item_id', itemIds)
+      .neq('bookings.payment_status', 'cancelled');
+
+    if (rentalsError) throw rentalsError;
+
+    // Validar stock para cada item
+    for (const rental of rentals) {
+      const item = items?.find(i => i.id === rental.itemId);
+      if (!item) return false;
+
+      const rentedQuantity = activeRentals
+        ?.filter(r => r.item_id === rental.itemId)
+        .reduce((sum, r) => sum + r.quantity, 0) || 0;
+
+      const availableStock = item.stock - rentedQuantity;
+
+      if (rental.quantity > availableStock) {
+        console.error('Stock insuficiente:', {
+          itemId: rental.itemId,
+          requested: rental.quantity,
+          available: availableStock
+        });
+        return false;
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error al validar stock:', error);
+    return false;
+  }
+};
+
+export async function checkFutureAvailability(
+  itemId: string,
+  date: string,
+  startTime: string,
+  endTime: string
+): Promise<number> {
+  try {
+    // Obtener primero el stock base del item
+    const { data: itemData, error: itemError } = await supabase
+      .from('items')
+      .select('stock')
+      .eq('id', itemId)
+      .single();
+
+    if (itemError) {
+      console.error('❌ Error al obtener información del item:', {
+        error: itemError,
+        itemId
+      });
+      throw itemError;
+    }
+
+    console.log('📦 Stock base obtenido:', {
+      itemId,
+      baseStock: itemData?.stock,
+      itemData
+    })
+
+    console.log('🔄 Consultando get_available_stock con parámetros:', {
+      p_item_id: itemId,
+      p_booking_date: date,
+      p_start_time: startTime,
+      p_end_time: endTime
+    })
+
+    const { data, error } = await supabase
+      .rpc('get_available_stock', {
+        p_item_id: itemId,
+        p_booking_date: date,
+        p_start_time: startTime,
+        p_end_time: endTime
+      })
+
+    if (error) {
+      console.error('❌ Error al verificar disponibilidad:', {
+        error,
+        params: { itemId, date, startTime, endTime },
+        errorDetails: {
+          message: error.message,
+          hint: error.hint,
+          details: error.details,
+          code: error.code
+        }
+      })
+      throw error
+    }
+
+    return data || 0
+  } catch (error) {
+    console.error('❌ Error en checkFutureAvailability:', {
+      error,
+      params: { itemId, date, startTime, endTime }
+    })
+    throw error
+  }
+}
+
+export const bookingService = {
+  checkFutureAvailability,
+  async checkAvailability(data: BookingCreationData): Promise<ServiceResponse<boolean>> {
+    try {
+      console.log('Verificando disponibilidad para:', {
+        courtId: data.courtId,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime
+      })
+
+      // Validación básica de datos
+      if (!data.courtId || !data.date || !data.startTime || !data.endTime) {
+        return {
+          error: {
+            message: 'Datos incompletos para verificar disponibilidad',
+            code: 'MISSING_DATA'
+          }
+        }
+      }
+
+      try {
+        // Verificar si la cancha existe y está activa
+        const { data: court, error: courtError } = await supabase
+          .from('courts')
+          .select('id, is_active, name')
+          .eq('id', data.courtId)
+          .single()
+
+        if (courtError) {
+          console.error('Error al verificar la cancha:', courtError)
+          return {
+            error: {
+              message: 'Error al verificar la cancha',
+              code: 'DB_ERROR',
+              details: courtError.message
+            }
+          }
+        }
+
+        if (!court) {
+          return {
+            error: {
+              message: 'La cancha seleccionada no existe',
+              code: 'INVALID_COURT'
+            }
+          }
+        }
+
+        if (!court.is_active) {
+          return {
+            error: {
+              message: `La cancha ${court.name} no está disponible para reservas`,
+              code: 'INACTIVE_COURT'
+            }
+          }
+        }
+
+        // Convertir horarios a minutos para validación inicial
+        const requestedStart = timeToMinutes(data.startTime)
+        const requestedEnd = timeToMinutes(data.endTime)
+
+        if (requestedStart >= requestedEnd) {
+          return {
+            error: {
+              message: 'La hora de inicio debe ser menor a la hora de fin',
+              code: 'INVALID_TIME_RANGE'
+            }
+          }
+        }
+
+        // Buscar reservas existentes que puedan causar conflicto
+        const { data: bookings, error: bookingsError } = await supabase
+          .from('bookings')
+          .select('id, start_time, end_time, payment_status')
+          .eq('court_id', data.courtId)
+          .eq('date', data.date)
+          .neq('payment_status', 'cancelled')
+
+        if (bookingsError) {
+          console.error('Error al buscar reservas:', bookingsError)
+          return {
+            error: {
+              message: 'Error al verificar disponibilidad',
+              code: 'DB_ERROR',
+              details: bookingsError.message
+            }
+          }
+        }
+
+        // Si no hay reservas, la cancha está disponible
+        if (!bookings || bookings.length === 0) {
+          console.log('No hay reservas existentes para esta fecha y cancha')
+          return { data: true }
+        }
+
+        console.log('Reservas encontradas:', bookings.map(b => ({
+          id: b.id,
+          start: b.start_time,
+          end: b.end_time,
+          status: b.payment_status
+        })))
+
+        // Verificar superposiciones
+        const hasOverlap = bookings.some(booking => {
+          const bookingStart = timeToMinutes(booking.start_time)
+          const bookingEnd = timeToMinutes(booking.end_time)
+
+          const overlap = (
+            (requestedStart >= bookingStart && requestedStart < bookingEnd) ||
+            (requestedEnd > bookingStart && requestedEnd <= bookingEnd) ||
+            (requestedStart <= bookingStart && requestedEnd >= bookingEnd)
+          )
+
+          if (overlap) {
+            console.log('Superposición detectada:', {
+              existing: {
+                start: booking.start_time,
+                end: booking.end_time,
+                status: booking.payment_status
+              },
+              requested: {
+                start: data.startTime,
+                end: data.endTime
+              }
+            })
+          }
+
+          return overlap
+        })
+
+        if (hasOverlap) {
+          return {
+            error: {
+              message: `La cancha ${court.name} no está disponible en el horario seleccionado`,
+              code: 'OVERLAP'
+            }
+          }
+        }
+
+        console.log('Cancha disponible:', {
+          court: court.name,
+          date: data.date,
+          time: `${data.startTime} - ${data.endTime}`
+        })
+
+        return { data: true }
+      } catch (dbError: any) {
+        console.error('Error en la base de datos:', {
+          error: dbError,
+          message: dbError.message,
+          details: dbError.details || dbError.hint
+        })
+        return {
+          error: {
+            message: 'Error al verificar disponibilidad en la base de datos',
+            code: 'DB_ERROR',
+            details: dbError.message
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Error inesperado en checkAvailability:', error)
+      return {
+        error: {
+          message: 'Error inesperado al verificar disponibilidad',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  validateBookingData(data: BookingCreationData): boolean {
+    if (!data) return false;
+
+    // Validación básica
+    const isBasicValid = !!(
+      data.courtId &&
+      data.date &&
+      data.startTime &&
+      data.endTime &&
+      Number(data.courtPrice) >= 0 &&
+      Number(data.rentalItemsPrice) >= 0
+    );
+
+    if (!isBasicValid) {
+      console.error('❌ Validación básica fallida:', {
+        courtId: !data.courtId,
+        date: !data.date,
+        startTime: !data.startTime,
+        endTime: !data.endTime,
+        invalidCourtPrice: Number(data.courtPrice) < 0,
+        invalidRentalPrice: Number(data.rentalItemsPrice) < 0
+      });
+      return false;
+    }
+
+    // Validación específica para rentals
+    if (data.rentalItems && data.rentalItems.length > 0) {
+      const rentalItemsTotal = data.rentalItems.reduce(
+        (total, rental) => total + (Number(rental.pricePerUnit || 0) * Number(rental.quantity || 1)),
+        0
+      );
+      
+      // Verificar que el total de rentals coincide
+      const priceDifference = Math.abs(rentalItemsTotal - Number(data.rentalItemsPrice));
+      if (priceDifference > 0.01) {
+        console.error('❌ Error en el cálculo de rentals:', {
+          expected: data.rentalItemsPrice,
+          calculated: rentalItemsTotal,
+          difference: priceDifference,
+          items: data.rentalItems
+        });
+        return false;
+      }
+    }
+
+    // Validación de depósito
+    if (data.depositAmount) {
+      const totalAmount = Number(data.courtPrice) + Number(data.rentalItemsPrice);
+      if (Number(data.depositAmount) > totalAmount) {
+        console.error('❌ Error en el depósito:', {
+          deposit: data.depositAmount,
+          total: totalAmount
+        });
+        return false;
+      }
+    }
+
+    return true;
+  },
+
+  calculateCourtPrice(data: BookingCreationData): number {
+    // Calcular el precio de la cancha basado en la duración
+    const startMinutes = this.timeToMinutes(data.startTime);
+    const endMinutes = this.timeToMinutes(data.endTime);
+    const durationInMinutes = endMinutes - startMinutes;
+    
+    // Aquí deberías obtener el precio por hora de la cancha
+    // Por ahora usamos un valor base como ejemplo
+    const pricePerHour = 60; // Este valor debería venir de la configuración
+    return (durationInMinutes / 60) * pricePerHour;
+  },
+
+  timeToMinutes(time: string): number {
+    const [hours, minutes] = time.split(':').map(Number);
+    return hours * 60 + minutes;
+  },
+
+  getDBErrorMessage(error: any): { message: string, code: string } {
+    if (error.message.includes('payment_status')) {
+      return {
+        message: 'Estado de pago inválido',
+        code: 'INVALID_PAYMENT_STATUS'
+      }
+    }
+
+    if (error.message.includes('payment_method')) {
+      return {
+        message: 'Método de pago inválido',
+        code: 'INVALID_PAYMENT_METHOD'
+      }
+    }
+
+    if (error.message.includes('overlap')) {
+      return {
+        message: 'El horario seleccionado no está disponible',
+        code: 'BOOKING_OVERLAP'
+      }
+    }
+
+    if (error.message.includes('foreign key')) {
+      return {
+        message: 'Referencia inválida en la base de datos',
+        code: 'INVALID_REFERENCE'
+      }
+    }
+
+    return {
+      message: 'Error al procesar la reserva en la base de datos',
+      code: 'DB_ERROR'
+    }
+  },
+
+  async createBooking(data: BookingCreationData): Promise<ServiceResponse<any>> {
+    try {
+      // Log detallado de los datos de entrada
+      console.info('📝 Datos de entrada para la reserva:', {
+        ...data,
+        participantsCount: data.participants?.length || 0,
+        rentalItemsCount: data.rentalItems?.length || 0
+      });
+
+      // Validación inicial de datos
+      if (!this.validateBookingData(data)) {
+        return {
+          error: {
+            message: 'Los datos de la reserva son inválidos',
+            code: 'VALIDATION_ERROR',
+            details: 'Revisa los logs para más detalles de la validación'
+          }
+        };
+      }
+
+      // Verificar disponibilidad antes de proceder
+      const availabilityCheck = await this.checkAvailability(data);
+      if (availabilityCheck.error) {
+        return availabilityCheck;
+      }
+
+      let bookingData;
+      try {
+        // Transformar datos para la base de datos
+        bookingData = transformBookingDataForDB(data);
+
+        // Log detallado para debugging
+        console.log('📦 Datos preparados para RPC:', {
+          participantsStructure: {
+            isArray: Array.isArray(bookingData.p_participants),
+            length: bookingData.p_participants.length,
+            sample: bookingData.p_participants[0]
+          },
+          prices: {
+            court: bookingData.p_court_price,
+            rentals: bookingData.p_rental_items_price,
+            total: bookingData.p_court_price + bookingData.p_rental_items_price
+          },
+          rentals: {
+            count: bookingData.p_rental_items.length,
+            items: bookingData.p_rental_items
+          }
+        });
+
+        // Llamada RPC
+        const supabase = createSupabaseClient()
+        const { data: result, error: dbError } = await supabase
+          .rpc('create_booking_v2', bookingData);
+
+        if (dbError) {
+          console.error('❌ Error de base de datos:', {
+            code: dbError.code,
+            message: dbError.message,
+            hint: dbError.hint,
+            details: dbError.details,
+            data: bookingData
+          });
+
+          // Mejorar el manejo de errores específicos
+          switch(dbError.code) {
+            case '23503':
+              return {
+                error: {
+                  message: 'La cancha o algún participante no existe',
+                  code: 'REFERENCE_ERROR',
+                  details: dbError.message
+                }
+              };
+            case '23514':
+              return {
+                error: {
+                  message: 'Los datos no cumplen con las restricciones de la base de datos',
+                  code: 'CONSTRAINT_ERROR',
+                  details: dbError.message
+                }
+              };
+            case 'P0001':
+              return {
+                error: {
+                  message: dbError.message,
+                  code: 'CUSTOM_ERROR',
+                  details: dbError.hint || 'Error personalizado de la base de datos'
+                }
+              };
+            default:
+              return {
+                error: {
+                  message: 'Error al procesar la reserva en la base de datos',
+                  code: `DB_ERROR_${dbError.code}`,
+                  details: `${dbError.message} (${dbError.hint || 'Sin detalles adicionales'})`
+                }
+              };
+          }
+        }
+
+        // Verificar la respuesta
+        if (!result) {
+          console.error('❌ Error en la respuesta:', result);
+          return {
+            error: {
+              message: 'Error al procesar la reserva',
+              code: 'UNKNOWN_ERROR',
+              details: 'No se recibió respuesta del procedimiento almacenado'
+            }
+          };
+        }
+
+        console.info('✅ Reserva creada exitosamente:', result);
+        return { data: result };
+      } catch (error: any) {
+        console.error('❌ Error general:', error);
+        return {
+          error: {
+            message: 'Error inesperado al crear la reserva',
+            code: 'UNEXPECTED_ERROR',
+            details: error.message
+          }
+        };
+      }
+    } catch (error: any) {
+      console.error('❌ Error general:', error);
+      return {
+        error: {
+          message: 'Error inesperado al crear la reserva',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      };
+    }
+  },
+
+  validateBookingDataTypes(data: any): boolean {
+    try {
+      // Validar UUID
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.p_court_id)) {
+        console.error('UUID inválido:', data.p_court_id);
+        return false;
+      }
+
+      // Validar fecha
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data.p_date)) {
+        console.error('Fecha inválida:', data.p_date);
+        return false;
+      }
+
+      // Validar horas
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(data.p_start_time)) {
+        console.error('Hora de inicio inválida:', data.p_start_time);
+        return false;
+      }
+      if (!timeRegex.test(data.p_end_time)) {
+        console.error('Hora de fin inválida:', data.p_end_time);
+        return false;
+      }
+
+      // Validar precios
+      if (typeof data.p_court_price !== 'number' || isNaN(data.p_court_price) || data.p_court_price < 0) {
+        console.error('Precio de cancha inválido:', data.p_court_price);
+        return false;
+      }
+
+      if (typeof data.p_rental_items_price !== 'number' || isNaN(data.p_rental_items_price) || data.p_rental_items_price < 0) {
+        console.error('Precio de rentals inválido:', data.p_rental_items_price);
+        return false;
+      }
+
+      if (typeof data.p_deposit_amount !== 'number' || isNaN(data.p_deposit_amount) || data.p_deposit_amount < 0) {
+        console.error('Depósito inválido:', data.p_deposit_amount);
+        return false;
+      }
+
+      const totalPrice = data.p_court_price + data.p_rental_items_price;
+
+      // Validar estado de pago
+      if (!['pending', 'partial', 'completed'].includes(data.p_payment_status)) {
+        console.error('Estado de pago inválido:', data.p_payment_status);
+        return false;
+      }
+
+      // Validar método de pago
+      if (!['cash', 'stripe', 'transfer'].includes(data.p_payment_method)) {
+        console.error('Método de pago inválido:', data.p_payment_method);
+        return false;
+      }
+
+      // Validar consistencia de pagos
+      if (data.p_payment_status === 'completed' && data.p_deposit_amount !== totalPrice) {
+        console.error('Inconsistencia en pago completed:', {
+          deposit: data.p_deposit_amount,
+          total: totalPrice
+        });
+        return false;
+      }
+
+      if (data.p_payment_status === 'partial' && 
+          (data.p_deposit_amount >= totalPrice || data.p_deposit_amount <= 0)) {
+        console.error('Inconsistencia en pago partial:', {
+          deposit: data.p_deposit_amount,
+          total: totalPrice
+        });
+        return false;
+      }
+
+      if (data.p_payment_status === 'pending' && data.p_deposit_amount > 0) {
+        console.error('Inconsistencia en pago pending:', {
+          deposit: data.p_deposit_amount
+        });
+        return false;
+      }
+
+      // Validar participantes
+      try {
+        const participants = JSON.parse(data.p_participants)
+        if (!Array.isArray(participants)) {
+          console.error('Formato de participantes inválido:', participants)
+          return false
+        }
+
+        // Validar estructura de cada participante
+        for (const participant of participants) {
+          if (!participant.member_id || typeof participant.member_id !== 'string' || 
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.member_id)) {
+            console.error('ID de participante inválido:', participant)
+            return false
+          }
+          if (!participant.role || !['player', 'guest'].includes(participant.role)) {
+            console.error('Rol de participante inválido:', participant)
+            return false
+          }
+        }
+      } catch (error) {
+        console.error('Error al parsear participantes:', error)
+        return false
+      }
+
+      // Validar items rentados
+      if (data.p_rental_items) {
+        try {
+          const rentals = JSON.parse(data.p_rental_items)
+          if (!Array.isArray(rentals)) {
+            console.error('Formato de rentals inválido:', rentals)
+            return false
+          }
+          
+          // Validar estructura de cada rental
+          for (const rental of rentals) {
+            if (!rental.item_id || typeof rental.item_id !== 'string' ||
+                !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rental.item_id)) {
+              console.error('ID de item inválido:', rental)
+              return false
+            }
+            if (typeof rental.quantity !== 'number' || rental.quantity <= 0) {
+              console.error('Cantidad inválida:', rental)
+              return false
+            }
+            if (typeof rental.price_per_unit !== 'number' || rental.price_per_unit <= 0) {
+              console.error('Precio por unidad inválido:', rental)
+              return false
+            }
+          }
+        } catch (error) {
+          console.error('Error al parsear rentals:', error)
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error en validación de tipos:', error)
+      return false
+    }
+  },
+
+  async getBookingsByDate(date: string, branchId?: string): Promise<ServiceResponse<SelectedBooking[]>> {
+    try {
+      if (!date) {
+        return {
+          error: {
+            message: 'La fecha es requerida',
+            code: 'MISSING_DATE'
+          }
+        }
+      }
+
+      console.log('BookingService - Consultando reservas para fecha:', date)
+
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          court_id,
+          date,
+          start_time,
+          end_time,
+          total_price,
+          court_price,
+          rental_items_price,
+          payment_status,
+          payment_method,
+          deposit_amount,
+          title,
+          description,
+          courts (
+            id,
+            name,
+            branch_id
+          ),
+          booking_participants (
+            id,
+            member_id,
+            role,
+            members (
+              id,
+              first_name,
+              last_name,
+              email,
+              phone
+            )
+          )
+        `)
+        .eq('date', date)
+        .neq('payment_status', 'cancelled')
+
+      if (bookingsError) {
+        console.error('Error al obtener reservas:', bookingsError)
+        return {
+          error: {
+            message: 'Error al obtener las reservas',
+            code: 'FETCH_ERROR',
+            details: bookingsError.message
+          }
+        }
+      }
+
+      if (!bookingsData || bookingsData.length === 0) {
+        return { data: [] }
+      }
+
+      // Filtrar por sucursal si es necesario
+      let filteredBookings = bookingsData as unknown as BookingFromDB[]
+      if (branchId) {
+        filteredBookings = filteredBookings.filter(booking => 
+          booking.courts?.branch_id === branchId
+        )
+      }
+
+      // Transformar los datos
+      const transformedData: SelectedBooking[] = filteredBookings.map(booking => ({
+        id: booking.id,
+        courtId: booking.court_id,
+        court: booking.courts?.name || '',
+        date: booking.date,
+        startTime: booking.start_time,
+        endTime: booking.end_time,
+        totalAmount: booking.total_price,
+        depositAmount: booking.deposit_amount,
+        courtPrice: booking.court_price || 0,
+        rentalItemsPrice: booking.rental_items_price || 0,
+        paymentStatus: booking.payment_status,
+        paymentMethod: booking.payment_method,
+        title: booking.title || '',
+        description: booking.description || '',
+        participants: booking.booking_participants?.map(participant => ({
+          id: participant.id,
+          memberId: participant.member_id,
+          role: participant.role,
+          firstName: participant.members?.first_name || '',
+          lastName: participant.members?.last_name || ''
+        })) || []
+      }))
+
+      console.log('BookingService - Reservas transformadas:', transformedData)
+      return { data: transformedData }
+    } catch (error: any) {
+      console.error('Error inesperado al obtener reservas:', error)
+      return {
+        error: {
+          message: 'Error inesperado al obtener las reservas',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  async getBookingById(id: string): Promise<SelectedBooking> {
+    try {
+      const { data: booking, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          courts:court_id (
+            id,
+            name
+          ),
+          booking_participants (
+            id,
+            member_id,
+            role,
+            members (
+              first_name,
+              last_name,
+              email,
+              phone
+            )
+          )
+        `)
+        .eq('id', id)
+        .single()
+
+      if (error) throw error
+
+      // Transformar los datos al formato esperado
+      const transformedBooking: SelectedBooking = {
+        id: booking.id,
+        courtId: booking.court_id,
+        court: booking.courts?.name || '',
+        date: booking.date,
+        startTime: booking.start_time,
+        endTime: booking.end_time,
+        totalAmount: booking.total_price,
+        depositAmount: booking.deposit_amount,
+        courtPrice: booking.court_price || 0,
+        rentalItemsPrice: booking.rental_items_price || 0,
+        paymentStatus: booking.payment_status,
+        paymentMethod: booking.payment_method,
+        title: booking.title || '',
+        description: booking.description || '',
+        participants: booking.booking_participants?.map((participant: BookingParticipantDB & { members?: any }) => ({
+          id: participant.id,
+          memberId: participant.member_id,
+          role: participant.role,
+          firstName: participant.members?.first_name,
+          lastName: participant.members?.last_name
+        })) || [],
+        rentedItems: booking.rented_items || []
+      }
+
+      return transformedBooking
+    } catch (error) {
+      console.error('Error al obtener la reserva:', error)
+      throw error
+    }
+  },
+
+  async cancelBooking(bookingId: string, reason?: string): Promise<ServiceResponse<any>> {
+    try {
+      console.log('📝 Cancelando reserva:', { bookingId, reason })
+
+      if (!bookingId) {
+        return {
+          error: {
+            message: 'ID de reserva requerido',
+            code: 'MISSING_ID'
+          }
+        }
+      }
+
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: 'cancelled',
+          cancellation_reason: reason || null,
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+        .select()
+        .single()
+
+      if (fetchError) {
+        console.error('❌ Error al cancelar la reserva:', fetchError)
+        return {
+          error: {
+            message: 'Error al cancelar la reserva',
+            code: 'DB_ERROR',
+            details: fetchError.message
+          }
+        }
+      }
+
+      console.info('✅ Reserva cancelada exitosamente:', booking)
+      return { data: booking }
+    } catch (error: any) {
+      console.error('❌ Error general al cancelar la reserva:', error)
+      return {
+        error: {
+          message: 'Error inesperado al cancelar la reserva',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  async updateBooking(id: string, data: Partial<BookingCreationData>) {
+    const supabase = createSupabaseClient()
+    // ... existing code ...
+  },
+
+  async deleteBooking(id: string) {
+    const supabase = createSupabaseClient()
+    // ... existing code ...
+  }
+} 

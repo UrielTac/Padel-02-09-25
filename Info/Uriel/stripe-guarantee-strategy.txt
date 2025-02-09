@@ -1,0 +1,547 @@
+# Estrategia de Implementación: Sistema de Garantías con Stripe Connect
+
+## Estado de Implementación
+
+### Fase 1: Preparación de Base de Datos [EN PROGRESO]
+- [x] Verificar tipos enum actuales
+- [ ] Modificar tabla payments
+  - [ ] Agregar stripe_payment_method_id
+  - [ ] Agregar stripe_account_id
+  - [ ] Agregar parent_payment_id
+  - [ ] Agregar charge_reason
+- [ ] Agregar nuevos tipos de pago
+  - [ ] Tipo 'guarantee'
+  - [ ] Tipo 'no_show_charge'
+- [ ] Actualizar tipos en TypeScript
+
+### Scripts SQL de Implementación
+
+```sql
+-- 1. Verificar tipos enum existentes
+DO $$ 
+BEGIN
+    -- Verificar si los tipos existen
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_type') THEN
+        CREATE TYPE payment_type AS ENUM ('booking', 'guarantee', 'no_show_charge');
+    ELSE
+        -- Agregar nuevos valores al enum existente
+        ALTER TYPE payment_type ADD VALUE IF NOT EXISTS 'guarantee';
+        ALTER TYPE payment_type ADD VALUE IF NOT EXISTS 'no_show_charge';
+    END IF;
+END $$;
+
+-- 2. Modificar tabla payments
+ALTER TABLE payments
+    ADD COLUMN IF NOT EXISTS stripe_payment_method_id text,
+    ADD COLUMN IF NOT EXISTS stripe_account_id text,
+    ADD COLUMN IF NOT EXISTS parent_payment_id uuid REFERENCES payments(id),
+    ADD COLUMN IF NOT EXISTS charge_reason text;
+
+-- 3. Crear índices para optimización
+CREATE INDEX IF NOT EXISTS idx_payments_stripe_account ON payments(stripe_account_id);
+CREATE INDEX IF NOT EXISTS idx_payments_parent_payment ON payments(parent_payment_id);
+CREATE INDEX IF NOT EXISTS idx_payments_type_status ON payments(payment_type, payment_status);
+
+-- 4. Comentarios para documentación
+COMMENT ON COLUMN payments.stripe_payment_method_id IS 'ID del método de pago en Stripe';
+COMMENT ON COLUMN payments.stripe_account_id IS 'ID de la cuenta Connect del club';
+COMMENT ON COLUMN payments.parent_payment_id IS 'ID del pago de garantía original para cargos no-show';
+COMMENT ON COLUMN payments.charge_reason IS 'Razón del cargo (ej: no-show)';
+```
+
+### Tipos TypeScript Actualizados
+
+```typescript
+// types/payment.ts
+export type PaymentType = 
+  | 'booking'
+  | 'guarantee'
+  | 'no_show_charge';
+
+export interface Payment {
+  id: string;
+  booking_id: string;
+  payment_type: PaymentType;
+  payment_method: PaymentMethod;
+  payment_status: PaymentStatus;
+  stripe_payment_method_id?: string;
+  stripe_account_id?: string;
+  parent_payment_id?: string;
+  charge_reason?: string;
+  total_price: number;
+  deposit_amount: number;
+  created_at: string;
+  updated_at: string;
+}
+```
+
+### Fase 2: Implementación Core [EN PROGRESO]
+
+#### Configuración de Stripe [COMPLETADO]
+1. [x] Instalar dependencias
+   - [x] @stripe/stripe-js
+   - [x] @stripe/react-stripe-js
+
+2. [x] Configurar Stripe Provider
+   - [x] Crear componente `StripeProvider`
+   - [x] Integrar en layout principal
+   - [x] Configurar variable de entorno `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+
+3. [x] Hooks y Endpoints
+   - [x] Crear hook `useStripeConnection`
+   - [x] Implementar endpoint `/api/stripe/connection-status`
+   - [x] Integrar con tabla `stripe_connections`
+
+4. [x] Componentes implementados
+   - [x] Modificar tipos y constantes para garantía
+   - [x] Crear `GuaranteeSection` para configuración de porcentaje
+   - [x] Crear `CardSetupForm` para captura de tarjeta
+   - [x] Crear `CardSetupModal` para modularizar la configuración
+   - [x] Modificar `PaymentTypeModal` y `PaymentMethodModal`
+
+#### Notas de Implementación
+
+1. **Configuración de Garantía**
+   - Se implementó un input numérico para el porcentaje
+   - Límite máximo establecido en 95%
+   - Validación en tiempo real de los valores ingresados
+
+2. **Formulario de Tarjeta**
+   - Integración directa con Stripe Elements
+   - Manejo de errores y estados de carga
+   - Confirmación de Setup Intent para guardar la tarjeta
+
+3. **Consideraciones de UX**
+   - Mensajes claros sobre el propósito de la garantía
+   - Validación inmediata del porcentaje ingresado
+   - Indicadores visuales durante el proceso de carga
+   - Modales separados para mejor flujo de usuario
+
+4. **Hook useStripeConnection**
+   - Manejo del estado de conexión con Stripe
+   - Verificación automática del estado
+   - Interfaz TypeScript para tipado seguro
+
+5. **Modularización de Componentes**
+   - Separación de responsabilidades
+   - Componentes reutilizables
+   - Mejor mantenibilidad del código
+   - Flujo de usuario más claro
+
+### Próximos Pasos
+1. [ ] Integrar con tabla stripe_connections
+2. [ ] Probar flujo completo de captura de tarjeta
+3. [ ] Actualizar tipos en la base de datos
+
+### Fase 3: No-Show [PENDIENTE]
+- [ ] Implementar endpoint de cargo
+  - [ ] Validar permisos
+  - [ ] Calcular monto basado en porcentaje configurado
+  - [ ] Crear Payment Intent
+  - [ ] Procesar cargo
+- [ ] Implementar notificaciones
+  - [ ] Email al cliente
+  - [ ] Notificación al club
+  - [ ] Registro en el sistema
+
+### Fase 4: Testing
+- [ ] Pruebas de integración
+- [ ] Validación de casos edge
+- [ ] Optimización de UX/UI
+
+## 1. Visión General
+
+Este documento detalla la estrategia para implementar un sistema de garantías usando Stripe Connect, permitiendo a los clubes solicitar tarjetas como garantía para reservas y realizar cargos en caso de no-show. La implementación aprovechará las tablas existentes en la base de datos.
+
+## 2. Estructura de Datos
+
+### 2.1 Modificaciones a Tablas Existentes
+
+```sql
+-- Modificaciones a la tabla payments
+ALTER TABLE payments 
+ADD COLUMN stripe_payment_method_id text,
+ADD COLUMN stripe_account_id text,
+ADD COLUMN parent_payment_id uuid REFERENCES payments(id),
+ADD COLUMN charge_reason text;
+
+-- Nuevos tipos de pago
+ALTER TYPE payment_type ADD VALUE IF NOT EXISTS 'guarantee';
+ALTER TYPE payment_type ADD VALUE IF NOT EXISTS 'no_show_charge';
+```
+
+### 2.2 Estructura de Datos en TypeScript
+
+```typescript
+interface PaymentWithGuarantee {
+  id: string;
+  booking_id: string;
+  payment_type: 'guarantee' | 'no_show_charge' | /* otros tipos */;
+  payment_method: 'stripe' | /* otros métodos */;
+  stripe_payment_method_id?: string;
+  stripe_account_id?: string; // ID de la cuenta Connect del club
+  total_price: number;
+  payment_status: 'pending' | 'succeeded' | 'failed';
+  parent_payment_id?: string; // Para relacionar el cargo no-show con la garantía
+  charge_reason?: string;
+}
+```
+
+## 3. Flujos de Implementación
+
+### 3.1 Flujo de Captura de Tarjeta
+
+1. **Trigger**: Usuario selecciona "Garantía" como tipo de pago
+2. **Proceso**:
+   ```typescript
+   async function setupGuarantee(bookingId: string) {
+     // 1. Verificar cuenta Connect del club
+     const { data: club } = await supabase
+       .from('stripe_connections')
+       .select('stripe_account_id')
+       .single();
+
+     // 2. Crear Setup Intent
+     const setupIntent = await stripe.setupIntents.create({
+       payment_method_types: ['card'],
+       usage: 'off_session',
+     }, {
+       stripeAccount: club.stripe_account_id
+     });
+
+     // 3. Registrar en payments
+     await supabase.from('payments').insert({
+       booking_id: bookingId,
+       payment_type: 'guarantee',
+       payment_method: 'stripe',
+       stripe_account_id: club.stripe_account_id,
+       payment_status: 'pending'
+     });
+
+     return setupIntent.client_secret;
+   }
+   ```
+
+### 3.2 Flujo de Cargo por No-Show
+
+1. **Trigger**: Club marca reserva como no-show
+2. **Proceso**:
+   ```typescript
+   async function chargeNoShow(bookingId: string) {
+     // 1. Obtener garantía original
+     const { data: guarantee } = await supabase
+       .from('payments')
+       .select('*')
+       .eq('booking_id', bookingId)
+       .eq('payment_type', 'guarantee')
+       .single();
+
+     // 2. Calcular monto (30%)
+     const { data: booking } = await supabase
+       .from('bookings')
+       .select('total_price')
+       .eq('id', bookingId)
+       .single();
+
+     const chargeAmount = booking.total_price * 0.3;
+
+     // 3. Crear cargo
+     const paymentIntent = await stripe.paymentIntents.create({
+       amount: Math.round(chargeAmount * 100),
+       currency: 'eur',
+       payment_method: guarantee.stripe_payment_method_id,
+       off_session: true,
+       confirm: true
+     }, {
+       stripeAccount: guarantee.stripe_account_id
+     });
+
+     // 4. Registrar cargo
+     await supabase.from('payments').insert({
+       booking_id: bookingId,
+       payment_type: 'no_show_charge',
+       payment_method: 'stripe',
+       stripe_account_id: guarantee.stripe_account_id,
+       total_price: chargeAmount,
+       parent_payment_id: guarantee.id,
+       payment_status: 'succeeded'
+     });
+   }
+   ```
+
+## 4. Componentes Frontend
+
+### 4.1 Modificaciones en PaymentTypeModal
+```typescript
+// Nuevas props
+interface PaymentTypeModalProps {
+  // ... props existentes ...
+  onGuaranteeSelected: () => void;
+  stripeEnabled: boolean;
+}
+
+// Lógica adicional
+const handleTypeSelection = (type: PaymentType['id']) => {
+  if (type === 'guarantee') {
+    if (!stripeEnabled) {
+      showStripeRequiredError();
+      return;
+    }
+    onGuaranteeSelected();
+  }
+  onSelect(type);
+};
+```
+
+### 4.2 Nuevo Componente: GuaranteeCardForm
+```typescript
+interface GuaranteeCardFormProps {
+  stripeAccountId: string;
+  onSuccess: (paymentMethodId: string) => void;
+  onError: (error: Error) => void;
+}
+
+export function GuaranteeCardForm({
+  stripeAccountId,
+  onSuccess,
+  onError
+}: GuaranteeCardFormProps) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!stripe || !elements) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // 1. Crear Setup Intent
+      const response = await fetch('/api/stripe/setup-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stripeAccountId })
+      });
+
+      const { clientSecret } = await response.json();
+
+      // 2. Confirmar Setup Intent
+      const result = await stripe.confirmCardSetup(clientSecret, {
+        payment_method: {
+          card: elements.getElement(CardElement)!,
+        }
+      });
+
+      if (result.error) {
+        setError(result.error.message || 'Error al procesar la tarjeta');
+        onError(result.error);
+      } else {
+        onSuccess(result.setupIntent.payment_method as string);
+      }
+    } catch (err) {
+      setError('Error al procesar la tarjeta');
+      onError(err as Error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="p-4 border rounded-lg">
+        <CardElement
+          options={{
+            style: {
+              base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                  color: '#aab7c4',
+                },
+              },
+              invalid: {
+                color: '#9e2146',
+              },
+            },
+          }}
+        />
+      </div>
+      
+      {error && (
+        <div className="text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      <Button
+        type="submit"
+        disabled={!stripe || loading}
+        className="w-full"
+      >
+        {loading ? 'Procesando...' : 'Guardar Tarjeta'}
+      </Button>
+    </form>
+  );
+}
+```
+
+## 5. Endpoints Backend
+
+### 5.1 Setup Intent
+```typescript
+// POST /api/stripe/setup-intent
+interface SetupIntentRequest {
+  bookingId: string;
+}
+
+interface SetupIntentResponse {
+  clientSecret: string;
+  stripeAccountId: string;
+}
+```
+
+### 5.2 Cargo por No-Show
+```typescript
+// POST /api/stripe/charge-no-show
+interface NoShowChargeRequest {
+  bookingId: string;
+  reason: string;
+}
+
+interface NoShowChargeResponse {
+  success: boolean;
+  chargeId?: string;
+  error?: string;
+}
+```
+
+## 6. Webhooks y Eventos
+
+### 6.1 Eventos a Manejar
+```typescript
+async function handleStripeWebhook(event: Stripe.Event) {
+  const accountId = event.account; // ID de la cuenta Connect
+  
+  switch (event.type) {
+    case 'setup_intent.succeeded':
+      await updateGuaranteeStatus(accountId, event.data.object);
+      break;
+    case 'payment_intent.succeeded':
+      await updateNoShowChargeStatus(accountId, event.data.object);
+      break;
+  }
+}
+```
+
+## 7. Manejo de Errores y Validaciones
+
+### 7.1 Verificación de Cuenta Connect
+```typescript
+async function verifyStripeConnection(clubId: string) {
+  const { data: connection } = await supabase
+    .from('stripe_connections')
+    .select('*')
+    .eq('empresa_id', clubId)
+    .single();
+
+  return {
+    isConnected: Boolean(connection),
+    canAcceptPayments: connection?.charges_enabled,
+    accountId: connection?.stripe_account_id
+  };
+}
+```
+
+### 7.2 Validaciones
+- Verificar que el club tiene Stripe Connect configurado y activo
+- Validar montos máximos de cargo
+- Verificar estado de la reserva
+- Validar timeouts de no-show
+
+## 8. Plan de Implementación
+
+### Fase 1: Preparación
+1. Realizar modificaciones en la tabla payments
+2. Configurar webhooks de Stripe
+3. Implementar funciones de verificación
+
+### Fase 2: Core
+1. Implementar endpoints de Setup Intent
+2. Desarrollar componente de captura de tarjeta
+3. Integrar con flujo de reserva existente
+
+### Fase 3: No-Show
+1. Implementar endpoint de cargo
+2. Desarrollar interfaz de gestión para clubes
+3. Configurar sistema de notificaciones
+
+### Fase 4: Testing y Refinamiento
+1. Pruebas exhaustivas en ambiente de test
+2. Validación de casos edge
+3. Optimización de UX/UI
+
+## 9. Consideraciones de Seguridad
+
+1. **Validaciones de Cuenta Connect**
+   - Verificar estado de la cuenta
+   - Validar permisos de cargo
+   - Comprobar límites de transacción
+
+2. **Manejo de Datos Sensibles**
+   - No almacenar datos de tarjeta
+   - Usar tokens y payment methods de Stripe
+   - Implementar logs de auditoría
+
+3. **Políticas de No-Show**
+   - Definir ventanas de tiempo claras
+   - Establecer procesos de disputa
+   - Documentar términos y condiciones
+
+## 10. Notificaciones
+
+### 10.1 Eventos a Notificar
+1. **Al Cliente**
+   - Tarjeta guardada exitosamente
+   - Cargo por no-show realizado
+   - Error al procesar tarjeta
+
+2. **Al Club**
+   - Garantía establecida
+   - Cargo exitoso
+   - Cargo fallido
+
+### 10.2 Canales
+- Email
+- Push notifications
+- SMS (opcional)
+
+## 11. Métricas y Monitoreo
+
+### 11.1 KPIs
+- Tasa de éxito en captura de tarjetas
+- Tasa de éxito en cargos
+- Tiempo promedio de procesamiento
+- Tasa de disputas
+
+### 11.2 Alertas
+- Errores críticos
+- Tasas de error anormales
+- Cargos fallidos
+- Webhooks fallidos
+
+## 12. Documentación
+
+### 12.1 Para Clubes
+- Guía de configuración
+- Políticas recomendadas
+- Procedimientos de no-show
+- Resolución de problemas
+
+### 12.2 Para Desarrolladores
+- Arquitectura del sistema
+- Flujos de datos
+- Manejo de errores
+- Procedimientos de deployment 

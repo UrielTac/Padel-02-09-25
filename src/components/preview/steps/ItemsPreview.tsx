@@ -1,0 +1,636 @@
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { FormStepField } from "@/types/form-steps";
+import { PreviewContainer } from "../layout/PreviewContainer";
+import { Button } from "@/components/ui/button";
+import { ChevronRight, ChevronLeft, Check, Search, Loader2, Plus, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { NavigationButtons } from "../layout/NavigationButtons";
+import { Input } from "@/components/ui/input";
+import { useItems } from "@/hooks/useItems";
+import { toast } from "sonner";
+import { bookingService } from "@/services/bookingService";
+import type { Item, ItemType } from "@/types/items";
+import { format, parseISO } from "date-fns";
+import { useForm } from "@/contexts/FormContext";
+
+// Interfaces
+interface ItemsPreviewProps {
+  field: FormStepField;
+  theme: 'light' | 'dark';
+  viewType: "mobile" | "desktop";
+  onNext: () => void;
+  onPrev: () => void;
+  isFirstStep: boolean;
+  isLastStep: boolean;
+  isPublicView?: boolean;
+  branchId?: string;
+  selectedSlot?: any;
+}
+
+interface ItemWithStock extends Item {
+  availableStock: number;
+  baseStock: number;
+  reservedUnits: number;
+  id: string;
+  name: string;
+  type: ItemType;
+  duration_pricing: Record<string, number>;
+}
+
+interface QuantitySelectorProps {
+  value: number;
+  onChange: (value: number) => void;
+  theme: 'light' | 'dark';
+  min?: number;
+  max?: number;
+}
+
+function QuantitySelector({ value, onChange, theme, min = 0, max = 100 }: QuantitySelectorProps) {
+  const handleDecrease = useCallback(() => {
+    if (value > min) {
+      onChange(value - 1);
+    }
+  }, [value, min, onChange]);
+
+  const handleIncrease = useCallback(() => {
+    if (value < max) {
+      onChange(value + 1);
+    }
+  }, [value, max, onChange]);
+
+  return (
+    <div className="flex items-center gap-1">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleDecrease}
+        onKeyDown={(e) => e.key === 'Enter' && handleDecrease()}
+        className={cn(
+          "h-5 w-5 rounded-lg flex items-center justify-center cursor-pointer",
+          value <= min && "opacity-50 cursor-not-allowed",
+          theme === 'dark' 
+            ? "hover:bg-zinc-800 text-gray-400" 
+            : "hover:bg-gray-100 text-gray-500"
+        )}
+        aria-label="Disminuir cantidad"
+      >
+        <Minus className="h-3 w-3" />
+      </div>
+      
+      <span className={cn(
+        "text-[10px] font-medium min-w-[20px] text-center",
+        theme === 'dark' ? "text-gray-200" : "text-gray-700"
+      )}>
+        {value}
+      </span>
+      
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={handleIncrease}
+        onKeyDown={(e) => e.key === 'Enter' && handleIncrease()}
+        className={cn(
+          "h-5 w-5 rounded-lg flex items-center justify-center cursor-pointer",
+          value >= max && "opacity-50 cursor-not-allowed",
+          theme === 'dark' 
+            ? "hover:bg-zinc-800 text-gray-400" 
+            : "hover:bg-gray-100 text-gray-500"
+        )}
+        aria-label="Aumentar cantidad"
+      >
+        <Plus className="h-3 w-3" />
+      </div>
+    </div>
+  );
+}
+
+export function ItemsPreview({ 
+  field, 
+  theme, 
+  viewType,
+  onNext,
+  onPrev,
+  isFirstStep,
+  isLastStep,
+  isPublicView
+}: ItemsPreviewProps) {
+  const { title, description } = field;
+  const { state, setItems } = useForm();
+  const [quantities, setQuantities] = useState<Record<string, number>>(state.items.selectedItems);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [itemsWithStock, setItemsWithStock] = useState<ItemWithStock[]>([]);
+  const [isLoadingStock, setIsLoadingStock] = useState(true);
+  const [lastCheckedSlot, setLastCheckedSlot] = useState<string | null>(null);
+
+  // Obtener datos del contexto
+  const { location, shift } = state;
+  const branchId = location.branchId;
+  const selectedSlot = shift.date ? {
+    date: shift.date,
+    startTime: shift.startTime!,
+    endTime: shift.endTime!,
+    duration: shift.duration
+  } : undefined;
+
+  // Efecto para sincronizar el estado local con cambios externos
+  useEffect(() => {
+    const contextItems = state.items.selectedItems;
+    const localItemsStr = JSON.stringify(quantities);
+    const contextItemsStr = JSON.stringify(contextItems);
+
+    if (contextItemsStr !== localItemsStr) {
+      console.log('[ItemsPreview] Sincronizando estado local:', {
+        from: localItemsStr,
+        to: contextItemsStr
+      });
+      setQuantities(contextItems);
+    }
+  }, [state.items.selectedItems]);
+
+  // Función para actualizar cantidades y contexto
+  const updateQuantities = useCallback((itemId: string, newQuantity: number) => {
+    console.log('[ItemsPreview] Actualizando cantidad:', {
+      itemId,
+      newQuantity
+    });
+
+    const item = itemsWithStock.find(i => i.id === itemId);
+    
+    if (!item) {
+      console.warn('[ItemsPreview] Item no encontrado:', itemId);
+      return;
+    }
+
+    // Validar límites
+    if (newQuantity < 0) {
+      console.warn('[ItemsPreview] Cantidad no puede ser negativa');
+      return;
+    }
+
+    if (newQuantity > item.availableStock) {
+      console.warn('[ItemsPreview] No hay suficiente stock:', {
+        requested: newQuantity,
+        available: item.availableStock
+      });
+      toast.error(`No hay suficiente stock disponible. Máximo disponible: ${item.availableStock}`);
+      return;
+    }
+
+    // Actualizar estado local y contexto en una sola operación
+    const newQuantities = { ...quantities };
+    
+    if (newQuantity === 0) {
+      delete newQuantities[itemId];
+    } else {
+      newQuantities[itemId] = newQuantity;
+    }
+
+    setQuantities(newQuantities);
+    setItems({ selectedItems: newQuantities });
+  }, [itemsWithStock, quantities, setItems]);
+
+  // Validar si se puede avanzar al siguiente paso
+  const canProceed = useMemo(() => {
+    // Los items son opcionales, así que siempre podemos avanzar
+    return true;
+  }, []);
+
+  const handleNext = useCallback(() => {
+    console.log('[ItemsPreview] Intentando avanzar al siguiente paso:', {
+      currentStep: state.currentStep,
+      hasItems: Object.keys(quantities).length > 0,
+      isLastStep
+    });
+    
+    // Siempre permitir avanzar ya que los items son opcionales
+    if (typeof onNext === 'function') {
+      console.log('[ItemsPreview] Ejecutando onNext');
+      onNext();
+    } else {
+      console.error('[ItemsPreview] Error: onNext no es una función');
+    }
+  }, [onNext, state.currentStep, quantities, isLastStep]);
+
+  // Manejar el click en un item
+  const handleItemClick = useCallback((item: ItemWithStock) => {
+    if (item.availableStock <= 0) return;
+
+    const currentQuantity = quantities[item.id] || 0;
+    const newQuantity = currentQuantity === 0 ? 1 : 0;
+    
+    updateQuantities(item.id, newQuantity);
+  }, [quantities, updateQuantities]);
+
+  // Obtener items usando el hook
+  const { data: items = [], isLoading, error } = useItems(branchId);
+
+  // Función para validar y formatear fecha
+  const validateAndFormatDate = useCallback((dateStr: string | undefined) => {
+    if (!dateStr) return null;
+    try {
+      // Intentar parsear la fecha
+      const parsedDate = parseISO(dateStr);
+      return format(parsedDate, 'yyyy-MM-dd');
+    } catch (error) {
+      console.error('❌ Error al parsear fecha:', dateStr, error);
+      return null;
+    }
+  }, []);
+
+  // Función para validar horario
+  const validateTimeFormat = useCallback((time: string | undefined) => {
+    if (!time) return false;
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    return timeRegex.test(time);
+  }, []);
+
+  // Memoizar el slot key para comparaciones
+  const slotKey = useMemo(() => {
+    if (!selectedSlot?.date || !selectedSlot?.startTime || !selectedSlot?.endTime) return null;
+    return `${selectedSlot.date}-${selectedSlot.startTime}-${selectedSlot.endTime}`;
+  }, [selectedSlot]);
+
+  // Efecto para inicializar itemsWithStock cuando items cambia
+  useEffect(() => {
+    // Si no hay cambios en el slot o items, no hacer nada
+    if (!slotKey || !items.length || slotKey === lastCheckedSlot) {
+      return;
+    }
+
+    console.log('ItemsPreview - Iniciando verificación de disponibilidad:', {
+      slotKey,
+      itemsCount: items.length
+    });
+
+    const checkAvailability = async () => {
+      setIsLoadingStock(true);
+      try {
+        const { date, startTime, endTime } = selectedSlot!;
+
+        // Verificar todos los items en paralelo
+        const stockPromises = items.map(async (item) => {
+          try {
+            const stock = await bookingService.checkFutureAvailability(
+              item.id,
+              date,
+              startTime,
+              endTime
+            );
+
+            return {
+              ...item,
+              availableStock: stock,
+              baseStock: item.stock || 0,
+              reservedUnits: Math.max(0, (item.stock || 0) - stock)
+            } as ItemWithStock;
+          } catch (error) {
+            console.error(`Error al verificar stock para item ${item.id}:`, error);
+            return {
+              ...item,
+              availableStock: 0,
+              baseStock: item.stock || 0,
+              reservedUnits: item.stock || 0
+            } as ItemWithStock;
+          }
+        });
+
+        const itemsWithStockData = await Promise.all(stockPromises);
+        setItemsWithStock(itemsWithStockData);
+        setLastCheckedSlot(slotKey);
+      } catch (error) {
+        console.error('Error al verificar disponibilidad:', error);
+        toast.error('Error al verificar disponibilidad de artículos');
+        setItemsWithStock(items.map(item => ({
+          ...item,
+          availableStock: 0,
+          baseStock: item.stock || 0,
+          reservedUnits: item.stock || 0
+        })));
+      } finally {
+        setIsLoadingStock(false);
+      }
+    };
+
+    checkAvailability();
+  }, [items, slotKey, lastCheckedSlot, selectedSlot]);
+
+  const filteredItems = itemsWithStock.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const hasAvailableStock = item.availableStock > 0;
+    return matchesSearch && hasAvailableStock;
+  });
+
+  const getItemPrice = useCallback((item: ItemWithStock) => {
+    if (!selectedSlot) return 0;
+    
+    const durationInMinutes = selectedSlot.duration * 60;
+    const price = item.duration_pricing[durationInMinutes.toString()];
+    
+    return price || 0;
+  }, [selectedSlot]);
+
+  if (!branchId) {
+    return (
+      <PreviewContainer viewType={viewType} theme={theme}>
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <p className={cn(
+            "text-sm",
+            theme === 'dark' ? "text-gray-400" : "text-gray-500"
+          )}>
+            Selecciona una sede para ver los artículos disponibles
+          </p>
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  if (isLoading || isLoadingStock) {
+    return (
+      <PreviewContainer viewType={viewType} theme={theme}>
+        <div className="flex flex-col items-center justify-center p-8">
+          <Loader2 className={cn(
+            "h-8 w-8 animate-spin",
+            theme === 'dark' ? "text-gray-400" : "text-gray-500"
+          )} />
+          <p className={cn(
+            "text-sm mt-2",
+            theme === 'dark' ? "text-gray-400" : "text-gray-500"
+          )}>
+            Cargando artículos...
+          </p>
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PreviewContainer viewType={viewType} theme={theme}>
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <p className={cn(
+            "text-sm mb-4",
+            theme === 'dark' ? "text-red-400" : "text-red-500"
+          )}>
+            {error instanceof Error ? error.message : 'Error al cargar los artículos'}
+          </p>
+          <Button 
+            variant="outline" 
+            onClick={() => window.location.reload()}
+            className={theme === 'dark' ? "border-gray-800" : ""}
+          >
+            Reintentar
+          </Button>
+        </div>
+      </PreviewContainer>
+    );
+  }
+
+  return (
+    <PreviewContainer 
+      viewType={viewType} 
+      theme={theme}
+      onNext={handleNext}
+      onPrev={onPrev}
+      isFirstStep={isFirstStep}
+      isLastStep={isLastStep}
+      isPublicView={isPublicView}
+      isNextDisabled={false}
+    >
+      <div className="min-h-full flex flex-col">
+        <div className="flex-1">
+          <div className="pb-24">
+            <div className="pb-4">
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4 }}
+                className="text-center space-y-1"
+              >
+                <h1 className={cn(
+                  "text-lg font-semibold transition-colors",
+                  theme === 'dark' ? "text-white" : "text-gray-900"
+                )}>
+                  {title || "Artículos Adicionales"}
+                </h1>
+                <p className={cn(
+                  "text-sm transition-colors px-6",
+                  theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                )}>
+                  {description || "Selecciona los artículos que desees agregar"}
+                </p>
+              </motion.div>
+            </div>
+
+            <div className="px-4">
+              <div className={cn(
+                "w-full rounded-xl relative",
+                "transition-all duration-200 ease-in-out",
+                theme === 'dark' 
+                  ? "bg-neutral-900" 
+                  : "bg-gray-100/60"
+              )}>
+                <div className={cn(
+                  "w-full p-4 border-b",
+                  theme === 'dark' 
+                    ? "border-gray-800" 
+                    : "border-gray-200/50"
+                )}>
+                  <div className="relative flex-1 max-w-[200px]">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Buscar artículo..."
+                      className={cn(
+                        "w-full h-7 pl-8 pr-3 rounded-lg text-xs",
+                        "transition-all duration-200",
+                        "placeholder:text-gray-400",
+                        theme === 'dark'
+                          ? "bg-zinc-800 text-gray-200 placeholder:text-gray-500"
+                          : "bg-gray-100/60 text-gray-900",
+                        theme === 'dark'
+                          ? "focus:bg-zinc-700"
+                          : "focus:bg-gray-200/60",
+                        "outline-none"
+                      )}
+                    />
+                    <Search 
+                      className={cn(
+                        "absolute left-2.5 top-1/2 -translate-y-1/2",
+                        "h-3.5 w-3.5",
+                        theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="p-4">
+                  <div className="space-y-2">
+                    {filteredItems.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className={cn(
+                          "text-sm",
+                          theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                        )}>
+                          No hay artículos disponibles
+                        </p>
+                      </div>
+                    ) : (
+                      filteredItems.map((item, index) => {
+                        const quantity = quantities[item.id] || 0;
+                        const remainingStock = item.availableStock - quantity;
+                        const isOutOfStock = remainingStock === 0 && quantity === 0;
+                        const isSelected = quantity > 0;
+                        const price = getItemPrice(item);
+
+                        return (
+                          <motion.button
+                            key={item.id}
+                            className={cn(
+                              "w-full rounded-lg transition-all duration-200 ease-in-out",
+                              "overflow-hidden relative",
+                              theme === 'dark' 
+                                ? isSelected
+                                  ? "bg-zinc-800 hover:bg-neutral-800 text-white"
+                                  : "bg-transparent hover:bg-neutral-800/50 text-gray-200"
+                                : isSelected
+                                  ? "bg-white hover:bg-gray-50 text-gray-800"
+                                  : "bg-transparent hover:bg-gray-200/50 text-gray-800",
+                              isOutOfStock && "opacity-50"
+                            )}
+                            initial={{ opacity: 0 }}
+                            animate={{ 
+                              opacity: 1,
+                              scale: isSelected ? 1.01 : 1,
+                              transition: { 
+                                delay: index * 0.1,
+                                scale: { 
+                                  duration: 0.3,
+                                  ease: [0.16, 1, 0.3, 1]
+                                }
+                              }
+                            }}
+                            onClick={() => !isOutOfStock && handleItemClick(item)}
+                          >
+                            <AnimatePresence>
+                              {isSelected && (
+                                <motion.div
+                                  initial={{ 
+                                    opacity: 0,
+                                    scale: 0.95
+                                  }}
+                                  animate={{ 
+                                    opacity: 1,
+                                    scale: 1,
+                                    transition: { 
+                                      duration: 0.2,
+                                      ease: [0.16, 1, 0.3, 1],
+                                    }
+                                  }}
+                                  exit={{ 
+                                    opacity: 0,
+                                    scale: 0.95,
+                                    transition: {
+                                      duration: 0.15,
+                                      ease: "easeOut"
+                                    }
+                                  }}
+                                  className={cn(
+                                    "absolute inset-0 z-0",
+                                    theme === 'dark' 
+                                      ? "bg-zinc-800"
+                                      : "bg-gray-200"
+                                  )}
+                                />
+                              )}
+                            </AnimatePresence>
+
+                            <div className="p-2.5 relative z-10">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex-1 min-w-0 text-left">
+                                  <motion.h3
+                                    className="font-medium text-xs truncate text-left"
+                                    animate={{
+                                      color: isSelected 
+                                        ? theme === 'dark'
+                                          ? "#ffffff"
+                                          : "#111827"
+                                        : theme === 'dark'
+                                          ? "#ffffff"
+                                          : "#111827"
+                                    }}
+                                  >
+                                    {item.name}
+                                  </motion.h3>
+                                  <motion.p
+                                    className="text-[9px] mt-0.5 text-left"
+                                    animate={{
+                                      color: isSelected 
+                                        ? theme === 'dark'
+                                          ? "#9ca3af"
+                                          : "#6b7280"
+                                        : theme === 'dark'
+                                          ? "#6b7280"
+                                          : "#9ca3af"
+                                    }}
+                                  >
+                                    {`${item.type} • Stock: ${remainingStock}`}
+                                  </motion.p>
+                                </div>
+                                <motion.span
+                                  className="text-[11px] font-medium whitespace-nowrap text-right"
+                                  animate={{
+                                    color: isSelected 
+                                      ? theme === 'dark'
+                                        ? "#e5e7eb"
+                                        : "#374151"
+                                      : theme === 'dark'
+                                        ? "#d1d5db"
+                                        : "#111827"
+                                  }}
+                                >
+                                  {price ? `$${price}` : 'N/A'}
+                                </motion.span>
+                              </div>
+
+                              <div className="flex items-center justify-between mt-2">
+                                <motion.p
+                                  className="text-[9px] max-w-[65%] text-left"
+                                  animate={{
+                                    color: isSelected 
+                                      ? theme === 'dark'
+                                        ? "#9ca3af"
+                                        : "#6b7280"
+                                      : theme === 'dark'
+                                        ? "#6b7280"
+                                        : "#9ca3af"
+                                  }}
+                                >
+                                  {item.name}
+                                </motion.p>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <QuantitySelector 
+                                    value={quantity}
+                                    onChange={(newValue) => updateQuantities(item.id, newValue)}
+                                    theme={theme}
+                                    min={0}
+                                    max={item.availableStock}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </PreviewContainer>
+  );
+} 
