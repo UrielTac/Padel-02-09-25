@@ -12,6 +12,7 @@ const PUBLIC_ROUTES = [
   '/unauthorized',
   '/admin/login',
   '/admin/auth/callback',
+  '/admin/auth/error',
   '/clases/login'
 ] as const
 
@@ -100,9 +101,27 @@ async function persistEmpresaId(empresaId: string, session: any, supabase: any) 
 }
 
 // Middleware principal
-export async function middleware(req: NextRequest) {
-  const res = NextResponse.next()
+export const config = {
+  matcher: [
+    '/admin/:path*',
+    '/api/:path*'
+  ]
+}
+
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  // Permitir acceso a rutas públicas
+  const publicRoutes = [
+    '/admin/login',
+    '/admin/auth/callback' // Añadir ruta de callback
+  ]
+
+  if (publicRoutes.includes(pathname)) {
+    return NextResponse.next()
+  }
+
+  const res = NextResponse.next()
 
   if (isStaticAsset(pathname) || isPublicRoute(pathname)) {
     return res
@@ -158,13 +177,4 @@ export async function middleware(req: NextRequest) {
     console.error('Error en middleware:', error)
     return NextResponse.redirect(new URL('/error', req.url))
   }
-}
-
-// Configurar las rutas que deben ser manejadas por el middleware
-export const config = {
-  matcher: [
-    '/admin/:path*',
-    '/dashboard/:path*',
-    '/clases/:path*'
-  ]
 } 
