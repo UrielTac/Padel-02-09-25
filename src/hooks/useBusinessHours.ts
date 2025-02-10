@@ -1,9 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createSupabaseClient } from "@/lib/supabase"
 import { useBranches } from "./useBranches"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { useCallback, useMemo } from 'react'
+import { queryKeys } from '@/config/query-keys'
+import { keepPreviousData } from '@tanstack/react-query'
 
 interface TimeRange {
   openTime: string
@@ -19,8 +21,46 @@ interface BusinessHours {
   [key: string]: DaySchedule
 }
 
+async function fetchBusinessHours(branchId: string, dayOfWeek: string) {
+  const supabase = createSupabaseClient()
+  
+  console.log('🔍 Consultando horarios para:', {
+    sede: branchId,
+    dia: dayOfWeek
+  })
+
+  const { data: branch, error } = await supabase
+    .from('sedes')
+    .select('opening_hours')
+    .eq('id', branchId)
+    .single()
+
+  if (error) {
+    console.error('❌ Error al obtener horarios:', error)
+    throw error
+  }
+
+  if (!branch?.opening_hours) {
+    console.error('❌ No hay horarios configurados para la sede')
+    throw new Error('No hay horarios configurados para esta sede')
+  }
+
+  const hours = branch.opening_hours as BusinessHours
+  console.log('📅 Horarios de la sede:', hours)
+
+  const todaySchedule = hours[dayOfWeek]
+  if (!todaySchedule) {
+    console.error('❌ No se encontró configuración para el día:', dayOfWeek)
+    console.log('Días disponibles:', Object.keys(hours))
+    throw new Error(`No hay horarios configurados para ${dayOfWeek}`)
+  }
+
+  return todaySchedule
+}
+
 export function useBusinessHours(selectedDate?: Date) {
   const { currentBranch } = useBranches()
+  const queryClient = useQueryClient()
   const currentDate = selectedDate || new Date()
   
   // Mapeo inverso de días en español a inglés
@@ -38,12 +78,6 @@ export function useBusinessHours(selectedDate?: Date) {
   const spanishDay = format(currentDate, 'EEEE', { locale: es }).toLowerCase()
   const dayOfWeek = dayMap[spanishDay]
 
-  console.log('📅 Día actual:', {
-    spanishDay,
-    dayOfWeek,
-    date: format(currentDate, 'dd/MM/yyyy')
-  })
-
   const timeToMinutes = useCallback((time: string) => {
     if (!time) return 0
     const [hours, minutes] = time.split(':').map(Number)
@@ -56,109 +90,53 @@ export function useBusinessHours(selectedDate?: Date) {
     return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
   }, [])
 
-  const businessHoursQuery = useQuery({
-    queryKey: ['businessHours', currentBranch?.id, dayOfWeek],
-    queryFn: async () => {
-      if (!currentBranch?.id) {
-        throw new Error('No hay sede seleccionada')
-      }
-
-      console.log('🔍 Consultando horarios para:', {
-        sede: currentBranch.id,
-        dia: dayOfWeek,
-        fecha: format(currentDate, 'dd/MM/yyyy')
-      })
-
-      const supabase = createSupabaseClient()
-      const { data: branch, error } = await supabase
-        .from('sedes')
-        .select('opening_hours')
-        .eq('id', currentBranch.id)
-        .single()
-
-      if (error) {
-        console.error('❌ Error al obtener horarios:', error)
-        throw error
-      }
-
-      if (!branch?.opening_hours) {
-        console.error('❌ No hay horarios configurados para la sede')
-        throw new Error('No hay horarios configurados para esta sede')
-      }
-
-      const hours = branch.opening_hours as BusinessHours
-      console.log('📅 Horarios de la sede:', hours)
-
-      const todaySchedule = hours[dayOfWeek]
-      if (!todaySchedule) {
-        console.error('❌ No se encontró configuración para el día:', dayOfWeek)
-        console.log('Días disponibles:', Object.keys(hours))
-        throw new Error(`No hay horarios configurados para ${dayOfWeek}`)
-      }
-
-      // Calcular el rango total del día
-      let earliestMinutes = Number.MAX_SAFE_INTEGER
-      let latestMinutes = 0
-
-      todaySchedule.timeRanges.forEach(range => {
-        const startMinutes = timeToMinutes(range.openTime)
-        const endMinutes = timeToMinutes(range.closeTime)
-        
-        earliestMinutes = Math.min(earliestMinutes, startMinutes)
-        latestMinutes = Math.max(latestMinutes, endMinutes)
-
-        console.log('⏰ Procesando rango:', {
-          range,
-          startMinutes,
-          endMinutes
-        })
-      })
-
-      const result = {
-        isOpen: true, // Siempre true ya que mostraremos todo el rango
-        timeRanges: todaySchedule.timeRanges,
-        fullRange: {
-          openTime: minutesToTime(earliestMinutes),
-          closeTime: minutesToTime(latestMinutes)
-        }
-      }
-
-      console.log('✅ Resultado final:', result)
-      return result
+  const query = useQuery({
+    queryKey: queryKeys.businessHours.byBranchAndDay(currentBranch?.id || '', dayOfWeek),
+    queryFn: () => {
+      if (!currentBranch?.id) throw new Error('No hay sede seleccionada')
+      return fetchBusinessHours(currentBranch.id, dayOfWeek)
     },
     enabled: !!currentBranch?.id && !!dayOfWeek,
-    staleTime: 0,
-    gcTime: 0,
-    retry: 1
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    gcTime: 1000 * 60 * 30, // 30 minutos
   })
 
   const businessHours = useMemo(() => {
-    if (!businessHoursQuery.data?.fullRange) {
+    if (!query.data?.timeRanges?.length) {
       return null
     }
 
-    const result = {
-      start: businessHoursQuery.data.fullRange.openTime,
-      end: businessHoursQuery.data.fullRange.closeTime
-    }
+    let earliestMinutes = Number.MAX_SAFE_INTEGER
+    let latestMinutes = 0
 
-    console.log('📊 Horario calculado:', result)
-    return result
-  }, [businessHoursQuery.data])
+    query.data.timeRanges.forEach(range => {
+      const startMinutes = timeToMinutes(range.openTime)
+      const endMinutes = timeToMinutes(range.closeTime)
+      
+      earliestMinutes = Math.min(earliestMinutes, startMinutes)
+      latestMinutes = Math.max(latestMinutes, endMinutes)
+    })
+
+    return {
+      start: minutesToTime(earliestMinutes),
+      end: minutesToTime(latestMinutes)
+    }
+  }, [query.data, timeToMinutes, minutesToTime])
 
   return {
-    ...businessHoursQuery,
+    ...query,
     businessHours,
-    isOpen: true, // Siempre true
-    timeRanges: businessHoursQuery.data?.timeRanges || [],
+    isOpen: true,
+    timeRanges: query.data?.timeRanges || [],
     isTimeInRange: useCallback((time: string) => {
-      if (!businessHoursQuery.data?.timeRanges?.length) return true
+      if (!query.data?.timeRanges?.length) return true
       const timeMinutes = timeToMinutes(time)
-      return businessHoursQuery.data.timeRanges.some(range => {
+      return query.data.timeRanges.some(range => {
         const startMinutes = timeToMinutes(range.openTime)
         const endMinutes = timeToMinutes(range.closeTime)
         return timeMinutes >= startMinutes && timeMinutes < endMinutes
       })
-    }, [businessHoursQuery.data?.timeRanges, timeToMinutes])
+    }, [query.data?.timeRanges, timeToMinutes])
   }
 } 

@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createSupabaseClient } from '@/lib/supabase'
 import type { AuthError, AdminUser, ClientUser, BaseAuthSession } from '@/types/supabase-auth'
 import { AUTH_CONFIG } from '@/config/auth.config'
+import { useAppStore } from '@/store/appStore'
+import { clearAllStorage } from '@/lib/storage-utils'
 
 interface AuthUserMetadata {
   name: string
@@ -51,6 +53,32 @@ const BROADCAST_EVENTS = {
   TAB_INITIALIZED: 'TAB_INITIALIZED',
   TAB_CLOSED: 'TAB_CLOSED'
 } as const
+
+const AUTH_SESSION_CHECK_INTERVAL = 1000 * 60 * 5 // 5 minutos
+const SESSION_CHECK_KEY = 'last_session_check'
+
+// Función para verificar si necesitamos comprobar la sesión
+function shouldCheckSession(): boolean {
+  if (typeof window === 'undefined') return true
+  
+  const lastCheck = localStorage.getItem(SESSION_CHECK_KEY)
+  const storedSession = localStorage.getItem(AUTH_CONFIG.admin.storage.keys.session)
+  
+  // Si no hay sesión almacenada, siempre verificar
+  if (!storedSession) return true
+  
+  // Si no hay último check, verificar
+  if (!lastCheck) return true
+  
+  // Verificar el tiempo transcurrido
+  const timeSinceLastCheck = Date.now() - parseInt(lastCheck)
+  return timeSinceLastCheck > AUTH_SESSION_CHECK_INTERVAL
+}
+
+// Función para actualizar el timestamp de la última verificación
+function updateLastSessionCheck() {
+  localStorage.setItem(SESSION_CHECK_KEY, Date.now().toString())
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
@@ -134,12 +162,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null)
       setIsLoading(true)
       
+      // 1. Limpiar el estado de la aplicación usando appStore
+      const appStore = useAppStore.getState()
+      appStore.reset()
+
+      // 2. Limpiar todo el almacenamiento
+      clearAllStorage()
+
+      // 3. Limpiar cookies
+      const cookiesToRemove = [
+        AUTH_CONFIG.admin.cookies.name,
+        'sb-admin-auth-token',
+        'empresa_id'
+      ]
+
+      cookiesToRemove.forEach(cookieName => {
+        try {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+        } catch (e) {
+          console.warn(`Error al limpiar cookie ${cookieName}:`, e)
+        }
+      })
+
+      // 4. Cerrar sesión en Supabase
       const { error } = await supabase.auth.signOut()
       if (error) throw error
       
+      // 5. Limpiar estado del contexto
       clearSession()
       setUser(null)
       setSession(null)
+      
+      // 6. Enviar mensaje de broadcast para otras pestañas
+      sendMessage({ 
+        type: BROADCAST_EVENTS.SESSION_CLEARED,
+        tabId: tabIdRef.current
+      })
+
+      // 7. Forzar recarga de la página para limpiar cualquier estado residual
+      window.location.href = '/admin/login'
       
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
@@ -148,14 +209,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [supabase, clearSession])
+  }, [supabase, clearSession, sendMessage])
 
   // Función para verificar la sesión
   const checkSession = useCallback(async () => {
     try {
       // Intentar recuperar la sesión del localStorage primero
       const storedSession = localStorage.getItem(AUTH_CONFIG.admin.storage.keys.session)
-      if (storedSession) {
+      
+      // Si hay una sesión almacenada y no necesitamos verificar, usarla
+      if (storedSession && !shouldCheckSession()) {
         const parsedSession = JSON.parse(storedSession) as AuthSession
         setSession(parsedSession)
         setUser(parsedSession.user)
@@ -164,6 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
+      // Si llegamos aquí, necesitamos verificar la sesión con Supabase
       const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession()
       
       if (sessionError) throw sessionError
@@ -209,6 +273,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(authUser)
         setSession(authSession)
         persistSession(authSession)
+        updateLastSessionCheck()
+      } else {
+        // Si no hay sesión, limpiar todo
+        clearSession()
+        setUser(null)
+        setSession(null)
       }
       
       setIsLoading(false)
@@ -231,15 +301,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log('Auth state changed:', event, currentSession?.user?.app_metadata)
-      if (currentSession?.user) {
+      if (event === 'SIGNED_IN') {
+        console.log('�� Sesión iniciada')
         await checkSession()
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         clearSession()
         setUser(null)
         setSession(null)
-        setIsLoading(false)
       }
+      
+      setIsLoading(false)
     })
 
     return () => {
@@ -303,18 +374,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(null)
       setIsLoading(true)
       
-      // Primero verificamos si ya existe una sesión
-      const { data: { session: existingSession } } = await supabase.auth.getSession()
-      
-      if (existingSession?.user) {
-        // Si existe sesión, verificar el rol en raw_app_meta_data
-        const userRole = existingSession.user.app_metadata?.role
-        if (userRole !== 'admin') {
-          await supabase.auth.signOut()
-          throw new Error('No tienes permisos de administrador')
-        }
-      }
-      
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -335,6 +394,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Función para verificar y actualizar el rol de administrador
+  const verifyAndUpdateAdminRole = async (user: AuthUser) => {
+    try {
+      // Verificar si ya tiene rol de admin
+      if (user.app_metadata?.role === 'admin') {
+        return true
+      }
+
+      // Si no tiene rol, intentar actualizar a admin
+      const { data: { user: updatedUser }, error } = await supabase.auth.updateUser({
+        data: {
+          role: 'admin',
+          provider: 'google',
+          providers: ['google']
+        }
+      })
+
+      if (error) throw error
+      return updatedUser.app_metadata?.role === 'admin'
+
+    } catch (error) {
+      console.error('Error al verificar/actualizar rol:', error)
+      return false
     }
   }
 

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Branch } from '@/types/branch'
 import { initializationService } from '@/services/initializationService'
+import { clearEmpresaStorage } from '@/lib/storage-utils'
 
 interface AppState {
   // Estado
@@ -8,6 +9,7 @@ interface AppState {
   branches: Branch[]
   currentBranch: Branch | null
   error: Error | null
+  isInitialized: boolean
 
   // Acciones
   initialize: (userId: string) => Promise<void>
@@ -21,6 +23,7 @@ export const useAppStore = create<AppState>((set) => ({
   branches: [],
   currentBranch: null,
   error: null,
+  isInitialized: false,
 
   // Acciones
   initialize: async (userId: string) => {
@@ -40,10 +43,14 @@ export const useAppStore = create<AppState>((set) => ({
         empresa: result.empresa,
         branches: result.branches,
         currentBranch: currentBranch || result.branches[0],
-        error: null
+        error: null,
+        isInitialized: true
       })
     } catch (error: any) {
-      set({ error: new Error(error.message) })
+      set({ 
+        error: new Error(error.message),
+        isInitialized: false
+      })
     }
   },
 
@@ -53,12 +60,16 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   reset: () => {
+    // Limpiar estado
     set({
       empresa: null,
       branches: [],
       currentBranch: null,
-      error: null
+      error: null,
+      isInitialized: false
     })
-    localStorage.removeItem('currentBranchId')
+
+    // Limpiar localStorage relacionado con la empresa
+    clearEmpresaStorage()
   }
 })) 

@@ -21,6 +21,7 @@ import { useBookings } from "@/hooks/useBookings"
 import { cn } from "@/lib/utils"
 import { IconCircleCheck } from "@tabler/icons-react"
 import { toast } from "@/components/ui/use-toast"
+import { useBookingStore } from '@/store/bookingStore'
 
 const ScrollContainer = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -39,9 +40,8 @@ const ScrollContainer = ({ children }: { children: React.ReactNode }) => {
 };
 
 export function BookingsTable() {
-  // Estados principales
   const { currentBranch } = useBranches()
-  const [selectedDate, setSelectedDate] = useState(new Date())
+  const { selectedDate, setSelectedDate } = useBookingStore()
   const [configMenuOpen, setConfigMenuOpen] = useState(false)
   const [configButtonPosition, setConfigButtonPosition] = useState({ x: 0, y: 0 })
   const configButtonRef = useRef<HTMLButtonElement>(null)
@@ -53,7 +53,7 @@ export function BookingsTable() {
     }
   })
 
-  // Custom hooks
+  // Custom hooks con fecha persistente
   const { data: allCourts = [] } = useCourts({ 
     branchId: currentBranch?.id,
     onlyActive: true

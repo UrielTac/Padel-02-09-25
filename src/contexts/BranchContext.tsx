@@ -19,11 +19,24 @@ interface BranchContextType {
 const BranchContext = createContext<BranchContextType | undefined>(undefined)
 
 const BRANCH_STORAGE_KEY = 'currentBranchId'
+const BRANCH_CHECK_INTERVAL = 1000 * 60 * 5 // 5 minutos
+const BRANCH_CHECK_KEY = 'last_branch_check'
+
+function shouldCheckBranch(): boolean {
+  const lastCheck = localStorage.getItem(BRANCH_CHECK_KEY)
+  if (!lastCheck) return true
+  
+  const timeSinceLastCheck = Date.now() - parseInt(lastCheck)
+  return timeSinceLastCheck > BRANCH_CHECK_INTERVAL
+}
+
+function updateLastBranchCheck() {
+  localStorage.setItem(BRANCH_CHECK_KEY, Date.now().toString())
+}
 
 export function BranchProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoading: isLoadingAuth } = useAuth()
   const [currentBranch, setCurrentBranch] = useState<Branch | null>(() => {
-    // Intentar recuperar la sede del localStorage al inicio
     if (typeof window !== 'undefined') {
       const savedBranchId = localStorage.getItem(BRANCH_STORAGE_KEY)
       return savedBranchId ? { id: savedBranchId } as Branch : null
@@ -42,7 +55,6 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     queryFn: async () => {
       if (!user?.id) throw new Error('No hay usuario autenticado')
 
-      console.log('🔍 Buscando empresa para usuario:', user.id)
       const { data, error } = await supabase
         .from('empresas')
         .select('*')
@@ -52,14 +64,13 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error
       if (!data) throw new Error('No se encontró la empresa')
 
-      console.log('✅ Empresa encontrada:', data.id)
       // Guardar el empresa_id en caché
       setEmpresaId(data.id)
       return data
     },
     enabled: !!user?.id && !isLoadingAuth,
     retry: 1,
-    staleTime: 1000 * 60 * 5 // 5 minutos
+    staleTime: BRANCH_CHECK_INTERVAL
   })
 
   // Query para obtener las sedes
@@ -72,7 +83,11 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     queryFn: async () => {
       if (!empresa?.id) throw new Error('No hay empresa seleccionada')
 
-      console.log('🔍 Buscando sedes para empresa:', empresa.id)
+      // Verificar si necesitamos recargar las sedes
+      if (!shouldCheckBranch() && branchesData.length > 0) {
+        return branchesData
+      }
+
       const { data, error } = await supabase
         .from('sedes')
         .select('*')
@@ -81,62 +96,48 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
         .order('name')
 
       if (error) {
-        console.error('Error al cargar sedes:', error)
         toast.error('Error al cargar las sedes')
         throw error
       }
       
       if (!data?.length) {
-        console.warn('No hay sedes disponibles')
         return []
       }
 
-      console.log('✅ Sedes encontradas:', data.length)
+      updateLastBranchCheck()
       return data as Branch[]
     },
     enabled: !!empresa?.id && !isLoadingAuth && !isLoadingEmpresa,
     retry: 1,
-    staleTime: 1000 * 60 * 5 // 5 minutos
+    staleTime: BRANCH_CHECK_INTERVAL
   })
 
   // Efecto para manejar la sede actual
   useEffect(() => {
     const initializeBranch = () => {
-      // Solo proceder si tenemos todas las dependencias necesarias
-      if (isLoadingAuth || isLoadingEmpresa || isLoadingBranches) {
-        console.log('⏳ Esperando carga de dependencias...')
-        return
-      }
+      if (isLoadingAuth || isLoadingEmpresa || isLoadingBranches) return
 
-      // Si no hay usuario o empresa, limpiar la sede
       if (!user || !empresa) {
-        console.log('🧹 Limpiando sede actual (no hay usuario o empresa)')
         setCurrentBranch(null)
         localStorage.removeItem(BRANCH_STORAGE_KEY)
         return
       }
 
-      // Si no hay sedes disponibles, limpiar la sede
       if (!branchesData.length) {
-        console.log('🧹 Limpiando sede actual (no hay sedes disponibles)')
         setCurrentBranch(null)
         localStorage.removeItem(BRANCH_STORAGE_KEY)
         return
       }
 
-      // Intentar usar la sede guardada
       const savedBranchId = localStorage.getItem(BRANCH_STORAGE_KEY)
       if (savedBranchId) {
         const savedBranch = branchesData.find(branch => branch.id === savedBranchId)
         if (savedBranch) {
-          console.log('✅ Usando sede guardada:', savedBranch.name)
           setCurrentBranch(savedBranch)
           return
         }
       }
 
-      // Si no hay sede guardada o no es válida, usar la primera
-      console.log('ℹ️ Usando primera sede disponible:', branchesData[0].name)
       setCurrentBranch(branchesData[0])
       localStorage.setItem(BRANCH_STORAGE_KEY, branchesData[0].id)
     }
@@ -146,7 +147,6 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
 
   // Manejar cambios en la sede actual
   const handleSetCurrentBranch = (branch: Branch | null) => {
-    console.log('🔄 Cambiando sede actual:', branch?.name || 'ninguna')
     setCurrentBranch(branch)
     
     if (branch) {

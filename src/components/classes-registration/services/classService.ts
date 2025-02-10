@@ -272,7 +272,6 @@ export class ClassService {
           )
         `)
         .eq('empresa_id', empresaId)
-        .eq('visibility', 'public')
         .eq('status', 'active')
         .gte('start_date', new Date().toISOString().split('T')[0])
 

@@ -20,7 +20,7 @@ interface Filters {
 
 export function ClassSelectionStep() {
   const router = useRouter()
-  const { state, selectClass, organization } = useClassRegistration()
+  const { state, selectClass, organization, goToStep } = useClassRegistration()
   const { classes = [], isLoading, error } = useClasses(organization?.id || '')
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -59,7 +59,11 @@ export function ClassSelectionStep() {
   // Filtrar clases
   const filteredClasses = useMemo(() => {
     return classes.filter(classItem => {
-      // Filtrar por búsqueda
+      // Primero filtramos por visibilidad pública
+      const isPublic = classItem.visibility === 'public'
+      if (!isPublic) return false
+
+      // Luego aplicamos los demás filtros
       const matchesSearch = searchQuery === '' || 
         classItem.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         classItem.description.toLowerCase().includes(searchQuery.toLowerCase())

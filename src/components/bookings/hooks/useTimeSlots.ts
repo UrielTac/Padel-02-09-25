@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useMemo } from 'react'
 import { useBusinessHours } from '@/hooks/useBusinessHours'
 
 interface TimeSlot {
@@ -15,17 +15,12 @@ interface UseTimeSlotsProps {
 }
 
 export function useTimeSlots({ selectedDate }: UseTimeSlotsProps) {
-  const { businessHours, isOpen, isTimeInRange } = useBusinessHours(selectedDate)
-  const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
+  const { businessHours, isOpen, isTimeInRange, isLoading } = useBusinessHours(selectedDate)
 
-  // Función para generar slots de tiempo
-  const generateTimeSlots = useCallback(() => {
+  const timeSlots = useMemo(() => {
     if (!businessHours?.start || !businessHours?.end) {
-      console.log('⚠️ No hay horarios definidos')
       return []
     }
-
-    console.log('📍 Generando slots para horario:', businessHours)
     
     const slots: TimeSlot[] = []
     const [startHour] = businessHours.start.split(':').map(Number)
@@ -56,17 +51,9 @@ export function useTimeSlots({ selectedDate }: UseTimeSlotsProps) {
     return slots
   }, [businessHours, isTimeInRange])
 
-  // Actualizar slots cuando cambien los horarios o la fecha
-  useEffect(() => {
-    const newSlots = generateTimeSlots()
-    if (JSON.stringify(newSlots) !== JSON.stringify(timeSlots)) {
-      console.log('🔄 Actualizando slots por cambio significativo')
-      setTimeSlots(newSlots)
-    }
-  }, [generateTimeSlots, timeSlots])
-
   return {
     timeSlots,
-    isOpen
+    isOpen,
+    isLoading
   }
 } 

@@ -1,81 +1,86 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 
 export default function AuthCallbackPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const supabase = createClientComponentClient()
-  const { clearError } = useAuth()
 
   useEffect(() => {
-    let isMounted = true
-
-    const handleCallback = async () => {
-      try {
-        clearError()
+    // Escuchar cambios en el estado de autenticación
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Callback - Estado de autenticación:', event)
+      
+      if (event === 'SIGNED_IN') {
+        // Verificar que el usuario tenga rol de admin
+        const userRole = session?.user?.app_metadata?.role || 'client'
         
-        // 1. Verificar errores de OAuth
-        const error = searchParams.get('error')
-        const errorDescription = searchParams.get('error_description')
-        
-        if (error) {
-          throw new Error(errorDescription || 'Error en la autenticación con Google')
-        }
-
-        // 2. Obtener y validar la sesión
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) throw sessionError
-        if (!session?.user) throw new Error('No se encontró sesión de usuario')
-
-        // 3. Verificar el rol en raw_app_meta_data
-        const userRole = session.user.app_metadata?.role
         if (userRole !== 'admin') {
-          throw new Error('No tienes permisos de administrador')
-        }
-
-        // 4. Actualizar metadatos de autenticación si es necesario
-        if (!session.user.app_metadata?.provider || session.user.app_metadata?.provider !== 'google') {
-          const { error: updateError } = await supabase.auth.updateUser({
-            data: {
-              role: 'admin',
-              provider: 'google',
-              providers: ['google']
-            }
-          })
-          if (updateError) throw updateError
-        }
-
-        // 5. Redirigir al dashboard - AuthContext se encargará de la sesión
-        if (isMounted) {
-          router.push('/admin/dashboard')
-        }
-      } catch (error: any) {
-        console.error('Error en callback:', error)
-        if (isMounted) {
+          console.log('Usuario sin permisos de admin')
           await supabase.auth.signOut()
-          router.push('/admin/login?error=callback&message=' + encodeURIComponent(error.message))
+          toast.error('No tienes permisos de administrador')
+          router.push('/admin/login')
+          return
         }
+
+        console.log('Redirigiendo al panel...')
+        window.location.href = '/admin/dashboard/bookings'
       }
+
+      if (event === 'SIGNED_OUT') {
+        console.log('Usuario cerró sesión')
+        router.push('/admin/login')
+      }
+    })
+
+    // Verificar estado inicial
+    const checkInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.log('No hay sesión activa')
+        router.push('/admin/login')
+        return
+      }
+
+      const userRole = session.user?.app_metadata?.role || 'client'
+      if (userRole !== 'admin') {
+        console.log('Usuario sin permisos de admin')
+        await supabase.auth.signOut()
+        toast.error('No tienes permisos de administrador')
+        router.push('/admin/login')
+        return
+      }
+
+      console.log('Sesión activa, redirigiendo...')
+      window.location.href = '/admin/dashboard/bookings'
     }
 
-    handleCallback()
+    // Verificar sesión después de un breve delay
+    const timer = setTimeout(checkInitialSession, 1000)
 
     return () => {
-      isMounted = false
+      subscription.unsubscribe()
+      clearTimeout(timer)
     }
-  }, [router, searchParams, supabase, clearError])
+  }, [supabase, router])
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-4 max-w-sm mx-auto p-6">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">
-          Verificando credenciales...
+          Verificando autenticación...
+        </p>
+        <p className="text-xs text-gray-400">
+          Serás redirigido automáticamente...
         </p>
       </div>
     </div>

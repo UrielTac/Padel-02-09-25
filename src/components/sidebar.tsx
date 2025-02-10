@@ -36,6 +36,8 @@ import { useBranchContext } from '@/contexts/BranchContext'
 import useOrganization from '@/hooks/useOrganization'
 import { Zap } from "lucide-react"
 import { UpgradeModal } from "@/components/modals/upgrade-modal"
+import { useAuth } from '@/contexts/AuthContext'
+import { toast } from 'sonner'
 
 // Función auxiliar para obtener las iniciales
 function getInitials(name: string | null | undefined): string {
@@ -133,6 +135,23 @@ const settingsMenuItems = [
     icon: Users2
   }
 ]
+
+// Extraer la lógica de cierre de sesión a un hook personalizado
+function useSignOut() {
+  const { signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      // No necesitamos hacer nada más aquí, ya que signOut maneja todo
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error)
+      toast.error('Error al cerrar sesión')
+    }
+  }
+
+  return handleSignOut
+}
 
 function SidebarHeader() {
   const { 
@@ -250,6 +269,7 @@ function SidebarHeader() {
 function SidebarFooter() {
   const router = useRouter()
   const pathname = usePathname()
+  const handleSignOut = useSignOut()
 
   const handleConfigClick = () => {
     router.push('/admin/dashboard/settings?tab=company')
@@ -274,6 +294,7 @@ function SidebarFooter() {
         </button>
 
         <button 
+          onClick={handleSignOut}
           className={cn(
             "w-full flex items-center gap-2 px-4 py-2 rounded-xl",
             "text-gray-500 hover:text-red-600",
@@ -346,6 +367,8 @@ function PromoCard() {
 
 function MobileNav() {
   const pathname = usePathname()
+  const router = useRouter()
+  const handleSignOut = useSignOut()
 
   return (
     <div className="flex h-full flex-col bg-gray-50/10">
@@ -486,6 +509,7 @@ export function Sidebar({ className }: SidebarProps) {
   const [showSettings, setShowSettings] = useState(false)
   const [activeSettingsTab, setActiveSettingsTab] = useState("company")
   const [previousPath, setPreviousPath] = useState<string | null>(null)
+  const handleSignOut = useSignOut()
 
   useEffect(() => {
     setIsVisible(!shouldHideSidebar(pathname))
@@ -601,6 +625,7 @@ export function Sidebar({ className }: SidebarProps) {
                 </button>
 
                 <button 
+                  onClick={handleSignOut}
                   className={cn(
                     "w-full flex items-center gap-2 px-4 py-2 rounded-xl",
                     "text-gray-500 hover:text-red-600",

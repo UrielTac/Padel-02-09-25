@@ -8,13 +8,15 @@ export const AUTH_CONFIG = {
       signOut: '/admin/logout',
       callback: '/admin/auth/callback',
       unauthorized: '/admin/unauthorized',
-      afterSignIn: '/admin/dashboard',
+      afterSignIn: '/admin/dashboard/bookings',
       protected: [
         '/admin/dashboard',
         '/admin/dashboard/bookings',
         '/admin/dashboard/settings',
         '/admin/dashboard/users',
-        '/admin/dashboard/analytics'
+        '/admin/dashboard/analytics',
+        '/admin/dashboard/forms-a',
+        '/admin/dashboard/forms-a/new'
       ]
     },
     cookies: {
@@ -33,7 +35,13 @@ export const AUTH_CONFIG = {
       keys: {
         session: 'sl-admin-session',
         user: 'sl-admin-user',
-        organization: 'sl-admin-organization'
+        organization: 'sl-admin-organization',
+        currentBranch: 'currentBranchId',
+        empresa: {
+          id: 'current_empresa_id',
+          data: 'empresaData',
+          legacyId: 'empresaId' // Para mantener compatibilidad
+        }
       }
     }
   },

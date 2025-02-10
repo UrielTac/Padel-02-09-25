@@ -146,38 +146,27 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
     empresa_id: initialForm?.empresa_id || null
   });
 
+  // Efecto único para inicializar el estado con el formulario inicial
   useEffect(() => {
-    console.log('[FormContext] Estado de initialForm:', { 
-      hasInitialForm: !!initialForm,
-      empresa_id: initialForm?.empresa_id 
-    });
-
     if (initialForm?.empresa_id) {
-      console.log('[FormContext] Actualizando empresa_id:', initialForm.empresa_id);
       dispatch({ 
         type: 'SET_EMPRESA_ID', 
         payload: initialForm.empresa_id 
       });
-    } else {
-      console.warn('[FormContext] Advertencia: initialForm o empresa_id no disponible');
     }
-  }, [initialForm]);
+  }, [initialForm?.empresa_id]); // Solo se ejecuta cuando cambia el empresa_id
 
+  // Efecto para limpiar el formulario al cerrar la ventana
   useEffect(() => {
     const handleBeforeUnload = () => {
       dispatch({ type: 'RESET_FORM' });
     };
 
-    if (!initialForm?.empresa_id) {
-      console.log('[FormContext] Reiniciando formulario (sin empresa_id inicial)');
-      dispatch({ type: 'RESET_FORM' });
-    }
-
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [initialForm?.empresa_id]);
+  }, []); // Solo se ejecuta una vez al montar
 
   const resetForm = useCallback(() => {
     dispatch({ type: 'RESET_FORM' });

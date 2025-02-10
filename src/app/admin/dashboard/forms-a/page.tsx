@@ -11,6 +11,7 @@ import { ArrowLeft, Search, Save, Pencil } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FormCard } from "@/components/forms/FormCard"
 import { cn } from "@/lib/utils"
+import { PageLoadingState, PageErrorState, PageEmptyState } from "@/components/ui/page-loading-state"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,9 +30,12 @@ import { validateStepOrder } from '@/lib/validations';
 import { useRouter } from 'next/navigation'
 import { useAuth } from "@/contexts/AuthContext"
 import { useBranchContext } from "@/contexts/BranchContext"
+import { useQuery } from "@tanstack/react-query"
 
 export default function FormsPage() {
   const router = useRouter()
+  const { user } = useAuth()
+  const { currentBranch } = useBranchContext()
   const {
     fields,
     metadata,
@@ -50,18 +54,20 @@ export default function FormsPage() {
     error: publishError
   } = useFormPublishing();
 
-  const { isLoading: isLoadingAuth } = useAuth()
-  const { isLoading: isLoadingBranch } = useBranchContext()
-  const isLoading = isLoadingAuth || isLoadingBranch || isPublishing || isLoadingPublish
+  const isLoading = isLoadingPublish || isPublishing
 
   const handlePublish = async () => {
     try {
-      const formData = prepareForPublish();
-      const url = await publishForm(formData);
+      const formConfig = {
+        title: formTitle,
+        fields: fields,
+        description: formDescription
+      };
       
-      // Actualizar el estado de publicación y URL
+      const url = await publishForm(formConfig);
+      
       setPublished(true, {
-        formId: formData.id,
+        formId: crypto.randomUUID(),
         slug: url,
         isCustomizable: true
       });
@@ -78,7 +84,7 @@ export default function FormsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [activeStepId, setActiveStepId] = useState<string | null>(null)
+  const [activeStepId, setActiveStepId] = useState<string | undefined>(undefined)
   const [formTitle, setFormTitle] = useState("")
   const [formDescription, setFormDescription] = useState("")
   const [showTitleError, setShowTitleError] = useState(false)
@@ -171,22 +177,20 @@ export default function FormsPage() {
   };
 
   const handleCreateNew = () => {
-    router.push('/dashboard/forms-a/new')
+    router.push('/admin/dashboard/forms-a/new')
   }
 
   const handleExitClick = () => {
-    // Verificar si hay cambios sin publicar
     if (fields.length > 0 && !isPublished) {
       setShowExitDialog(true);
     } else {
-      // Si no hay cambios o ya está publicado, volver a la lista
-      router.push('/dashboard/forms-a');
+      router.push('/admin/dashboard/forms-a');
     }
   };
 
   const handleConfirmExit = () => {
     setShowExitDialog(false);
-    router.push('/dashboard/forms-a');
+    router.push('/admin/dashboard/forms-a');
     setFields([]); // Limpiar campos al salir
   };
 
@@ -197,26 +201,13 @@ export default function FormsPage() {
           <div className="bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] w-full h-full overflow-auto scrollbar-none">
             <div className="px-6 py-4">
               {isLoading ? (
-                <div className="h-full w-full flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800"></div>
-                    <p className="text-sm text-gray-500">Cargando...</p>
-                  </div>
-                </div>
+                <PageLoadingState message="Cargando formularios..." />
               ) : publishError ? (
-                <div className="h-full w-full flex items-center justify-center">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="p-4 bg-red-50 rounded-lg">
-                      <p className="text-red-600">{publishError.message}</p>
-                    </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push('/dashboard/forms-a')}
-                    >
-                      Volver
-                    </Button>
-                  </div>
-                </div>
+                <PageErrorState message={publishError.message} />
+              ) : !user ? (
+                <PageEmptyState message="No hay sesión activa" />
+              ) : !currentBranch ? (
+                <PageEmptyState message="No hay una sede seleccionada" />
               ) : (
                 <div className="h-full">
                   {isEditing ? (
@@ -243,12 +234,11 @@ export default function FormsPage() {
                       <div className="h-[calc(100%-3rem)]">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full">
                           <div className="h-full overflow-auto scrollbar-none">
-                            <FormBuilder 
+                            <FormBuilder
                               fields={fields}
                               onFieldsChange={handleFieldsChange}
                               onClearFields={handleClearFields}
                               onThemeChange={handleThemeChange}
-                              onSave={handleSaveClick}
                               onPublish={handlePublish}
                               isPublishing={isPublishing}
                               activeStepId={activeStepId}

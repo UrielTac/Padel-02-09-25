@@ -16,16 +16,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
-  // Debug: Imprimir información del usuario
-  console.log('AuthGuard - Estado del usuario:', { 
-    isLoading, 
-    user: user ? { 
-      id: user.id, 
-      email: user.email, 
-      role: user.role 
-    } : null 
-  });
-
   // Si no hay usuario después de cargar, redirigir al login
   if (!isLoading && !user) {
     console.log('AuthGuard - Usuario no autenticado, redirigiendo a login');

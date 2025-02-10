@@ -3,6 +3,8 @@ import { bookingService } from '@/services/bookingService'
 import { paymentService } from '@/services/paymentService'
 import { toast } from '@/components/ui/use-toast'
 import { SelectedBooking } from '@/types/bookings'
+import { queryKeys } from '@/config/query-keys'
+import { keepPreviousData } from '@tanstack/react-query'
 
 interface RegisterPaymentParams {
   bookingId: string
@@ -17,54 +19,81 @@ interface CancelBookingParams {
 }
 
 interface UseBookingsParams {
-  date?: string
+  date?: Date
   branchId?: string
+}
+
+interface MutationContext {
+  previousBooking: SelectedBooking | null
+}
+
+function formatDateForQuery(date: Date): string {
+  return date.toISOString().split('T')[0]
 }
 
 export function useBookings({ date, branchId }: UseBookingsParams = {}) {
   const queryClient = useQueryClient()
 
-  // Query para obtener las reservas
+  // Query optimizada para obtener las reservas
   const bookingsQuery = useQuery({
-    queryKey: ['bookings', date, branchId],
+    queryKey: queryKeys.bookings.list({ 
+      date: date ? formatDateForQuery(date) : undefined, 
+      branchId 
+    }),
     queryFn: async () => {
       if (!date) return []
       
-      console.log('Fetching bookings for:', { date, branchId })
-      const response = await bookingService.getBookingsByDate(date, branchId)
+      const formattedDate = formatDateForQuery(date)
+      console.log('🔍 Fetching bookings for:', { date: formattedDate, branchId })
+      
+      const response = await bookingService.getBookingsByDate(formattedDate, branchId)
       
       if (response.error) {
-        console.error('Error fetching bookings:', response.error)
+        console.error('❌ Error fetching bookings:', response.error)
         throw new Error(response.error.message)
       }
+      
+      console.log('✅ Bookings loaded:', {
+        date: formattedDate,
+        branchId,
+        count: response.data?.length || 0
+      })
       
       return response.data || []
     },
     enabled: !!date,
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 5, // 5 minutos
-    retry: 2
+    gcTime: 1000 * 60 * 30, // 30 minutos
+    retry: (failureCount, error) => {
+      if (error instanceof Error && error.message.includes('404')) {
+        return false
+      }
+      return failureCount < 2
+    }
   })
 
-  // Mutación para registrar pagos
+  // Mutación optimizada para registrar pagos
   const registerPaymentMutation = useMutation<
     any,
     Error,
-    RegisterPaymentParams
+    RegisterPaymentParams,
+    MutationContext
   >({
     mutationFn: async (params) => {
       return paymentService.registerPayment(params)
     },
     onMutate: async (newPayment) => {
       await queryClient.cancelQueries({ 
-        queryKey: ['booking', newPayment.bookingId] 
+        queryKey: queryKeys.bookings.detail(newPayment.bookingId)
       })
 
       const previousBooking = queryClient.getQueryData<SelectedBooking>(
-        ['booking', newPayment.bookingId]
+        queryKeys.bookings.detail(newPayment.bookingId)
       )
 
       queryClient.setQueryData<SelectedBooking>(
-        ['booking', newPayment.bookingId],
+        queryKeys.bookings.detail(newPayment.bookingId),
         (old) => {
           if (!old) return old
           const totalPaid = (old.depositAmount || 0) + newPayment.depositAmount
@@ -76,12 +105,12 @@ export function useBookings({ date, branchId }: UseBookingsParams = {}) {
         }
       )
 
-      return { previousBooking }
+      return { previousBooking: previousBooking || null }
     },
     onError: (_, __, context) => {
       if (context?.previousBooking) {
         queryClient.setQueryData(
-          ['booking', context.previousBooking.id],
+          queryKeys.bookings.detail(context.previousBooking.id),
           context.previousBooking
         )
       }
@@ -98,34 +127,35 @@ export function useBookings({ date, branchId }: UseBookingsParams = {}) {
     },
     onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['booking', variables.bookingId]
+        queryKey: queryKeys.bookings.detail(variables.bookingId)
       })
       queryClient.invalidateQueries({
-        queryKey: ['bookings']
+        queryKey: queryKeys.bookings.lists()
       })
     }
   })
 
-  // Mutación para cancelar reservas
+  // Mutación optimizada para cancelar reservas
   const cancelBookingMutation = useMutation<
     any,
     Error,
-    CancelBookingParams
+    CancelBookingParams,
+    MutationContext
   >({
     mutationFn: async (params) => {
       return bookingService.cancelBooking(params.bookingId, params.reason)
     },
     onMutate: async (cancelParams) => {
       await queryClient.cancelQueries({ 
-        queryKey: ['booking', cancelParams.bookingId] 
+        queryKey: queryKeys.bookings.detail(cancelParams.bookingId)
       })
 
       const previousBooking = queryClient.getQueryData<SelectedBooking>(
-        ['booking', cancelParams.bookingId]
+        queryKeys.bookings.detail(cancelParams.bookingId)
       )
 
       queryClient.setQueryData<SelectedBooking>(
-        ['booking', cancelParams.bookingId],
+        queryKeys.bookings.detail(cancelParams.bookingId),
         (old) => {
           if (!old) return old
           return {
@@ -135,12 +165,12 @@ export function useBookings({ date, branchId }: UseBookingsParams = {}) {
         }
       )
 
-      return { previousBooking }
+      return { previousBooking: previousBooking || null }
     },
     onError: (_, __, context) => {
       if (context?.previousBooking) {
         queryClient.setQueryData(
-          ['booking', context.previousBooking.id],
+          queryKeys.bookings.detail(context.previousBooking.id),
           context.previousBooking
         )
       }
@@ -157,10 +187,10 @@ export function useBookings({ date, branchId }: UseBookingsParams = {}) {
     },
     onSettled: (_, __, variables) => {
       queryClient.invalidateQueries({
-        queryKey: ['booking', variables.bookingId]
+        queryKey: queryKeys.bookings.detail(variables.bookingId)
       })
       queryClient.invalidateQueries({
-        queryKey: ['bookings']
+        queryKey: queryKeys.bookings.lists()
       })
     }
   })

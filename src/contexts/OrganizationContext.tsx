@@ -36,6 +36,21 @@ function getEmpresaIdFromCache(): string | null {
   return null;
 }
 
+const ORGANIZATION_CHECK_INTERVAL = 1000 * 60 * 5 // 5 minutos
+const ORGANIZATION_CHECK_KEY = 'last_organization_check'
+
+function shouldCheckOrganization(): boolean {
+  const lastCheck = localStorage.getItem(ORGANIZATION_CHECK_KEY)
+  if (!lastCheck) return true
+  
+  const timeSinceLastCheck = Date.now() - parseInt(lastCheck)
+  return timeSinceLastCheck > ORGANIZATION_CHECK_INTERVAL
+}
+
+function updateLastOrganizationCheck() {
+  localStorage.setItem(ORGANIZATION_CHECK_KEY, Date.now().toString())
+}
+
 // Exportamos el contexto para que esté disponible si es necesario
 export const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined)
 
@@ -52,14 +67,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     const loadOrganization = async () => {
       try {
         // Si aún está cargando la autenticación, esperar
-        if (authLoading) {
-          console.log('🔄 Esperando autenticación...');
-          return;
-        }
+        if (authLoading) return;
 
         // Si no hay usuario, no cargar organización
         if (!user) {
-          console.log('❌ No hay usuario autenticado');
           if (isMounted) {
             setIsLoading(false);
             setError(new Error('No hay usuario autenticado'));
@@ -67,12 +78,19 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           return;
         }
 
+        // Verificar si necesitamos recargar la organización
+        if (!shouldCheckOrganization()) {
+          const cachedOrg = organization
+          if (cachedOrg) {
+            console.log('⏭️ Usando organización en caché')
+            return
+          }
+        }
+
         // Intentar obtener empresa_id del caché
         const empresaId = getEmpresaIdFromCache();
-        console.log('🔍 Buscando empresa_id en caché:', empresaId);
         
         if (!empresaId) {
-          console.error('❌ No se encontró empresa_id en caché');
           if (isMounted) {
             setError(new Error('No se encontró la empresa'));
             setIsLoading(false);
@@ -80,29 +98,23 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
           return;
         }
 
-        console.log('🔍 Buscando empresa desde caché:', empresaId);
-
         const { data, error: dbError } = await supabase
           .from('empresas')
           .select('*')
           .eq('id', empresaId)
           .single()
 
-        if (dbError) {
-          console.error('❌ Error al cargar empresa:', dbError);
-          throw dbError;
-        }
+        if (dbError) throw dbError;
 
         if (!data) {
-          console.error('❌ No se encontró la empresa');
           throw new Error('No se encontró la empresa');
         }
 
         if (isMounted) {
-          console.log('✅ Empresa cargada desde caché:', data);
           setOrganization(data);
           setError(null);
           setIsLoading(false);
+          updateLastOrganizationCheck();
         }
       } catch (error) {
         console.error('❌ Error al cargar organización:', error);
@@ -119,7 +131,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
     return () => {
       isMounted = false;
     };
-  }, [user, authLoading, supabase]);
+  }, [user, authLoading, supabase, organization]);
 
   const value = {
     organization,

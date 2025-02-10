@@ -9,13 +9,13 @@ interface Court {
 
 interface BookingStore {
   selectedCourt: Court | null;
-  selectedDate: string | null;
+  selectedDate: Date;
   selectedStartTime: string | null;
   selectedEndTime: string | null;
   participants: BookingParticipant[];
   rentalItems: RentalItem[];
   setSelectedCourt: (court: Court | null) => void;
-  setSelectedDate: (date: string | null) => void;
+  setSelectedDate: (date: Date) => void;
   setSelectedStartTime: (time: string | null) => void;
   setSelectedEndTime: (time: string | null) => void;
   addParticipant: (participant: BookingParticipant) => void;
@@ -28,14 +28,14 @@ interface BookingStore {
 
 export const useBookingStore = create<BookingStore>((set) => ({
   selectedCourt: null,
-  selectedDate: null,
+  selectedDate: new Date(),
   selectedStartTime: null,
   selectedEndTime: null,
   participants: [],
   rentalItems: [],
 
   setSelectedCourt: (court) => set({ selectedCourt: court }),
-  setSelectedDate: (date) => set({ selectedDate: date }),
+  setSelectedDate: (date: Date) => set({ selectedDate: date }),
   setSelectedStartTime: (time) => set({ selectedStartTime: time }),
   setSelectedEndTime: (time) => set({ selectedEndTime: time }),
 
@@ -68,7 +68,7 @@ export const useBookingStore = create<BookingStore>((set) => ({
 
   resetBooking: () => set({
     selectedCourt: null,
-    selectedDate: null,
+    selectedDate: new Date(),
     selectedStartTime: null,
     selectedEndTime: null,
     participants: [],
