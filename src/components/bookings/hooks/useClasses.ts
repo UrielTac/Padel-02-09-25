@@ -17,6 +17,7 @@ type BaseClass = Database['public']['Tables']['classes']['Row']
 // Extender el tipo base
 interface ClassWithLink extends BaseClass {
   shareableLink: string | null
+  isExpired?: boolean
   empresa?: {
     id: string
     name: string
@@ -79,12 +80,19 @@ async function fetchClasses(empresaId: string, branchId?: string) {
       return []
     }
 
-    // 4. Agregar el link a cada clase
+    // 4. Procesar las clases y agregar información adicional
     const classesWithLinks = classesData.map(classItem => {
       const companySlug = classItem.empresa?.company_links?.[0]?.slug || companyLink?.slug
+      const now = new Date()
       
+      // Verificar si la clase única ha expirado
+      const isExpired = !classItem.is_recurring && 
+        classItem.start_date && 
+        new Date(classItem.start_date) < now
+
       return {
         ...classItem,
+        isExpired,
         shareableLink: companySlug 
           ? `${window.location.origin}/clases/${companySlug}/${classItem.id}`
           : null

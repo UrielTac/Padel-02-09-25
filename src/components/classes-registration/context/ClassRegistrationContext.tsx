@@ -125,12 +125,12 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
   const [state, dispatch] = useReducer(registrationReducer, initialState)
   const [hasInitialized, setHasInitialized] = useState(false)
 
-  // Memoizamos el valor de isLoading para evitar recálculos innecesarios
+  // Memoizamos el valor de isLoading
   const isLoading = useMemo(() => {
     return isLoadingAuth || (orgLoading && !organization)
   }, [isLoadingAuth, orgLoading, organization])
 
-  // Efecto para la inicialización única del estado de autenticación
+  // Modificamos el efecto de inicialización para no redireccionar automáticamente
   useEffect(() => {
     if (!isLoadingAuth && !hasInitialized) {
       dispatch({
@@ -143,7 +143,8 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
       setHasInitialized(true)
     }
 
-    // Si el usuario se desautentica, resetear el estado
+    // Removemos la redirección automática al login
+    // Solo actualizamos el estado si el usuario se desautentica
     if (!isLoadingAuth && !user && hasInitialized) {
       dispatch({
         type: 'SET_AUTH_STATUS',
@@ -152,10 +153,8 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
           isGuest: false 
         }
       })
-      // Redirigir a la página de login de clases
-      router.replace('/clases/login')
     }
-  }, [isLoadingAuth, user, hasInitialized, router])
+  }, [isLoadingAuth, user, hasInitialized])
 
   const setAuthView = useCallback((view: AuthView) => {
     dispatch({ type: 'SET_AUTH_VIEW', payload: view })

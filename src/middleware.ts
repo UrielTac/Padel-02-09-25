@@ -13,7 +13,8 @@ const PUBLIC_ROUTES = [
   '/admin/login',
   '/admin/auth/callback',
   '/admin/auth/error',
-  '/clases/login'
+  '/clases/login',
+  '/clases/registro'
 ] as const
 
 // Rutas de assets estáticos
@@ -147,15 +148,16 @@ export default async function middleware(req: NextRequest) {
 
     // Manejo específico para rutas de clases
     if (pathname.startsWith('/clases/')) {
-      // Excluir rutas públicas de clases
-      if (pathname === '/clases/login' || pathname === '/clases/registro') {
+      // Excluir rutas públicas de clases de manera más explícita
+      if (['/clases/login', '/clases/registro'].includes(pathname)) {
         return NextResponse.next()
       }
 
       if (!session) {
         console.log('Middleware: No hay sesión, redirigiendo a login de clases')
         const returnUrl = encodeURIComponent(pathname)
-        return NextResponse.redirect(new URL(`/clases/login?returnUrl=${returnUrl}`, req.url))
+        const loginUrl = new URL(`/clases/login?returnUrl=${returnUrl}`, req.url)
+        return NextResponse.redirect(loginUrl)
       }
 
       // Para rutas de clases, permitir tanto clientes como administradores

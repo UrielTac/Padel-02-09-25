@@ -164,7 +164,8 @@ export function ClassesTable() {
                       "flex items-center justify-between p-4 rounded-lg",
                       "bg-white hover:bg-gray-50",
                       "border border-gray-200 hover:border-gray-300",
-                      "transition-all duration-200"
+                      "transition-all duration-200",
+                      classItem.isExpired && "opacity-75"
                     )}
                   >
                     <div 
@@ -173,14 +174,29 @@ export function ClassesTable() {
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-base font-medium text-gray-900">{classItem.name}</h4>
-                          <span className={cn(
-                            "px-2 py-0.5 rounded-full text-xs font-medium",
-                            "bg-gray-100 text-gray-600"
-                          )}>
-                            {classItem.is_recurring ? 'Clase recurrente' : 'Clase única'}
-                          </span>
+                          <h4 className="text-base font-medium text-gray-900">
+                            {classItem.name}
+                          </h4>
+                          <div className="flex gap-1.5">
+                            <span className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-medium",
+                              "bg-gray-100 text-gray-600"
+                            )}>
+                              {classItem.is_recurring ? 'Clase recurrente' : 'Clase única'}
+                            </span>
+                            
+                            {/* Indicador de clase expirada */}
+                            {classItem.isExpired && (
+                              <span className={cn(
+                                "px-2 py-0.5 rounded-full text-xs font-medium",
+                                "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                              )}>
+                                Finalizada
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        
                         <p className="text-sm text-gray-500">
                           Instructor: {firstTimeSlot.instructors?.[0] || 'Sin instructor'} • 
                           {firstTimeSlot.endTime && firstTimeSlot.startTime && (
@@ -190,6 +206,14 @@ export function ClassesTable() {
                             `${scheduleConfig.timeSlots.length} ${scheduleConfig.timeSlots.length === 1 ? 'horario' : 'horarios'} • `
                           )}
                           Máx. {firstTimeSlot.capacity || 0} participantes
+                          {/* Mostrar fecha para clases únicas */}
+                          {!classItem.is_recurring && classItem.start_date && (
+                            ` • ${new Date(classItem.start_date).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })}`
+                          )}
                         </p>
                       </div>
                     </div>

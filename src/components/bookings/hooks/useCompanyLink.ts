@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import type { Database } from '@/types/supabase'
 import { useCurrentEmpresa } from '@/hooks/useCurrentEmpresa'
 import { queryKeys } from '@/config/query-keys'
+import { useState, useEffect } from 'react'
 
 interface UseCompanyLinkProps {
   branchId?: string
@@ -84,46 +85,27 @@ async function getUniqueSlug(supabase: ReturnType<typeof createClientComponentCl
   return slug
 }
 
-async function generateCompanyLinkFn(empresaId: string): Promise<CompanyLink> {
+async function generateCompanyLinkFn(empresaId: string, customSlug: string): Promise<CompanyLink> {
   const supabase = createClientComponentClient<Database>()
 
   try {
-    // Verificar si ya existe un link
-    const { data: existingLink } = await supabase
+    // Verificar si el slug está disponible
+    const { data: existingSlug } = await supabase
       .from('company_links')
       .select('slug')
-      .eq('empresa_id', empresaId)
-      .eq('type', 'classes')
+      .eq('slug', customSlug)
       .single()
 
-    if (existingLink) {
-      return {
-        slug: existingLink.slug,
-        url: `${window.location.origin}/clases/${existingLink.slug}`,
-        hasExistingLink: true
-      }
+    if (existingSlug) {
+      throw new Error('Este link ya está en uso')
     }
 
-    // Obtener el nombre de la empresa
-    const { data: empresaData, error: empresaError } = await supabase
-      .from('empresas')
-      .select('name')
-      .eq('id', empresaId)
-      .single()
-
-    if (empresaError) throw empresaError
-    if (!empresaData?.name) throw new Error('No se encontró el nombre de la empresa')
-
-    // Generar slug base y obtener uno único
-    const baseSlug = generateSlug(empresaData.name)
-    const uniqueSlug = await getUniqueSlug(supabase, baseSlug)
-
-    // Crear el nuevo link
+    // Crear el nuevo link con el slug personalizado
     const { data: newLink, error: createError } = await supabase
       .from('company_links')
       .insert({
         empresa_id: empresaId,
-        slug: uniqueSlug,
+        slug: customSlug,
         type: 'classes',
         is_active: true,
         settings: {
@@ -158,9 +140,55 @@ async function generateCompanyLinkFn(empresaId: string): Promise<CompanyLink> {
   }
 }
 
+async function updateCompanyLinkFn(empresaId: string, customSlug: string): Promise<CompanyLink> {
+  const supabase = createClientComponentClient<Database>()
+
+  try {
+    // Verificar si el slug está disponible
+    const { data: existingSlug } = await supabase
+      .from('company_links')
+      .select('slug')
+      .eq('slug', customSlug)
+      .not('empresa_id', 'eq', empresaId) // Excluir el registro actual
+      .single()
+
+    if (existingSlug) {
+      throw new Error('Este link ya está en uso')
+    }
+
+    // Actualizar el link existente
+    const { data: updatedLink, error: updateError } = await supabase
+      .from('company_links')
+      .update({ slug: customSlug })
+      .eq('empresa_id', empresaId)
+      .eq('type', 'classes')
+      .select('slug')
+      .single()
+
+    if (updateError) throw updateError
+
+    return {
+      slug: updatedLink.slug,
+      url: `${window.location.origin}/clases/${updatedLink.slug}`,
+      hasExistingLink: true
+    }
+  } catch (err) {
+    console.error('Error al actualizar el link:', err)
+    throw err
+  }
+}
+
 export function useCompanyLink({ branchId, classId }: UseCompanyLinkProps = {}) {
   const { empresa } = useCurrentEmpresa()
   const queryClient = useQueryClient()
+  const [defaultSlug, setDefaultSlug] = useState('')
+
+  // Obtener el slug por defecto cuando se carga la empresa
+  useEffect(() => {
+    if (empresa?.name) {
+      setDefaultSlug(generateSlug(empresa.name))
+    }
+  }, [empresa?.name])
 
   const query = useQuery({
     queryKey: queryKeys.companyLink.byBranch(branchId || 'default'),
@@ -174,9 +202,9 @@ export function useCompanyLink({ branchId, classId }: UseCompanyLinkProps = {}) 
   })
 
   const generateLinkMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (customSlug: string) => {
       if (!empresa?.id) throw new Error('No se encontró la empresa asociada')
-      return generateCompanyLinkFn(empresa.id)
+      return generateCompanyLinkFn(empresa.id, customSlug)
     },
     onSuccess: (data) => {
       queryClient.setQueryData(
@@ -188,6 +216,24 @@ export function useCompanyLink({ branchId, classId }: UseCompanyLinkProps = {}) 
     onError: (error: Error) => {
       console.error('Error al generar el link:', error)
       toast.error('Error al generar el link')
+    }
+  })
+
+  const updateLinkMutation = useMutation({
+    mutationFn: async (customSlug: string) => {
+      if (!empresa?.id) throw new Error('No se encontró la empresa asociada')
+      return updateCompanyLinkFn(empresa.id, customSlug)
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        queryKeys.companyLink.byBranch(branchId || 'default'),
+        data
+      )
+      toast.success('Link actualizado exitosamente')
+    },
+    onError: (error: Error) => {
+      console.error('Error al actualizar el link:', error)
+      toast.error('Error al actualizar el link')
     }
   })
 
@@ -205,10 +251,13 @@ export function useCompanyLink({ branchId, classId }: UseCompanyLinkProps = {}) 
 
   return {
     companyLink: query.data?.url || null,
-    isLoading: query.isLoading || generateLinkMutation.isPending,
-    error: query.error || generateLinkMutation.error,
+    currentSlug: query.data?.slug || '',
+    isLoading: query.isLoading || generateLinkMutation.isPending || updateLinkMutation.isPending,
+    error: query.error || generateLinkMutation.error || updateLinkMutation.error,
     copyToClipboard,
     generateLink: generateLinkMutation.mutate,
-    hasExistingLink: query.data?.hasExistingLink || false
+    updateLink: updateLinkMutation.mutate,
+    hasExistingLink: query.data?.hasExistingLink || false,
+    defaultSlug
   }
 } 

@@ -1,22 +1,32 @@
 "use client"
 
-import { IconCopy, IconExternalLink, IconInfoCircle, IconLink } from "@tabler/icons-react"
+import { IconCopy, IconExternalLink, IconInfoCircle, IconEdit } from "@tabler/icons-react"
 import { useCompanyLink } from "../hooks/useCompanyLink"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { SlugInputPopover } from "./SlugInputPopover"
 
 interface CompanyLinkSectionProps {
   branchId?: string
 }
 
 export function CompanyLinkSection({ branchId }: CompanyLinkSectionProps) {
-  const { companyLink, isLoading, error, copyToClipboard, generateLink, hasExistingLink } = useCompanyLink({ branchId })
+  const { 
+    companyLink, 
+    isLoading, 
+    error, 
+    copyToClipboard, 
+    generateLink,
+    updateLink, 
+    hasExistingLink,
+    defaultSlug,
+    currentSlug 
+  } = useCompanyLink({ branchId })
 
   if (!branchId) {
     return null
@@ -54,25 +64,19 @@ export function CompanyLinkSection({ branchId }: CompanyLinkSectionProps) {
                   <IconInfoCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p className="text-sm">Genera un link para que tus clientes puedan ver y reservar tus clases</p>
+                  <p className="text-sm">Genera un link personalizado para que tus clientes puedan ver y reservar tus clases</p>
                 </TooltipContent>
               </Tooltip>
             </div>
             <p className="text-sm text-gray-500">No tienes un link generado para tus clases</p>
           </div>
 
-          <Button
-            onClick={generateLink}
-            disabled={isLoading}
-            className={cn(
-              "w-full flex items-center justify-center gap-2",
-              "bg-white hover:bg-white text-black border border-gray-200",
-              "transition-colors duration-200"
-            )}
-          >
-            <IconLink className="w-4 h-4" />
-            <span>Generar link</span>
-          </Button>
+          <SlugInputPopover 
+            onGenerate={generateLink}
+            isLoading={isLoading}
+            defaultSlug={defaultSlug}
+            mode="create"
+          />
         </div>
       ) : (
         <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 space-y-4">
@@ -101,6 +105,25 @@ export function CompanyLinkSection({ branchId }: CompanyLinkSectionProps) {
             )}>
               <span className="truncate">{companyLink}</span>
             </div>
+
+            <SlugInputPopover 
+              onGenerate={updateLink}
+              isLoading={isLoading}
+              defaultSlug={currentSlug}
+              mode="edit"
+            >
+              <button
+                className={cn(
+                  "p-2 rounded-lg",
+                  "bg-gray-50 hover:bg-gray-100",
+                  "text-gray-600 hover:text-gray-900",
+                  "transition-all duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-gray-200"
+                )}
+              >
+                <IconEdit className="w-4 h-4" />
+              </button>
+            </SlugInputPopover>
 
             <Tooltip>
               <TooltipTrigger asChild>

@@ -21,11 +21,9 @@ export default function LoginPage() {
     if (!isLoading && user) {
       // Verificar que el returnUrl sea válido (debe empezar con /clases/)
       if (decodedReturnUrl && decodedReturnUrl.startsWith('/clases/') && decodedReturnUrl !== '/clases/login') {
-        console.log('Redirigiendo a:', decodedReturnUrl)
-        router.push(decodedReturnUrl)
+        router.replace(decodedReturnUrl)
       } else {
-        console.log('Redirigiendo a página principal de clases')
-        router.push('/clases')
+        router.replace('/clases')
       }
     }
   }, [user, isLoading, router, decodedReturnUrl])
@@ -46,7 +44,9 @@ export default function LoginPage() {
         <ClassRegistrationProvider empresaId={empresaId}>
           <AuthStep onLoginSuccess={() => {
             if (decodedReturnUrl) {
-              router.push(decodedReturnUrl)
+              router.replace(decodedReturnUrl)
+            } else {
+              router.replace('/clases')
             }
           }} />
         </ClassRegistrationProvider>
@@ -57,7 +57,13 @@ export default function LoginPage() {
   // Si no hay empresaId, mostrar AuthStep directamente
   return (
     <div className="min-h-screen bg-white w-full">
-      <AuthStep onLoginSuccess={() => router.push('/clases')} />
+      <AuthStep onLoginSuccess={() => {
+        if (decodedReturnUrl) {
+          router.replace(decodedReturnUrl)
+        } else {
+          router.replace('/clases')
+        }
+      }} />
     </div>
   )
 } 

@@ -309,16 +309,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: data.user.id,
           email: data.user.email || '',
           role: data.user.app_metadata?.role || 'client',
+          metadata: data.user.user_metadata,
           app_metadata: {
             role: data.user.app_metadata?.role || 'admin',
             provider: data.user.app_metadata?.provider
-          },
-          metadata: {
-            name: data.user.user_metadata?.name || data.user.email?.split('@')[0] || 'Usuario',
-            avatar_url: data.user.user_metadata?.avatar_url,
-            empresa_id: data.user.app_metadata?.empresa_id,
-            provider: data.user.app_metadata?.provider,
-            providers: data.user.app_metadata?.providers
           }
         }
 
@@ -332,6 +326,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(authUser)
         setSession(authSession)
         persistSession(authSession)
+
+        // No redirigimos aquí, dejamos que la página de login maneje la redirección
         return { user: authUser, session: authSession }
       }
       return null
