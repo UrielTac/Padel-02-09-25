@@ -43,20 +43,38 @@ export function AuthStep({ onLoginSuccess }: AuthStepProps) {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setIsLoading(true)
-      await signIn({
+      const result = await signIn({
         email: data.email,
         password: data.password
       })
 
+      if (!result?.user) {
+        throw new Error('Error al iniciar sesión')
+      }
+
+      // Verificar que el usuario tenga un rol válido para acceder a clases
+      const userRole = result.user.role
+      if (!['client', 'admin', 'superadmin'].includes(userRole)) {
+        throw new Error('No tienes permisos para acceder a esta sección')
+      }
+
       toast.success('Inicio de sesión exitoso')
       
-      if (returnUrl && returnUrl.startsWith('/clases/') && returnUrl !== '/clases/login') {
-        console.log('Redirigiendo a returnUrl:', returnUrl)
-        router.push(returnUrl)
+      if (returnUrl) {
+        const decodedUrl = decodeURIComponent(returnUrl)
+        // Verificar que la URL sea válida y no sea la página de login
+        if (decodedUrl.startsWith('/clases/') && !decodedUrl.includes('/login')) {
+          console.log('Redirigiendo a:', decodedUrl)
+          router.replace(decodedUrl)
+        } else {
+          console.log('URL de retorno inválida, redirigiendo a /clases')
+          router.replace('/clases')
+        }
       } else {
         onLoginSuccess?.()
       }
     } catch (error: any) {
+      console.error('Error en inicio de sesión:', error)
       toast.error(error.message || 'Error al iniciar sesión')
     } finally {
       setIsLoading(false)

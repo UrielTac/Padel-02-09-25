@@ -52,7 +52,7 @@ export const AUTH_CONFIG = {
       signOut: '/clases/logout',
       callback: '/clases/auth/callback',
       unauthorized: '/unauthorized',
-      afterSignIn: null,
+      afterSignIn: '/clases',
       protected: ['/clases/*']
     },
     cookies: {
@@ -88,7 +88,7 @@ export function getAuthConfig(type: ClientType) {
 // Rutas protegidas por tipo de cliente
 export const PROTECTED_ROUTES = {
   admin: ['/admin/dashboard', '/admin/settings', '/admin/users'],
-  client: ['/clases/*/perfil', '/clases/*/reservas', '/clases/*/pagos']
+  client: ['/clases/*']
 } as const
 
 // Rutas públicas

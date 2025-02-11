@@ -8,12 +8,13 @@ import { AUTH_CONFIG } from '@/config/auth.config'
 import { useAppStore } from '@/store/appStore'
 import { clearAllStorage } from '@/lib/storage-utils'
 
-interface AuthUserMetadata {
-  name: string
+export interface AuthUserMetadata {
+  name?: string
   avatar_url?: string
   empresa_id?: string
   provider?: string
   providers?: string[]
+  [key: string]: any
 }
 
 interface AuthUser {
@@ -235,31 +236,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (currentSession?.user) {
         const role = currentSession.user.app_metadata?.role || 'client'
         
-        // Verificar si el usuario es admin
-        if (role !== 'admin') {
+        // Verificar el contexto de la ruta actual
+        const isAdminRoute = window.location.pathname.startsWith('/admin')
+        
+        // Solo verificar rol de admin en rutas de admin
+        if (isAdminRoute && role !== 'admin') {
           await signOut()
           throw new Error('No tienes permisos de administrador')
+        }
+
+        // Para rutas de clases, permitir roles de client y admin
+        if (!isAdminRoute && !['client', 'admin', 'superadmin'].includes(role)) {
+          await signOut()
+          throw new Error('No tienes permisos para acceder a esta sección')
         }
 
         // Crear el objeto de usuario autenticado
         const authUser: AuthUser = {
           id: currentSession.user.id,
           email: currentSession.user.email || '',
-          role: 'admin',
+          role: role as AuthUser['role'],
+          metadata: currentSession.user.user_metadata,
           app_metadata: {
-            role: 'admin',
+            role: role as 'admin' | 'staff',
             provider: currentSession.user.app_metadata?.provider
-          },
-          metadata: {
-            name: currentSession.user.user_metadata?.full_name || 
-                  currentSession.user.user_metadata?.name || 
-                  currentSession.user.email?.split('@')[0] || 
-                  'Usuario',
-            avatar_url: currentSession.user.user_metadata?.avatar_url || 
-                       currentSession.user.user_metadata?.picture,
-            empresa_id: currentSession.user.app_metadata?.empresa_id,
-            provider: currentSession.user.app_metadata?.provider,
-            providers: currentSession.user.app_metadata?.providers
           }
         }
 
@@ -275,22 +275,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         persistSession(authSession)
         updateLastSessionCheck()
       } else {
-        // Si no hay sesión, limpiar todo
-        clearSession()
         setUser(null)
         setSession(null)
+        clearSession()
       }
-      
-      setIsLoading(false)
-      setIsInitialized(true)
     } catch (error) {
       console.error('Error al verificar sesión:', error)
       setError(error as AuthError)
+      setUser(null)
+      setSession(null)
       clearSession()
+    } finally {
       setIsLoading(false)
       setIsInitialized(true)
     }
-  }, [supabase, persistSession, clearSession, signOut])
+  }, [supabase, signOut, persistSession, clearSession])
 
   // Efecto para verificar y restaurar la sesión
   useEffect(() => {
@@ -302,7 +301,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (event === 'SIGNED_IN') {
-        console.log('�� Sesión iniciada')
+        console.log('Sesión iniciada')
         await checkSession()
       } else if (event === 'SIGNED_OUT') {
         clearSession()
@@ -425,6 +424,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const clearError = () => setError(null)
 
+  const updateUserMetadata = useCallback(async (metadata: Partial<AuthUserMetadata>) => {
+    try {
+      setIsLoading(true)
+      
+      const { data: { user: updatedUser }, error } = await supabase.auth.updateUser({
+        data: metadata
+      })
+
+      if (error) throw error
+      
+      const currentUser = user
+      if (currentUser && updatedUser) {
+        const updatedAuthUser: AuthUser = {
+          ...currentUser,
+          metadata: {
+            ...currentUser.metadata,
+            ...metadata
+          }
+        }
+        setUser(updatedAuthUser)
+      }
+
+      return { error: null }
+    } catch (error) {
+      console.error('Error al actualizar metadatos:', error)
+      return { error }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [supabase, user])
+
   const value = {
     user,
     session,
@@ -433,7 +463,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signIn,
     signInWithGoogle,
     signOut,
-    clearError
+    clearError,
+    updateUserMetadata
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

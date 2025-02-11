@@ -104,6 +104,7 @@ async function persistEmpresaId(empresaId: string, session: any, supabase: any) 
 export const config = {
   matcher: [
     '/admin/:path*',
+    '/clases/:path*',
     '/api/:path*'
   ]
 }
@@ -112,23 +113,12 @@ export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Permitir acceso a rutas públicas
-  const publicRoutes = [
-    '/admin/login',
-    '/admin/auth/callback' // Añadir ruta de callback
-  ]
-
-  if (publicRoutes.includes(pathname)) {
+  if (isStaticAsset(pathname) || isPublicRoute(pathname)) {
     return NextResponse.next()
   }
 
-  const res = NextResponse.next()
-
-  if (isStaticAsset(pathname) || isPublicRoute(pathname)) {
-    return res
-  }
-
   try {
-    const supabase = createMiddlewareClient<Database>({ req, res })
+    const supabase = createMiddlewareClient<Database>({ req, res: NextResponse.next() })
     const { data: { session } } = await supabase.auth.getSession()
 
     const userRole = session?.user?.app_metadata?.role || 'client'
@@ -143,36 +133,43 @@ export default async function middleware(req: NextRequest) {
     // Verificar acceso según el rol y la ruta
     if (pathname.startsWith('/admin')) {
       if (!session) {
-        console.log('Middleware: No hay sesión, redirigiendo a login')
+        console.log('Middleware: No hay sesión, redirigiendo a login admin')
         return NextResponse.redirect(new URL('/admin/login?returnUrl=' + pathname, req.url))
       }
 
+      // Para rutas admin, verificar específicamente el rol de administrador
       if (userRole !== 'admin' && userRole !== 'superadmin') {
         console.log('Middleware: Usuario sin rol admin')
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
+    }
 
-      // Verificar empresa_id para rutas específicas
-      if (pathname.includes('/dashboard/forms-a/')) {
-        const empresaId = await getEmpresaId(req, session, supabase)
-        
-        if (!empresaId) {
-          console.log('Middleware: No se encontró empresa asociada al usuario')
-          return NextResponse.redirect(new URL('/unauthorized', req.url))
-        }
-
-        // Actualizar la respuesta con la cookie
-        const response = await persistEmpresaId(empresaId, session, supabase)
-        return response
+    // Manejo específico para rutas de clases
+    if (pathname.startsWith('/clases/')) {
+      // Excluir rutas públicas de clases
+      if (pathname === '/clases/login' || pathname === '/clases/registro') {
+        return NextResponse.next()
       }
+
+      if (!session) {
+        console.log('Middleware: No hay sesión, redirigiendo a login de clases')
+        const returnUrl = encodeURIComponent(pathname)
+        return NextResponse.redirect(new URL(`/clases/login?returnUrl=${returnUrl}`, req.url))
+      }
+
+      // Para rutas de clases, permitir tanto clientes como administradores
+      const allowedRoles = ['client', 'admin', 'superadmin']
+      if (!allowedRoles.includes(userRole)) {
+        console.log('Middleware: Usuario sin acceso a clases, rol:', userRole)
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      }
+
+      // Si el usuario está autenticado y tiene permisos, permitir acceso
+      console.log('Middleware: Usuario autenticado con acceso a clases, rol:', userRole)
+      return NextResponse.next()
     }
 
-    // Redirigir /dashboard a /admin/dashboard
-    if (pathname.startsWith('/dashboard')) {
-      return NextResponse.redirect(new URL(pathname.replace('/dashboard', '/admin/dashboard'), req.url))
-    }
-
-    return res
+    return NextResponse.next()
   } catch (error) {
     console.error('Error en middleware:', error)
     return NextResponse.redirect(new URL('/error', req.url))
