@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { CardBrandIcon } from './CardBrandIcon';
+import { PaymentMethod } from '../types';
 
 interface StoredCard {
   id: string;
@@ -68,57 +69,9 @@ export function CardCarousel({ cards, onSelect, theme, selectedCardId, onAddCard
         </button>
       )}
       
-      {canScrollNext && (
-        <button
-          onClick={scrollNext}
-          className={cn(
-            "absolute right-2 top-1/2 -translate-y-1/2 z-10",
-            "w-8 h-8 rounded-full flex items-center justify-center",
-            theme === 'dark' 
-              ? "bg-neutral-800 text-white hover:bg-neutral-700"
-              : "bg-white text-gray-800 hover:bg-gray-100",
-            "shadow-lg transition-all"
-          )}
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      )}
-
       {/* Contenedor del carrusel */}
       <div className="overflow-hidden" ref={emblaRef}>
         <div className="flex gap-4 p-4">
-          {/* Tarjeta para agregar nueva */}
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onAddCard}
-            className={cn(
-              "flex-[0_0_280px] min-w-0",
-              "p-4 rounded-xl cursor-pointer",
-              "transition-all duration-200",
-              "flex flex-col items-center justify-center gap-4",
-              theme === 'dark'
-                ? "bg-neutral-800 hover:bg-neutral-700"
-                : "bg-white hover:bg-gray-50",
-              "border-2 border-dashed",
-              theme === 'dark'
-                ? "border-neutral-700"
-                : "border-gray-200",
-              "shadow-sm h-[140px]"
-            )}
-          >
-            <Plus className={cn(
-              "h-8 w-8",
-              theme === 'dark' ? "text-gray-400" : "text-gray-600"
-            )} />
-            <span className={cn(
-              "text-sm",
-              theme === 'dark' ? "text-gray-400" : "text-gray-600"
-            )}>
-              Agregar Nueva Tarjeta
-            </span>
-          </motion.div>
-
           {/* Tarjetas guardadas */}
           {cards.map((card) => (
             <motion.div
@@ -185,8 +138,57 @@ export function CardCarousel({ cards, onSelect, theme, selectedCardId, onAddCard
               </div>
             </motion.div>
           ))}
+
+          {/* Tarjeta para agregar nueva */}
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onAddCard}
+            className={cn(
+              "flex-[0_0_280px] min-w-0",
+              "p-4 rounded-xl cursor-pointer",
+              "transition-all duration-200",
+              "flex flex-col items-center justify-center gap-4",
+              theme === 'dark'
+                ? "bg-neutral-800 hover:bg-neutral-700"
+                : "bg-white hover:bg-gray-50",
+              "border-2 border-dashed",
+              theme === 'dark'
+                ? "border-neutral-700"
+                : "border-gray-200",
+              "shadow-sm h-[140px]"
+            )}
+          >
+            <Plus className={cn(
+              "h-8 w-8",
+              theme === 'dark' ? "text-gray-400" : "text-gray-600"
+            )} />
+            <span className={cn(
+              "text-sm",
+              theme === 'dark' ? "text-gray-400" : "text-gray-600"
+            )}>
+              Agregar Nueva Tarjeta
+            </span>
+          </motion.div>
         </div>
       </div>
+
+      {/* Botón siguiente */}
+      {canScrollNext && (
+        <button
+          onClick={scrollNext}
+          className={cn(
+            "absolute right-2 top-1/2 -translate-y-1/2 z-10",
+            "w-8 h-8 rounded-full flex items-center justify-center",
+            theme === 'dark' 
+              ? "bg-neutral-800 text-white hover:bg-neutral-700"
+              : "bg-white text-gray-800 hover:bg-gray-100",
+            "shadow-lg transition-all"
+          )}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 } 

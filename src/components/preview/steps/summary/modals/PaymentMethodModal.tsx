@@ -3,22 +3,30 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { CardSetupForm } from "../components/CardSetupForm";
 import { useStripe } from '@/contexts/StripeContext';
 import { useStoredCards } from "@/hooks/useStoredCards";
-import { SavedCard } from "../components/SavedCard";
 import { toast } from "sonner";
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardCarousel } from "../components/CardCarousel";
+import { PaymentMethod } from "../types";
+
+interface StoredCard {
+  id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
+}
 
 interface PaymentMethodModalProps {
   isOpen: boolean;
   onClose: () => void;
   theme: 'light' | 'dark';
   viewType: "mobile" | "desktop";
-  onSelect: (methodId: string) => void;
+  onSelect: (method: PaymentMethod) => void;
   isPublicView?: boolean;
   empresaId: string;
 }
@@ -55,6 +63,13 @@ export function PaymentMethodModal({
 
   const { cards, isLoading: isCardsLoading, error: cardsError, deleteCard } = useStoredCards(refreshTrigger);
 
+  useEffect(() => {
+    if (!isStripeAvailable) {
+      console.log('Stripe no disponible, cerrando modal');
+      onClose();
+    }
+  }, [isStripeAvailable, onClose]);
+
   const handleAddCard = () => {
     if (!isStripeAvailable) {
       toast.error('El sistema de pagos no está disponible');
@@ -72,24 +87,76 @@ export function PaymentMethodModal({
     setShowCardForm(false);
   };
 
+  const handleCardSelection = (card: StoredCard) => {
+    try {
+      // Crear un objeto PaymentMethod completo
+      const paymentMethod: PaymentMethod = {
+        id: card.id,
+        brand: card.brand,
+        last4: card.last4,
+        expMonth: card.expMonth,
+        expYear: card.expYear,
+        type: 'card',
+        name: `${card.brand} terminada en ${card.last4}`,
+        description: `Expira: ${card.expMonth.toString().padStart(2, '0')}/${card.expYear}`
+      };
+
+      // Verificar que el método de pago sea válido
+      if (!paymentMethod.id || !paymentMethod.brand || !paymentMethod.last4) {
+        console.error('Método de pago inválido:', paymentMethod);
+        return;
+      }
+
+      console.log('Propagando selección de tarjeta:', paymentMethod);
+      
+      // Actualizar estado local
+      setSelectedCardId(card.id);
+      
+      // Propagar la selección al componente padre
+      handleCardSelect(paymentMethod);
+      
+      // Cerrar el modal después de verificar que todo está correcto
+      requestAnimationFrame(() => {
+        onClose();
+      });
+      
+    } catch (error) {
+      console.error('Error al seleccionar la tarjeta:', error);
+    }
+  };
+
   const handleCardSetupSuccess = async (paymentMethodId: string) => {
     try {
       setShowCardForm(false);
-      handleCardSelect(paymentMethodId);
-      
-      // Incrementar el trigger para recargar las tarjetas
       setRefreshTrigger(prev => prev + 1);
       
-      // Esperar un momento para que se actualice la lista
+      // Esperar a que se actualice la lista de tarjetas
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Si después de la actualización hay tarjetas, cerrar el modal
-      if (cards.length > 0) {
-        onClose();
-        toast.success('Tarjeta guardada exitosamente');
+      // Buscar la tarjeta recién agregada
+      const newCard = cards.find(card => card.id === paymentMethodId);
+      if (newCard) {
+        const paymentMethod: PaymentMethod = {
+          id: newCard.id,
+          brand: newCard.brand,
+          last4: newCard.last4,
+          expMonth: newCard.expMonth,
+          expYear: newCard.expYear,
+          type: 'card',
+          name: `${newCard.brand} terminada en ${newCard.last4}`,
+          description: `Expira: ${newCard.expMonth.toString().padStart(2, '0')}/${newCard.expYear}`
+        };
+
+        // Actualizar estado local y propagar
+        setSelectedCardId(newCard.id);
+        handleCardSelect(paymentMethod);
+        
+        console.log('Nueva tarjeta agregada y seleccionada:', paymentMethod);
       }
+      
+      onClose();
     } catch (error) {
-      console.error('Error al actualizar las tarjetas:', error);
+      console.error('Error al configurar la tarjeta:', error);
       toast.error('Error al actualizar la lista de tarjetas');
     }
   };
@@ -109,11 +176,6 @@ export function PaymentMethodModal({
       toast.error('Error al eliminar la tarjeta');
       throw error;
     }
-  };
-
-  const handleCardSelection = (cardId: string) => {
-    setSelectedCardId(cardId);
-    handleCardSelect(cardId);
   };
 
   if (isLoading || isCardsLoading) {
@@ -242,7 +304,7 @@ export function PaymentMethodModal({
                           cards={cards}
                           theme={theme}
                           selectedCardId={selectedCardId}
-                          onSelect={(card) => handleCardSelection(card.id)}
+                          onSelect={(card) => handleCardSelection(card)}
                           onAddCard={handleAddCard}
                         />
                       ) : (

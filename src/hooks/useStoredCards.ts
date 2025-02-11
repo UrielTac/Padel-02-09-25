@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useStripe as useStripeContext } from '@/contexts/StripeContext';
+import { useStripe } from '@/contexts/StripeContext';
 
 interface StoredCard {
   id: string;
@@ -15,7 +15,20 @@ export function useStoredCards(refreshTrigger = 0) {
   const [cards, setCards] = useState<StoredCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const { stripeAccountId, isConnected } = useStripeContext();
+  let stripeContext;
+  let isConnected = false;
+
+  try {
+    stripeContext = useStripe();
+    isConnected = stripeContext?.isConnected || false;
+  } catch (error) {
+    console.error('[StoredCards] Error al obtener contexto de Stripe:', error);
+    setError(error instanceof Error ? error : new Error('Error al obtener contexto de Stripe'));
+    setIsLoading(false);
+    return { cards: [], isLoading: false, error, deleteCard: async () => {} };
+  }
+
+  const { stripeAccountId } = stripeContext;
   const mountedRef = useRef(true);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;

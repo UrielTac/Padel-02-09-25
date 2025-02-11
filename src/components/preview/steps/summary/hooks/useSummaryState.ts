@@ -3,21 +3,8 @@
 import { useState, useMemo } from 'react';
 import { useItems } from '@/hooks/useItems';
 import { useForm } from '@/contexts/FormContext';
-import { PaymentType, PaymentMethod, Coupon, SummaryState } from '../types';
-
-interface PaymentMethod {
-  id: string;
-  name: string;
-  icon: any;
-  description: string;
-}
-
-interface Coupon {
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  description: string;
-}
+import { PaymentType, PaymentMethod, Coupon, SummaryState, Calculations } from '../types';
+import type { Item } from '@/types/items';
 
 // Actualizar la lista de cupones disponibles
 const availableCoupons: Coupon[] = [
@@ -34,21 +21,6 @@ const availableCoupons: Coupon[] = [
     description: 'Descuento especial de verano'
   }
 ];
-
-interface Calculations {
-  selectedItems: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    total: number;
-  }>;
-  courtPrice: number;
-  itemsTotal: number;
-  subtotal: number;
-  discount: number;
-  total: number;
-}
 
 export function useSummaryState() {
   const [state, setState] = useState<SummaryState>({
@@ -86,17 +58,13 @@ export function useSummaryState() {
   const setShowCouponsPanel = (show: boolean) =>
     setState(prev => ({ ...prev, showCouponsPanel: show }));
 
-  const handleSelectPaymentMethod = (methodId: string | null) =>
-    setState(prev => ({ ...prev, selectedPaymentMethod: methodId }));
+  const handleSelectPaymentMethod = (method: PaymentMethod | null) => {
+    console.log('Actualizando método de pago:', method);
+    setState(prev => ({ ...prev, selectedPaymentMethod: method }));
+  };
 
-  const handleSelectPaymentType = (typeId: string | null, config?: { guaranteePercentage?: number }) =>
-    setState(prev => ({ 
-      ...prev, 
-      selectedPaymentType: typeId,
-      guaranteeConfig: config?.guaranteePercentage 
-        ? { percentage: config.guaranteePercentage }
-        : prev.guaranteeConfig
-    }));
+  const handleSelectPaymentType = (typeId: string | null) =>
+    setState(prev => ({ ...prev, selectedPaymentType: typeId }));
 
   const handleApplyCoupon = (coupon: Coupon) =>
     setState(prev => ({ 
@@ -138,7 +106,7 @@ export function useSummaryState() {
   // Cálculos
   const calculations = useMemo<Calculations>(() => {
     const selectedItems = Object.entries(items.selectedItems).map(([itemId, quantity]) => {
-      const item = availableItems.find(i => i.id === itemId);
+      const item = (availableItems as Item[]).find(i => i.id === itemId);
       if (!item || !shift.duration) return null;
 
       const durationInMinutes = shift.duration * 60;

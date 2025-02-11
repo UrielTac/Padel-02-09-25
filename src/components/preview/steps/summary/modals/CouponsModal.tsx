@@ -4,21 +4,17 @@ import { X, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-
-interface Coupon {
-  code: string;
-  discount: number;
-  type: 'percentage' | 'fixed';
-  description: string;
-}
+import { Coupon } from "../types";
 
 interface CouponsModalProps {
   isOpen: boolean;
   onClose: () => void;
   theme: 'light' | 'dark';
   viewType: "mobile" | "desktop";
-  onApply: (code: string) => void;
-  availableCoupons: Coupon[];
+  onApply: (coupon: Coupon) => void;
+  couponCode: string;
+  setCouponCode: (code: string) => void;
+  error: string;
   isPublicView?: boolean;
 }
 
@@ -28,15 +24,20 @@ export function CouponsModal({
   theme,
   viewType,
   onApply,
-  availableCoupons,
+  couponCode,
+  setCouponCode,
+  error,
   isPublicView = false
 }: CouponsModalProps) {
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState<string | null>(null);
-
   const handleApplyCoupon = (code: string) => {
-    onApply(code);
-    if (!couponError) {
+    const coupon: Coupon = {
+      code,
+      discount: 0,
+      type: 'percentage',
+      description: 'Cupón personalizado'
+    };
+    onApply(coupon);
+    if (!error) {
       onClose();
     }
   };
@@ -98,7 +99,7 @@ export function CouponsModal({
               "font-medium",
               theme === 'dark' ? "text-white" : "text-gray-900"
             )}>
-              Cupones Disponibles
+              Cupones
             </h3>
             <button
               onClick={onClose}
@@ -121,88 +122,41 @@ export function CouponsModal({
             "touch-pan-y will-change-scroll"
           )}
         >
-          <div className="p-4 space-y-2">
-            {availableCoupons.map((coupon) => (
-              <button
-                key={coupon.code}
-                onClick={() => handleApplyCoupon(coupon.code)}
+          <div className="p-4">
+            <div className="relative">
+              <Input
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value.toUpperCase());
+                }}
+                placeholder="Ingresa un código de cupón"
                 className={cn(
-                  "w-full p-4 rounded-lg flex items-center justify-between",
-                  "transition-colors",
+                  "pl-8 h-9 text-xs",
                   theme === 'dark'
-                    ? "bg-neutral-800 hover:bg-neutral-700"
-                    : "bg-gray-50 hover:bg-gray-100"
+                    ? "bg-neutral-800 border-neutral-700 focus:border-neutral-600"
+                    : "bg-white border-gray-200 focus:border-gray-300"
+                )}
+              />
+              <Ticket className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+              <Button
+                size="sm"
+                onClick={() => handleApplyCoupon(couponCode)}
+                className={cn(
+                  "absolute right-1 top-1 h-7 text-xs",
+                  theme === 'dark'
+                    ? "bg-neutral-700 hover:bg-neutral-600 text-white"
+                    : "bg-gray-900 hover:bg-gray-800 text-white"
                 )}
               >
-                <div className="flex items-center gap-3">
-                  <Ticket className={cn(
-                    "h-5 w-5",
-                    theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                  )} />
-                  <div className="text-left">
-                    <p className={cn(
-                      "text-sm font-medium",
-                      theme === 'dark' ? "text-gray-200" : "text-gray-900"
-                    )}>
-                      {coupon.code}
-                    </p>
-                    <p className={cn(
-                      "text-xs",
-                      theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                    )}>
-                      {coupon.description}
-                    </p>
-                  </div>
-                </div>
-                <span className={cn(
-                  "text-xs font-medium px-2 py-1 rounded-full",
-                  theme === 'dark'
-                    ? "bg-neutral-700 text-neutral-300"
-                    : "bg-gray-200 text-gray-700"
-                )}>
-                  {coupon.discount}% OFF
-                </span>
-              </button>
-            ))}
+                Aplicar
+              </Button>
+            </div>
+            {error && (
+              <p className="text-xs text-red-500 mt-1">
+                {error}
+              </p>
+            )}
           </div>
-        </div>
-
-        {/* Footer fijo */}
-        <div className="flex-none p-4 border-t border-gray-100 dark:border-neutral-800">
-          <div className="relative">
-            <Input
-              value={couponCode}
-              onChange={(e) => {
-                setCouponCode(e.target.value.toUpperCase());
-                setCouponError(null);
-              }}
-              placeholder="Ingresa un código de cupón"
-              className={cn(
-                "pl-8 h-9 text-xs",
-                theme === 'dark'
-                  ? "bg-neutral-800 border-neutral-700 focus:border-neutral-600"
-                  : "bg-white border-gray-200 focus:border-gray-300"
-              )}
-            />
-            <Ticket className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
-            <Button
-              size="sm"
-              onClick={() => handleApplyCoupon(couponCode)}
-              className={cn(
-                "absolute right-1 top-1 h-7 text-xs",
-                theme === 'dark'
-                  ? "bg-neutral-700 hover:bg-neutral-600 text-white"
-                  : "bg-gray-900 hover:bg-gray-800 text-white"
-              )}
-            >
-              Aplicar
-            </Button>
-          </div>
-          {couponError && (
-            <p className="text-xs text-red-500 mt-1">
-              {couponError}
-            </p>
-          )}
         </div>
       </motion.div>
     </>

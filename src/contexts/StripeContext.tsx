@@ -2,7 +2,7 @@
 
 import { createContext, useContext, ReactNode } from 'react';
 
-interface StripeContextType {
+export interface StripeContextType {
   stripeAccountId: string | null;
   isConnected: boolean;
   isLoading: boolean;

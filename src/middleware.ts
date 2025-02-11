@@ -105,7 +105,8 @@ export const config = {
   matcher: [
     '/admin/:path*',
     '/clases/:path*',
-    '/api/:path*'
+    '/api/:path*',
+    '/f/:path*'
   ]
 }
 
@@ -167,6 +168,17 @@ export default async function middleware(req: NextRequest) {
       // Si el usuario está autenticado y tiene permisos, permitir acceso
       console.log('Middleware: Usuario autenticado con acceso a clases, rol:', userRole)
       return NextResponse.next()
+    }
+
+    // Rutas protegidas que requieren autenticación
+    const protectedPaths = ['/clases', '/f/']
+    const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+
+    if (isProtectedPath && !session) {
+      // Guardar la URL original para redireccionar después del login
+      const redirectUrl = new URL('/login', req.url)
+      redirectUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(redirectUrl)
     }
 
     return NextResponse.next()

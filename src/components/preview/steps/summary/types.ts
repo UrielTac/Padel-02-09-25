@@ -1,8 +1,13 @@
 export interface PaymentMethod {
   id: string;
+  brand: string;
+  last4: string;
+  expMonth: number;
+  expYear: number;
   name: string;
-  icon: any; // TODO: Mejorar este tipo
   description: string;
+  type: 'card' | 'cash' | 'club';
+  isValid?: boolean;
 }
 
 export interface Coupon {
@@ -20,12 +25,27 @@ export interface PaymentType {
   id: string;
   name: string;
   description: string;
+  icon?: string;
   details?: string[];
   requiresCard?: boolean;
   guaranteeConfig?: GuaranteeConfig;
 }
 
 export const PAYMENT_TYPES: PaymentType[] = [
+  {
+    id: 'card',
+    name: 'Tarjeta de crédito/débito',
+    description: 'Pago seguro con tarjeta',
+    icon: 'credit-card',
+    details: ['Pago seguro con tarjeta']
+  },
+  {
+    id: 'cash',
+    name: 'Efectivo',
+    description: 'Pago en efectivo al llegar',
+    icon: 'cash',
+    details: ['Pago en efectivo al llegar']
+  },
   {
     id: 'club',
     name: 'Pago en el Club',
@@ -83,8 +103,23 @@ export interface SummaryState {
   couponCode: string;
   couponError: string | null;
   appliedCoupon: Coupon | null;
-  selectedPaymentMethod: string | null;
+  selectedPaymentMethod: PaymentMethod | null;
   selectedPaymentType: string | null;
   guaranteeConfig: GuaranteeConfig;
   calculations: Calculations;
+}
+
+export interface PaymentConfig {
+  paymentMethodId?: string;
+  guaranteePercentage?: number;
+}
+
+export interface PaymentTypeModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  theme: 'light' | 'dark';
+  viewType: "mobile" | "desktop";
+  onSelect: (type: string, config?: PaymentConfig) => void;
+  isPublicView?: boolean;
+  onShowCardModal?: () => void;
 } 

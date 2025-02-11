@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CancelBookingModal } from "../CancelBookingModal/CancelBookingModal"
 import { useToast } from '@/components/ui/use-toast'
 import { IconCircleCheck } from '@tabler/icons-react'
+import { createPortal } from "react-dom"
 
 interface ViewBookingModalProps {
   isOpen: boolean
@@ -135,16 +136,12 @@ const formatPrice = (amount: number | undefined | null) => {
 function PaymentDetails({ 
   total, 
   deposit,
-  courtPrice,
-  rentalPrice,
   paymentMethod, 
   status,
   onNewPayment
 }: { 
   total: number
   deposit: number
-  courtPrice: number
-  rentalPrice: number
   paymentMethod: string
   status: string
   onNewPayment: (amount: number, method: string) => void
@@ -164,27 +161,11 @@ function PaymentDetails({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Precio cancha</span>
-          <span className="font-medium text-gray-900">
-            {formatPrice(courtPrice)}
-          </span>
-        </div>
-        {rentalPrice > 0 && (
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Precio items</span>
-            <span className="font-medium text-gray-900">
-              {formatPrice(rentalPrice)}
-            </span>
-          </div>
-        )}
-        <div className="pt-2 border-t flex justify-between text-sm">
-          <span className="font-medium text-gray-900">Total</span>
-          <span className="font-medium text-gray-900">
-            {formatPrice(total)}
-          </span>
-        </div>
+      <div className="pt-2 border-t flex justify-between text-sm">
+        <span className="font-medium text-gray-900">Total</span>
+        <span className="font-medium text-gray-900">
+          {formatPrice(total)}
+        </span>
       </div>
 
       {/* Monto Depositado */}
@@ -245,8 +226,11 @@ interface Court {
 
 interface ProcessedData {
   courtName: string
+  courtPrice: number
   hasValidParticipants: boolean
   participants: SelectedBooking['participants']
+  rentedItems: RentalItem[]
+  hasRentedItems: boolean
   formatParticipantName: (participant: Participant) => string
   getInitial: (participant: Participant) => string
   durationInMinutes: number
@@ -354,16 +338,33 @@ export function ViewBookingModal({
     // Validación y procesamiento de participantes
     const participants = Array.isArray(currentBooking.participants) ? currentBooking.participants : []
 
-    // Calcular el total de los items rentados
-    const rentedItems = currentBooking.rentedItems || []
+    // Debugging de items rentados
+    console.log('Current Booking Items:', currentBooking.rentedItems)
+    
+    // Validación más robusta de items rentados
+    const rentedItems = currentBooking.rentedItems && Array.isArray(currentBooking.rentedItems) 
+      ? currentBooking.rentedItems
+      : []
+
+    console.log('Processed Rented Items:', rentedItems)
+    
     const rentalsTotal = rentedItems.reduce((acc: number, item: RentalItem) => {
       return acc + (item.pricePerUnit * item.quantity)
     }, 0)
 
+    const hasRentedItems = rentedItems.length > 0
+    console.log('Has Rented Items:', hasRentedItems)
+
+    // Asegurar que el precio de la pista sea un número válido
+    const courtPrice = typeof currentBooking.courtPrice === 'number' ? currentBooking.courtPrice : 0
+
     return {
       courtName,
+      courtPrice,
       hasValidParticipants: participants.length > 0,
       participants,
+      rentedItems,
+      hasRentedItems,
       formatParticipantName: (participant: Participant) => {
         if (!participant) return 'Usuario no registrado'
         const name = `${participant.firstName || 'Usuario'} ${participant.lastName || 'no registrado'}`.trim()
@@ -387,7 +388,7 @@ export function ViewBookingModal({
 
   // Solo mostrar loading en la carga inicial
   if (isLoading && !currentBooking) {
-    return (
+    return createPortal(
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -396,13 +397,14 @@ export function ViewBookingModal({
         <div className="bg-white p-6 rounded-lg shadow-lg">
           <p className="text-gray-500">Cargando datos de la reserva...</p>
         </div>
-      </motion.div>
+      </motion.div>,
+      document.body
     )
   }
 
   // Si tenemos datos (ya sea de initialData o de la query), renderizar
   if (currentBooking && processedData) {
-    return (
+    return createPortal(
       <>
         <AnimatePresence>
           {/* Overlay */}
@@ -410,9 +412,9 @@ export function ViewBookingModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
-            transition={{ duration: 0.3, ease: "easeInOut" }}
           />
 
           {/* Modal */}
@@ -431,7 +433,7 @@ export function ViewBookingModal({
               type: "spring",
               damping: 30,
               stiffness: 300,
-              mass: 0.8,
+              mass: 0.8
             }}
             className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
           >
@@ -529,7 +531,7 @@ export function ViewBookingModal({
                             {processedData.courtName} ({processedData.durationInMinutes} min)
                           </span>
                           <span className="text-gray-900">
-                            {formatPrice(processedData.totalAmount)}
+                            {formatPrice(processedData.courtPrice)}
                           </span>
                         </div>
                       </div>
@@ -560,46 +562,45 @@ export function ViewBookingModal({
                     )}
 
                     {/* Sección de Ítems */}
-                    <CollapsibleSection
-                      icon={<IconPackage className="h-5 w-5 text-gray-400" />}
-                      title="Ítems Alquilados"
-                      count={currentBooking.rentedItems?.length || 0}
-                    >
-                      <div className="space-y-2">
-                        {currentBooking.rentedItems && currentBooking.rentedItems.length > 0 ? (
-                          <>
-                            {currentBooking.rentedItems.map((item, index) => {
-                              const itemPrice = item.pricePerUnit
-                              return (
+                    {processedData && (
+                      <CollapsibleSection
+                        icon={<IconPackage className="h-5 w-5 text-gray-400" />}
+                        title="Ítems Alquilados"
+                        count={processedData.rentedItems.length}
+                      >
+                        <div className="space-y-2">
+                          {processedData.rentedItems.length > 0 ? (
+                            <>
+                              {processedData.rentedItems.map((item, index) => (
                                 <div key={index} className="flex justify-between text-sm">
                                   <span className="text-gray-500">
                                     {item.name} (x{item.quantity})
                                   </span>
                                   <span className="text-gray-900">
-                                    {formatPrice(itemPrice * item.quantity)}
+                                    {formatPrice(item.pricePerUnit * item.quantity)}
                                   </span>
                                 </div>
-                              )
-                            })}
-                            <div className="pt-2 border-t flex justify-between text-sm font-medium">
-                              <span className="text-gray-900">Total Ítems</span>
-                              <span className="text-gray-900">
-                                {formatPrice(processedData.rentalsTotal)}
-                              </span>
-                            </div>
-                          </>
-                        ) : (
-                          <p className="text-sm text-gray-500">No hay ítems alquilados</p>
-                        )}
-                      </div>
-                    </CollapsibleSection>
+                              ))}
+                              {processedData.rentalsTotal > 0 && (
+                                <div className="pt-2 border-t flex justify-between text-sm">
+                                  <span className="font-medium text-gray-900">Total Ítems</span>
+                                  <span className="font-medium text-gray-900">
+                                    {formatPrice(processedData.rentalsTotal)}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-500">No hay ítems alquilados</p>
+                          )}
+                        </div>
+                      </CollapsibleSection>
+                    )}
 
                     {/* Detalles de Pago */}
                     <PaymentDetails
                       total={currentBooking.totalAmount}
                       deposit={currentBooking.depositAmount}
-                      courtPrice={currentBooking.courtPrice}
-                      rentalPrice={currentBooking.rentalItemsPrice}
                       paymentMethod={currentBooking.paymentMethod}
                       status={currentBooking.paymentStatus}
                       onNewPayment={handlePayment}
@@ -642,7 +643,8 @@ export function ViewBookingModal({
           onClose={() => setShowCancelModal(false)}
           onConfirm={handleCancelBooking}
         />
-      </>
+      </>,
+      document.body
     )
   }
 

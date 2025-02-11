@@ -16,6 +16,7 @@ interface PaymentTypeModalProps {
   onSelect: (type: PaymentType['id']) => void;
   onShowCardModal: () => void;
   isPublicView?: boolean;
+  empresaId: string;
 }
 
 export function PaymentTypeModal({
@@ -25,11 +26,25 @@ export function PaymentTypeModal({
   viewType,
   onSelect,
   onShowCardModal,
-  isPublicView = false
+  isPublicView = false,
+  empresaId
 }: PaymentTypeModalProps) {
   const [selectedType, setSelectedType] = useState<PaymentType | null>(null);
-  const { isConnected, isLoading, error } = useStripeConnection();
+  const { isConnected, isLoading, error, stripeAccountId } = useStripeConnection(empresaId);
   const [verifyingToast, setVerifyingToast] = useState<string | null>(null);
+
+  // Agregar logs para debugging
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[PaymentTypeModal] Estado de conexión:', {
+        empresaId,
+        isConnected,
+        isLoading,
+        error,
+        stripeAccountId
+      });
+    }
+  }, [isOpen, empresaId, isConnected, isLoading, error, stripeAccountId]);
 
   // Limpiar toast al cerrar el modal
   useEffect(() => {
@@ -69,8 +84,8 @@ export function PaymentTypeModal({
 
     if (type.id === 'guarantee') {
       if (isLoading) {
-        const id = toast.loading('Verificando conexión con Stripe...');
-        setVerifyingToast(id);
+        const toastId = toast.loading('Verificando conexión con Stripe...').toString();
+        setVerifyingToast(toastId);
         return;
       }
 
