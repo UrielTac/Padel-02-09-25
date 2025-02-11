@@ -142,7 +142,20 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
       })
       setHasInitialized(true)
     }
-  }, [isLoadingAuth, user, hasInitialized])
+
+    // Si el usuario se desautentica, resetear el estado
+    if (!isLoadingAuth && !user && hasInitialized) {
+      dispatch({
+        type: 'SET_AUTH_STATUS',
+        payload: { 
+          isAuthenticated: false, 
+          isGuest: false 
+        }
+      })
+      // Redirigir a la página de login de clases
+      router.replace('/clases/login')
+    }
+  }, [isLoadingAuth, user, hasInitialized, router])
 
   const setAuthView = useCallback((view: AuthView) => {
     dispatch({ type: 'SET_AUTH_VIEW', payload: view })

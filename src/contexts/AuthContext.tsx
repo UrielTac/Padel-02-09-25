@@ -160,57 +160,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Definir signOut antes del useEffect que lo usa
   const signOut = useCallback(async () => {
     try {
-      setError(null)
       setIsLoading(true)
       
-      // 1. Limpiar el estado de la aplicación usando appStore
-      const appStore = useAppStore.getState()
-      appStore.reset()
-
-      // 2. Limpiar todo el almacenamiento
-      clearAllStorage()
-
-      // 3. Limpiar cookies
-      const cookiesToRemove = [
-        AUTH_CONFIG.admin.cookies.name,
-        'sb-admin-auth-token',
-        'empresa_id'
-      ]
-
-      cookiesToRemove.forEach(cookieName => {
-        try {
-          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
-        } catch (e) {
-          console.warn(`Error al limpiar cookie ${cookieName}:`, e)
-        }
-      })
-
-      // 4. Cerrar sesión en Supabase
-      const { error } = await supabase.auth.signOut()
-      if (error) throw error
+      // Determinar si estamos en el contexto de clases o admin
+      const isClassesContext = window.location.pathname.startsWith('/clases')
       
-      // 5. Limpiar estado del contexto
-      clearSession()
+      // Limpiar estado y storage
       setUser(null)
       setSession(null)
+      clearSession()
       
-      // 6. Enviar mensaje de broadcast para otras pestañas
-      sendMessage({ 
-        type: BROADCAST_EVENTS.SESSION_CLEARED,
-        tabId: tabIdRef.current
-      })
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
 
-      // 7. Forzar recarga de la página para limpiar cualquier estado residual
-      window.location.href = '/admin/login'
-      
+      // Redirigir según el contexto
+      if (isClassesContext) {
+        window.location.href = '/clases/login'
+      } else {
+        window.location.href = '/admin/login'
+      }
     } catch (error) {
       console.error('Error al cerrar sesión:', error)
       setError(error as AuthError)
-      throw error
     } finally {
       setIsLoading(false)
     }
-  }, [supabase, clearSession, sendMessage])
+  }, [supabase, clearSession])
 
   // Función para verificar la sesión
   const checkSession = useCallback(async () => {

@@ -84,29 +84,33 @@ export class ClassService {
         const sessionDate = new Date(dbClass.start_date)
         sessionDate.setDate(sessionDate.getDate() + (dayNumber - sessionDate.getDay() + 7) % 7)
 
-        // Crear la sesión con todos los datos necesarios
-        const session: ClassSession = {
-          id: `${dbClass.id}-${dayNumber}-${slot.startTime || ''}`,
-          date: sessionDate.toISOString().split('T')[0],
-          startTime: slot.startTime || '',
-          endTime: slot.endTime || '',
-          spotsLeft: slot.spotsLeft ?? slot.capacity ?? 0,
-          totalSpots: slot.capacity || 0,
-          courts: slotCourts,
-          instructor: Array.isArray(slot.instructors) && slot.instructors.length > 0
-            ? slot.instructors[0]
-            : 'Sin instructor',
-          price: typeof slot.price === 'number' ? slot.price : 0
-        }
+        // Crear una sesión por cada cancha en el slot
+        slotCourts.forEach(court => {
+          const session: ClassSession = {
+            // Incluir el ID de la cancha en el identificador único de la sesión
+            id: `${dbClass.id}-${dayNumber}-${slot.startTime || ''}-${court.id}`,
+            date: sessionDate.toISOString().split('T')[0],
+            startTime: slot.startTime || '',
+            endTime: slot.endTime || '',
+            spotsLeft: slot.spotsLeft ?? slot.capacity ?? 0,
+            totalSpots: slot.capacity || 0,
+            courts: [court], // Ahora cada sesión tiene su propia cancha
+            instructor: Array.isArray(slot.instructors) && slot.instructors.length > 0
+              ? slot.instructors[0]
+              : 'Sin instructor',
+            price: typeof slot.price === 'number' ? slot.price : 0
+          }
 
-        // Log para debugging
-        console.log('Generando sesión:', {
-          dayNumber,
-          slot,
-          session
+          // Log para debugging
+          console.log('Generando sesión:', {
+            dayNumber,
+            slot,
+            court: court.name,
+            session
+          })
+
+          sessions.push(session)
         })
-
-        sessions.push(session)
       })
     })
 

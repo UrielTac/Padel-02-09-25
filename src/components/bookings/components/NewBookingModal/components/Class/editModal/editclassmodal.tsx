@@ -10,9 +10,10 @@ import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { toast } from "sonner"
 
 interface EditClassModalProps {
-  isOpen: boolean
-  onClose: () => void
-  classData?: Database['public']['Tables']['classes']['Row']
+  isOpen: boolean;
+  onClose: () => void;
+  classData?: ClassData;
+  onSuccess?: () => void;
 }
 
 interface ModalHeaderProps {
@@ -24,6 +25,14 @@ interface ModalFooterProps {
   onSave: () => void
   isValid: boolean
   isSubmitting?: boolean
+}
+
+interface NewBookingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  initialBookingType: 'class';
+  disableTypeSelection: boolean;
+  onSuccess?: () => void;
 }
 
 // Componente Header interno
@@ -83,7 +92,7 @@ function ModalFooter({ onSave, isValid, isSubmitting = false }: ModalFooterProps
   )
 }
 
-export function EditClassModal({ isOpen, onClose, classData }: EditClassModalProps) {
+export function EditClassModal({ isOpen, onClose, classData, onSuccess }: EditClassModalProps) {
   const [mounted, setMounted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isValid, setIsValid] = useState(false)
@@ -113,6 +122,7 @@ export function EditClassModal({ isOpen, onClose, classData }: EditClassModalPro
 
       toast.success('Clase actualizada exitosamente')
       onClose()
+      if (onSuccess) onSuccess()
     } catch (error: any) {
       toast.error(error.message || 'Error al actualizar la clase')
     } finally {
