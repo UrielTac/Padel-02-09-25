@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr'
+import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
 
 type PlanType = 'Free' | 'Pro Mensual' | 'Pro Trimestral'
@@ -16,10 +16,6 @@ export const empresaService = {
     }
 
     console.log('📍 Buscando empresa para el usuario:', userId)
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
 
     try {
       const { data, error } = await supabase
@@ -52,10 +48,6 @@ export const empresaService = {
     }
 
     console.log('📍 Actualizando plan de empresa:', { empresaId, planType })
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
     
     try {
       const updateData = {
@@ -96,10 +88,6 @@ export const empresaService = {
     }
 
     console.log('📍 Actualizando suscripción:', { empresaId, subscriptionData })
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
     
     try {
       const updateData = {

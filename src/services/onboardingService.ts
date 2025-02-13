@@ -10,6 +10,10 @@ class OnboardingService {
    * @returns Object con el resultado de la operación
    */
   async updateOnboardingStep(empresaId: string, step: OnboardingStep) {
+    if (!empresaId) {
+      throw new Error('ID de empresa requerido')
+    }
+
     try {
       console.log('📍 Actualizando paso del onboarding:', { empresaId, step })
 
@@ -21,14 +25,14 @@ class OnboardingService {
         .single()
 
       if (error) {
-        console.error('❌ Error al actualizar el paso del onboarding:', error)
+        console.error('Error al actualizar el paso del onboarding:', error)
         throw error
       }
 
       console.log('✅ Paso del onboarding actualizado:', data)
       return { data, error: null }
     } catch (error) {
-      console.error('❌ Error en updateOnboardingStep:', error)
+      console.error('Error en updateOnboardingStep:', error)
       return { data: null, error }
     }
   }
@@ -39,6 +43,10 @@ class OnboardingService {
    * @returns El paso actual del onboarding
    */
   async getCurrentStep(empresaId: string) {
+    if (!empresaId) {
+      throw new Error('ID de empresa requerido')
+    }
+
     try {
       console.log('📍 Obteniendo paso actual del onboarding:', empresaId)
 
@@ -49,14 +57,14 @@ class OnboardingService {
         .single()
 
       if (error) {
-        console.error('❌ Error al obtener el paso del onboarding:', error)
+        console.error('Error al obtener el paso del onboarding:', error)
         throw error
       }
 
       console.log('✅ Paso actual del onboarding:', data)
       return { data: data.onboarding as OnboardingStep, error: null }
     } catch (error) {
-      console.error('❌ Error en getCurrentStep:', error)
+      console.error('Error en getCurrentStep:', error)
       return { data: null, error }
     }
   }

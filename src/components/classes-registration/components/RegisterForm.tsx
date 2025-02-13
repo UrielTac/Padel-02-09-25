@@ -1,12 +1,23 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
-import { IconArrowLeft, IconMail, IconLock, IconUser, IconPhone, IconLoader2 } from '@tabler/icons-react'
+import { 
+  IconArrowLeft, 
+  IconMail, 
+  IconLock, 
+  IconUser, 
+  IconPhone, 
+  IconLoader2,
+  IconEye,
+  IconEyeOff,
+  IconCheck,
+  IconX
+} from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useClassRegistration } from '../context'
+import { useClassRegistration } from '../context/ClassRegistrationContext'
 import { StepHeader } from '../shared/StepSection'
 import type { Database } from '@/types/supabase'
 
@@ -22,9 +33,38 @@ interface RegisterFormData {
   telefono: string
 }
 
+interface PasswordRequirement {
+  text: string
+  validator: (password: string) => boolean
+}
+
+const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
+  {
+    text: "Al menos 6 caracteres",
+    validator: (password) => password.length >= 6
+  },
+  {
+    text: "Al menos una letra mayúscula",
+    validator: (password) => /[A-Z]/.test(password)
+  },
+  {
+    text: "Al menos una letra minúscula",
+    validator: (password) => /[a-z]/.test(password)
+  },
+  {
+    text: "Al menos un número",
+    validator: (password) => /[0-9]/.test(password)
+  },
+  {
+    text: "Al menos un carácter especial (!@#$%^&*)",
+    validator: (password) => /[!@#$%^&*]/.test(password)
+  }
+]
+
 export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
-  const { organization } = useClassRegistration()
+  const { empresaId, dispatch } = useClassRegistration()
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
   const [formData, setFormData] = useState<RegisterFormData>({
     email: '',
     password: '',
@@ -32,10 +72,21 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
     telefono: ''
   })
 
+  // Función para validar los requisitos de la contraseña
+  const validatePasswordRequirements = useCallback((password: string) => {
+    return PASSWORD_REQUIREMENTS.every(req => req.validator(password))
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!organization) {
+    if (!empresaId) {
       toast.error('No se encontró la información de la organización')
+      return
+    }
+
+    // Validar contraseña antes de enviar
+    if (!validatePasswordRequirements(formData.password)) {
+      toast.error('La contraseña no cumple con los requisitos mínimos')
       return
     }
 
@@ -43,14 +94,17 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
     const supabase = createClientComponentClient<Database>()
 
     try {
-      // 1. Registrar usuario en Auth
+      // 1. Registrar usuario en Auth con los campos correctos
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
-            nombre: formData.nombre,
-            role: 'client'
+            name: formData.nombre,
+            phone: formData.telefono,
+            role: 'client',
+            nombre_original: formData.nombre,
+            telefono_original: formData.telefono
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
@@ -69,7 +123,7 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
         .from('vinculaciones')
         .insert({
           user_id: authData.user.id,
-          empresa_id: organization.id,
+          empresa_id: empresaId,
           estado: 'activo',
           metadata: {
             role: 'client',
@@ -81,21 +135,57 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
         throw new Error('Error al vincular usuario con la empresa')
       }
 
+      dispatch({ type: 'SET_AUTH_STATUS', payload: { isAuthenticated: true, isGuest: false } })
       toast.success('Cuenta creada exitosamente. Por favor, verifica tu correo electrónico.')
       onSuccess()
     } catch (error: any) {
       console.error('Error al registrar usuario:', error)
       
-      // Mostrar mensaje de error específico según el tipo de error
       if (error.message.includes('duplicate key')) {
         toast.error('Ya existe una cuenta con este correo electrónico')
       } else {
         toast.error(error.message || 'Error al crear la cuenta. Por favor, intenta de nuevo.')
       }
+      
+      dispatch({ type: 'SET_ERROR', payload: error.message })
     } finally {
       setIsLoading(false)
     }
   }
+
+  // Renderizar los requisitos de la contraseña
+  const renderPasswordRequirements = () => (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ 
+        opacity: formData.password ? 1 : 0,
+        height: formData.password ? 'auto' : 0
+      }}
+      transition={{ duration: 0.2 }}
+      className="space-y-2 mt-2 text-sm"
+    >
+      {PASSWORD_REQUIREMENTS.map((requirement, index) => {
+        const isValid = requirement.validator(formData.password)
+        return (
+          <div 
+            key={index}
+            className={cn(
+              "flex items-center gap-2",
+              "text-gray-500",
+              isValid && "text-green-600"
+            )}
+          >
+            {isValid ? (
+              <IconCheck className="w-4 h-4 text-green-600" />
+            ) : (
+              <IconX className="w-4 h-4 text-gray-400" />
+            )}
+            <span className="text-xs">{requirement.text}</span>
+          </div>
+        )
+      })}
+    </motion.div>
+  )
 
   return (
     <>
@@ -207,7 +297,7 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
               </div>
             </div>
 
-            {/* Contraseña */}
+            {/* Campo de contraseña mejorado */}
             <div className="space-y-1.5">
               <label htmlFor="password" className="text-sm font-medium text-gray-700">
                 Contraseña
@@ -218,22 +308,40 @@ export function RegisterForm({ onBack, onSuccess }: RegisterFormProps) {
                 </div>
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                   className={cn(
-                    "block w-full pl-9 pr-3 py-2 text-sm rounded-md",
+                    "block w-full pl-9 pr-12 py-2 text-sm rounded-md",
                     "bg-white border border-gray-200",
                     "focus:ring-1 focus:ring-gray-200 focus:border-gray-400",
                     "disabled:opacity-50 disabled:cursor-not-allowed",
-                    "placeholder:text-gray-400"
+                    "placeholder:text-gray-400",
+                    "transition-colors duration-200"
                   )}
                   placeholder="••••••••"
                   required
                   disabled={isLoading}
                   minLength={6}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={cn(
+                    "absolute inset-y-0 right-0 pr-3",
+                    "flex items-center",
+                    "text-gray-400 hover:text-gray-600",
+                    "transition-colors duration-200"
+                  )}
+                >
+                  {showPassword ? (
+                    <IconEyeOff className="h-4 w-4" />
+                  ) : (
+                    <IconEye className="h-4 w-4" />
+                  )}
+                </button>
               </div>
+              {renderPasswordRequirements()}
             </div>
 
             <motion.button

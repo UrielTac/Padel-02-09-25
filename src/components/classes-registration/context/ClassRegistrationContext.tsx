@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '../hooks'
+import { useAuth } from '@/contexts/AuthContext'
 import { useClasses } from '../hooks/useClasses'
 import { ClientOrganizationProvider, useClientOrganizationContext } from '@/contexts/ClientOrganizationContext'
 import type { Organization as OrganizationFromDB, PublicClass, ClassPackage, UserPackageFromDB, ClassSession } from '../types/models'
@@ -10,6 +10,17 @@ import type { ClassRegistrationError } from '../types/error'
 import type { AuthView } from '../types/registration'
 import type { ReactNode } from 'react'
 import type { Database } from '@/types/supabase'
+
+// Definir el tipo AuthUser localmente basado en nuestro sistema
+interface AuthUser {
+  id: string
+  email: string
+  role: string
+  metadata: {
+    name?: string
+    [key: string]: any
+  }
+}
 
 type EmpresaRow = Database['public']['Tables']['empresas']['Row']
 
@@ -53,6 +64,8 @@ interface ClassRegistrationContextType {
   selectClass: (classData: PublicClass) => void
   selectSession: (sessionId: string) => void
   deselectSession: (sessionId: string) => void
+  empresaId: string
+  user: AuthUser | null
 }
 
 const initialState: RegistrationState = {
@@ -222,8 +235,10 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
     goToStep,
     selectClass,
     selectSession,
-    deselectSession
-  }), [state, organization, isLoading, setAuthView, goToStep, selectClass, selectSession, deselectSession])
+    deselectSession,
+    empresaId,
+    user
+  }), [state, organization, isLoading, setAuthView, goToStep, selectClass, selectSession, deselectSession, empresaId, user])
 
   // Solo renderizamos el contenido cuando la inicialización está completa
   if (!hasInitialized || isLoadingAuth) {

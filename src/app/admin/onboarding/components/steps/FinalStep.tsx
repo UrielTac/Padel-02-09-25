@@ -159,10 +159,13 @@ export function FinalStep() {
               </div>
 
               <div>
+                <p className="text-sm text-gray-500 mb-2 md:hidden">
+                  Ingresa a Simple-Link desde computadora para acceder al Panel
+                </p>
                 <Button 
                   size="sm"
-                  className="rounded-full px-6"
-                  onClick={() => router.push('/dashboard')}
+                  className="rounded-full px-6 hidden md:inline-flex"
+                  onClick={() => router.push('/admin/dashboard/bookings')}
                 >
                   Ir al Panel
                 </Button>

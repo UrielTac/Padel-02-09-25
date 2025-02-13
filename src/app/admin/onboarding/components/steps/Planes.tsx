@@ -5,9 +5,11 @@ import { Check, Sparkles, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { useState } from "react"
 import { motion } from "framer-motion"
 import { SelectOption } from "@/components/ui/selectoption"
+import { PayPalSubscriptionButton } from "@/components/ui/paypal-subscription-button"
 import {
   Tooltip,
   TooltipContent,
@@ -15,6 +17,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useOnboarding } from "../../context/OnboardingContext"
+import { SuccessPayment } from "./SuccessPayment"
+import { empresaService } from "@/services/empresaService"
+import { useToast } from "@/components/ui/use-toast"
+import { subscriptionService } from "@/services/subscriptionService"
+import { PAYPAL_CONFIG } from '@/config/paypal'
 
 interface PlanFeature {
   name: string
@@ -69,6 +76,7 @@ const plans: Plan[] = [
       quarterly: 69.69
     },
     description: "Todo lo que necesitas para escalar tu negocio",
+
     isPopular: true,
     features: [
       { name: "Pistas ilimitadas", included: true },
@@ -87,11 +95,88 @@ const plans: Plan[] = [
 ]
 
 export function Planes() {
-  const { completeAndAdvance } = useOnboarding()
+  const { completeAndAdvance, formData } = useOnboarding()
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly'>('quarterly')
+  const [showSuccessPayment, setShowSuccessPayment] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<'Free' | 'Pro'>()
+  const { toast } = useToast()
 
-  const handleSelectPlan = () => {
+  const handleSelectPlan = (planName: 'Free' | 'Pro') => {
+    setSelectedPlan(planName)
+    if (planName === 'Free') {
+      completeAndAdvance(3)
+    }
+  }
+
+  const handlePayPalSuccess = async (data: any) => {
+    try {
+      const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID
+      if (!userId) {
+        console.error('❌ No se encontró el ID del usuario en las variables de entorno')
+        toast({
+          variant: "destructive",
+          title: "Error al actualizar el plan",
+          description: "No se pudo identificar el usuario. Por favor, contacta con soporte."
+        })
+        return
+      }
+
+      console.log('📍 Datos recibidos de PayPal:', data)
+      
+      const empresa = await empresaService.getEmpresaByUserId(userId)
+      
+      // Calculamos la fecha de expiración
+      const expiresAt = new Date()
+      if (billingPeriod === 'monthly') {
+        expiresAt.setMonth(expiresAt.getMonth() + 1)
+      } else {
+        expiresAt.setMonth(expiresAt.getMonth() + 3)
+      }
+
+      const planType = billingPeriod === 'monthly' ? 'Pro Mensual' : 'Pro Trimestral'
+      const paymentAmount = billingPeriod === 'monthly' 
+        ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price
+        : PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price
+
+      // Primero creamos la suscripción
+      await subscriptionService.updatePayPalDetails({
+        empresaId: empresa.id,
+        subscriptionId: data.subscriptionID,
+        subscriptionExpiresAt: expiresAt,
+        paymentAmount
+      })
+
+      // Si la suscripción se creó exitosamente, actualizamos el plan
+      await empresaService.updatePlanType(empresa.id, planType)
+      
+      console.log('✅ Plan y suscripción actualizados exitosamente')
+      setShowSuccessPayment(true)
+    } catch (error) {
+      console.error('❌ Error al actualizar la suscripción:', error)
+      toast({
+        variant: "destructive",
+        title: "Error al actualizar el plan",
+        description: "Hubo un problema al actualizar tu plan. Por favor, contacta con soporte."
+      })
+    }
+  }
+
+  const handlePayPalError = (error: unknown) => {
+    console.error('Error en la suscripción:', error)
+    setSelectedPlan(undefined)
+    toast({
+      variant: "destructive",
+      title: "Error en el pago",
+      description: "Hubo un problema al procesar el pago. Por favor, intenta de nuevo."
+    })
+  }
+
+  const handleSuccessComplete = () => {
     completeAndAdvance(3)
+  }
+
+  if (showSuccessPayment) {
+    return <SuccessPayment onComplete={handleSuccessComplete} />
   }
 
   return (
@@ -99,11 +184,11 @@ export function Planes() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="p-6"
+      className="p-4 md:p-6"
     >
       <div className="space-y-6 max-w-[1400px] mx-auto">
         {/* Header Section */}
-        <div className="text-center px-6 pb-4">
+        <div className="text-center px-4 md:px-6 pb-4">
           <h2 className="text-2xl font-semibold tracking-tight mb-1.5">
             Elige tu plan
           </h2>
@@ -120,26 +205,28 @@ export function Planes() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-[1200px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-[1200px] mx-auto px-2 md:px-0">
           {plans.map((plan) => (
             <Card 
               key={plan.name}
               className={cn(
-                "relative bg-background p-6",
+                "relative bg-background p-4 md:p-6",
                 plan.isPopular && "shadow-lg ring-1 ring-border/50",
-                plan.prices.monthly === 0 && "border border-border"
+                plan.prices.monthly === 0 && "border border-border",
+                selectedPlan === plan.name && "ring-2 ring-primary",
+                plan.name === "Pro" ? "order-first md:order-last" : "order-last md:order-first"
               )}
             >
               {plan.isPopular && billingPeriod === 'quarterly' && (
-                <div className="absolute -top-3 left-6 inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs text-primary-foreground">
+                <div className="absolute -top-3 left-4 md:left-6 inline-flex items-center rounded-full bg-black px-3 py-1 text-xs text-white">
                   <Sparkles className="mr-1 h-3 w-3" />
                   10% de descuento
                 </div>
               )}
 
               {/* Plan Content */}
-              <div className="space-y-4">
-                <div className="min-h-[120px]">
+              <div className="flex flex-col h-full">
+                <div className="mb-4">
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium">{plan.name}</h3>
                     {plan.extraInfo && (
@@ -176,13 +263,23 @@ export function Planes() {
                   </p>
                 </div>
 
-                <Button 
-                  className="w-full"
-                  variant={plan.isPopular ? "default" : "outline"}
-                  onClick={handleSelectPlan}
-                >
-                  {plan.prices.monthly === 0 ? "Comenzar gratis" : "Seleccionar plan"}
-                </Button>
+                <div className="mb-4">
+                  {plan.name === 'Free' ? (
+                    <Button 
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => handleSelectPlan('Free')}
+                    >
+                      Comenzar gratis
+                    </Button>
+                  ) : (
+                    <PayPalSubscriptionButton
+                      planType={billingPeriod}
+                      onSuccess={handlePayPalSuccess}
+                      onError={handlePayPalError}
+                    />
+                  )}
+                </div>
 
                 <div className="space-y-2">
                   {plan.features.map((feature, index) => (
@@ -202,7 +299,7 @@ export function Planes() {
                 </div>
 
                 {plan.upcomingFeatures && (
-                  <div className="pt-3 border-t border-border/50">
+                  <div className="mt-4 pt-3 border-t border-border/50">
                     <p className="text-xs font-medium mb-2">
                       Próximas actualizaciones:
                     </p>
@@ -221,7 +318,7 @@ export function Planes() {
           ))}
         </div>
 
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-xs text-center text-muted-foreground px-4 md:px-0">
           Todos los precios incluyen IVA. Puedes cancelar o cambiar tu plan en cualquier momento.
           {" "}
           <span className="font-medium">

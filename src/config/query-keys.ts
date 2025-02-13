@@ -51,7 +51,15 @@ export const queryKeys = {
     all: ['organization'] as const,
     current: () => [...queryKeys.organization.all, 'current'] as const,
     byId: (id: string) => [...queryKeys.organization.all, 'detail', id] as const
-  }
+  },
+  participants: {
+    all: (empresaId?: string) => 
+      ['participants', { empresaId }] as const,
+    search: (empresaId?: string, searchTerm?: string) => 
+      ['participants', 'search', { empresaId, searchTerm }] as const,
+    details: (participantId: string) => 
+      ['participants', 'details', participantId] as const,
+  },
 } as const
 
 export type QueryKeys = typeof queryKeys 

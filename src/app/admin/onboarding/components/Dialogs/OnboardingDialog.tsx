@@ -91,12 +91,6 @@ export function OnboardingDialog() {
               {step < totalSteps ? (
                 <Button className="group" type="button" onClick={handleContinue}>
                   Siguiente
-                  <ArrowRight
-                    className="-me-1 ms-2 opacity-60 transition-transform group-hover:translate-x-0.5"
-                    size={16}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  />
                 </Button>
               ) : (
                 <Button type="button" onClick={() => setIsOpen(false)}>Entendido</Button>
