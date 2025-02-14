@@ -42,6 +42,7 @@ export interface PublishedForm {
   id: string;
   empresa_id: string;
   slug: string;
+  fields: any[];
   settings: FormSettings;
   status: 'published' | 'draft' | 'archived';
   customization?: {
@@ -70,4 +71,17 @@ export interface FormUrlConfig {
   slug: string;
   customDomain?: string;
   isCustomizable?: boolean;
-} 
+}
+
+export interface PublicFormLayoutProps {
+  form: PublishedForm;
+  fields: any[];
+  currentStep: number;
+  onNext: () => Promise<void>;
+  onPrev: () => void;
+  isPublicView: boolean;
+  slug: string;
+  isSubmitting: boolean;
+  isNextDisabled: boolean;
+  nextLabel: string;
+}

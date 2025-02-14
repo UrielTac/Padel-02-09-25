@@ -67,31 +67,38 @@ export interface Court {
 
 export type PaymentStatusEnum = 'pending' | 'partial' | 'completed' | 'cancelled'
 export type PaymentMethodEnum = 'cash' | 'stripe' | 'transfer'
+export type PaymentTypeEnum = 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
 export type ParticipantRoleEnum = 'player' | 'guest'
 
 export interface BookingCreationData {
-  courtId: string
-  date: string
-  startTime: string
-  endTime: string
-  title?: string
-  description?: string
-  courtPrice: number
-  rentalItemsPrice: number
-  paymentStatus: PaymentStatusEnum
-  paymentMethod: PaymentMethodEnum
-  depositAmount?: number
-  participants?: BookingParticipant[]
+  courtId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  title?: string;
+  description?: string;
+  courtPrice: number;
+  rentalItemsPrice: number;
+  paymentStatus: PaymentStatusEnum;
+  paymentMethod: PaymentMethodEnum;
+  paymentType: PaymentTypeEnum;
+  depositAmount?: number;
+  participants?: Array<{
+    id: string;
+    userId: string;
+    role: ParticipantRoleEnum;
+  }>;
   rentalItems?: Array<{
-    itemId: string
-    quantity: number
-    pricePerUnit: number
-  }>
+    itemId: string;
+    quantity: number;
+    pricePerUnit: number;
+    totalPrice: number;
+  }>;
 }
 
 export interface BookingParticipant {
   id: string;
-  memberId?: string;
+  userId?: string;
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -247,4 +254,43 @@ export interface TimeSelection {
   endTime: string
   duration?: number
 }
+
+export interface PaymentConfig {
+  paymentMethodId?: string;
+}
+
+export interface PaymentMapping {
+  type: PaymentTypeEnum;
+  defaultMethod: PaymentMethodEnum;
+  defaultStatus: PaymentStatusEnum;
+}
+
+// Mapeo de tipos de pago a sus configuraciones por defecto
+export const PAYMENT_TYPE_MAPPINGS: Record<PaymentTypeEnum, PaymentMapping> = {
+  booking: {
+    type: 'booking',
+    defaultMethod: 'cash',
+    defaultStatus: 'pending'
+  },
+  deposit: {
+    type: 'deposit',
+    defaultMethod: 'cash',
+    defaultStatus: 'pending'
+  },
+  remaining: {
+    type: 'remaining',
+    defaultMethod: 'cash',
+    defaultStatus: 'pending'
+  },
+  guarantee: {
+    type: 'guarantee',
+    defaultMethod: 'stripe',
+    defaultStatus: 'pending'
+  },
+  no_show_charge: {
+    type: 'no_show_charge',
+    defaultMethod: 'stripe',
+    defaultStatus: 'pending'
+  }
+};
 

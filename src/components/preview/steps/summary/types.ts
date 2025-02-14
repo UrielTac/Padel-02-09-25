@@ -6,14 +6,13 @@ export interface PaymentMethod {
   expYear: number;
   name: string;
   description: string;
-  type: 'card' | 'cash' | 'club';
-  isValid?: boolean;
+  type: 'card' | 'cash' | 'transfer';
 }
 
 export interface Coupon {
   code: string;
   discount: number;
-  type: 'percentage' | 'fixed';
+  type: 'fixed' | 'percentage';
   description: string;
 }
 
@@ -25,10 +24,7 @@ export interface PaymentType {
   id: string;
   name: string;
   description: string;
-  icon?: string;
-  details?: string[];
-  requiresCard?: boolean;
-  guaranteeConfig?: GuaranteeConfig;
+  config?: PaymentConfig;
 }
 
 export const PAYMENT_TYPES: PaymentType[] = [
@@ -81,13 +77,7 @@ export const PAYMENT_TYPES: PaymentType[] = [
 ];
 
 export interface Calculations {
-  selectedItems: Array<{
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    total: number;
-  }>;
+  selectedItems: SelectedItem[];
   courtPrice: number;
   itemsTotal: number;
   subtotal: number;
@@ -105,13 +95,16 @@ export interface SummaryState {
   appliedCoupon: Coupon | null;
   selectedPaymentMethod: PaymentMethod | null;
   selectedPaymentType: string | null;
-  guaranteeConfig: GuaranteeConfig;
+  guaranteeConfig: {
+    percentage: number;
+  };
   calculations: Calculations;
 }
 
 export interface PaymentConfig {
   paymentMethodId?: string;
-  guaranteePercentage?: number;
+  requiresCard?: boolean;
+  requiresValidation?: boolean;
 }
 
 export interface PaymentTypeModalProps {
@@ -122,4 +115,27 @@ export interface PaymentTypeModalProps {
   onSelect: (type: string, config?: PaymentConfig) => void;
   isPublicView?: boolean;
   onShowCardModal?: () => void;
+}
+
+export interface SelectedItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  total: number;
+}
+
+export interface StripeValidationResult {
+  success: boolean;
+  error?: string;
+  paymentMethodId?: string;
+}
+
+export interface BookingValidation {
+  isValid: boolean;
+  errors: Array<{
+    field: string;
+    message: string;
+    severity: 'error' | 'warning';
+  }>;
 } 

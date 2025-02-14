@@ -4,15 +4,19 @@ import { PublicFormContent } from './PublicFormContent';
 import { cn } from '@/lib/utils';
 import { sortFormFields } from '@/lib/mappers/preview-to-public';
 import { FormStepField } from '@/types/form-steps';
+import { NavigationButtons } from './NavigationButtons';
 
 interface PublicFormLayoutProps {
   form: PublishedForm;
   fields: FormStepField[];
   currentStep: number;
-  onNext: () => void;
+  onNext: () => Promise<void>;
   onPrev: () => void;
   isPublicView?: boolean;
   slug: string;
+  isNextDisabled?: boolean;
+  nextLabel?: string;
+  showNextButton?: boolean;
 }
 
 export function PublicFormLayout({
@@ -22,22 +26,24 @@ export function PublicFormLayout({
   onNext,
   onPrev,
   isPublicView = false,
-  slug
+  slug,
+  isNextDisabled = false,
+  nextLabel = 'Siguiente',
+  showNextButton = true
 }: PublicFormLayoutProps) {
   const [viewType, setViewType] = useState<"mobile" | "desktop">("desktop");
-  // Ordenar los campos al inicializar
   const [formFields, setFormFields] = useState(() => sortFormFields(form.fields));
-
   const currentField = fields[currentStep];
 
   console.log('[PublicFormLayout] Renderizando con:', {
     currentStep,
     fieldType: currentField?.type,
     slug,
-    empresa_id: form.empresa_id
+    isNextDisabled,
+    showNextButton,
+    nextLabel
   });
 
-  // Detectar el tipo de vista basado en el ancho de la pantalla
   useEffect(() => {
     const handleResize = () => {
       setViewType(window.innerWidth < 768 ? "mobile" : "desktop");
@@ -48,7 +54,6 @@ export function PublicFormLayout({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Efecto para mantener los campos ordenados cuando cambian
   useEffect(() => {
     setFormFields(sortFormFields(form.fields));
   }, [form.fields]);
@@ -79,7 +84,6 @@ export function PublicFormLayout({
       <PublicFormContent
         fields={formFields}
         currentStep={currentStep}
-        onStepChange={handleStepChange}
         onNext={onNext}
         onPrev={onPrev}
         onSubmit={async () => {}}
@@ -88,6 +92,9 @@ export function PublicFormLayout({
         theme={form.settings.theme || 'light'}
         viewType={viewType}
         slug={slug}
+        isNextDisabled={isNextDisabled}
+        nextLabel={nextLabel}
+        showNextButton={showNextButton}
       />
     </div>
   );

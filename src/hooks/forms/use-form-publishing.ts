@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOrganization } from '@/contexts/OrganizationContext';
-import { formPublishService } from '@/lib/services/forms/publish-service';
+import { useForm } from '@/contexts/FormContext';
+import { useSummaryState } from '@/components/preview/steps/summary/hooks/useSummaryState';
+import { useBookingCreation } from './use-booking-creation';
 import { toast } from 'sonner';
+import type { PaymentTypeEnum } from '@/types/bookings';
 
 export interface FormPublishConfig {
   title: string;
@@ -21,66 +24,147 @@ export interface FormPublishConfig {
   };
 }
 
-export function useFormPublishing() {
+interface UseFormPublishingOptions {
+  onSuccess?: () => void;
+  onError?: (error: Error) => void;
+}
+
+export type ReservationState = 'configuring' | 'ready' | 'creating' | 'completed' | 'error';
+
+export function useFormPublishing(options: UseFormPublishingOptions = {}) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  
   const { user, isLoading: authLoading } = useAuth();
   const { organization, isLoading: orgLoading } = useOrganization();
+  
+  const { state } = useForm();
+  const { 
+    selectedPaymentMethod, 
+    selectedPaymentType,
+    calculations 
+  } = useSummaryState();
 
   // Manejar estados de carga de manera más granular
   const isLoading = authLoading || orgLoading;
 
-  const handleError = (err: unknown): Error => {
-    const error = err instanceof Error ? err : new Error('Error desconocido al publicar el formulario');
-    setError(error);
-    toast.error(error.message);
-    return error;
+  // Transformar los items seleccionados al formato de rentals
+  const rentals = calculations.selectedItems.map(item => ({
+    itemId: item.id,
+    quantity: item.quantity,
+    pricePerUnit: item.price,
+    totalPrice: item.total,
+    price: item.price,
+    duration: state.shift.duration || 0
+  }));
+
+  // Transformar el tipo de pago al enum correcto
+  const getPaymentType = (): PaymentTypeEnum => {
+    if (!selectedPaymentType) return 'booking';
+    return selectedPaymentType === 'guarantee' ? 'guarantee' : 'booking';
   };
 
-  const publishForm = async (config: FormPublishConfig): Promise<string> => {
-    if (isLoading) {
-      throw new Error('Cargando datos de autenticación...');
+  const {
+    createBooking,
+    isCreating,
+    error: bookingError,
+    isValid: bookingValid,
+    validationErrors,
+    hasWarnings
+  } = useBookingCreation({
+    onSuccess: options.onSuccess,
+    onError: options.onError,
+    rentals,
+    rentalItemsPrice: calculations.itemsTotal,
+    paymentMethod: selectedPaymentMethod?.type === 'card' ? 'stripe' : (selectedPaymentMethod?.type || 'cash'),
+    paymentType: getPaymentType()
+  });
+
+  // Verificar si la configuración está completa
+  const isConfigurationComplete = useCallback(() => {
+    console.log('[FormPublishing] Verificando configuración:', {
+      selectedPaymentMethod,
+      selectedPaymentType,
+      hasValidPayment: !!(selectedPaymentMethod && selectedPaymentType)
+    });
+
+    if (!selectedPaymentMethod || !selectedPaymentType) {
+      return false;
+    }
+    return true;
+  }, [selectedPaymentMethod, selectedPaymentType]);
+
+  // Crear la reserva
+  const handlePublish = useCallback(async () => {
+    console.log('[FormPublishing] Iniciando publicación:', {
+      isConfigComplete: isConfigurationComplete(),
+      bookingValid,
+      hasValidationErrors: validationErrors.length > 0,
+      state
+    });
+
+    if (!isConfigurationComplete()) {
+      console.log('[FormPublishing] Configuración incompleta');
+      toast.error('Por favor, completa la configuración de pago');
+      return false;
     }
 
-    if (!user) {
-      throw new Error('Usuario no autenticado');
+    if (!bookingValid) {
+      const errors = validationErrors
+        .filter(err => err.severity === 'error')
+        .map(err => err.message)
+        .join('\n');
+      
+      console.error('[FormPublishing] Errores de validación:', errors);
+      toast.error('No se puede crear la reserva:\n' + errors);
+      return false;
     }
-
-    if (!organization) {
-      throw new Error('No hay organización seleccionada');
-    }
-
-    setIsPublishing(true);
-    setError(null);
 
     try {
-      console.log('📝 Iniciando publicación del formulario:', {
-        ...config,
-        organizationId: organization.id
+      setIsPublishing(true);
+      setError(null);
+
+      console.log('[FormPublishing] Creando reserva...');
+      const result = await createBooking();
+      console.log('[FormPublishing] Resultado de creación:', result);
+
+      if (result?.error) {
+        throw new Error(result.error.message || 'Error al crear la reserva');
+      }
+
+      console.log('[FormPublishing] Reserva creada exitosamente');
+      toast.success('¡Reserva creada exitosamente!');
+      options.onSuccess?.();
+      return true;
+
+    } catch (err) {
+      const error = err as Error;
+      console.error('[FormPublishing] Error al crear la reserva:', {
+        message: error.message,
+        stack: error.stack
       });
-
-      // Publicar el formulario incluyendo el empresa_id
-      const url = await formPublishService.publish({
-        ...config,
-        empresa_id: organization.id
-      });
-
-      console.log('✅ Formulario publicado:', { url });
-      toast.success('Formulario publicado exitosamente');
-
-      return url;
-    } catch (error) {
-      console.error('❌ Error al publicar:', error);
-      throw handleError(error);
+      setError(error);
+      options.onError?.(error);
+      return false;
     } finally {
       setIsPublishing(false);
     }
-  };
+  }, [
+    isConfigurationComplete,
+    bookingValid,
+    validationErrors,
+    createBooking,
+    options,
+    state
+  ]);
 
   return {
-    isPublishing: isPublishing || isLoading,
-    error,
-    publishForm,
-    isLoading
+    handlePublish,
+    isPublishing: isPublishing || isCreating,
+    error: error || bookingError,
+    isValid: bookingValid,
+    validationErrors,
+    hasWarnings,
+    isConfigurationComplete
   };
 } 

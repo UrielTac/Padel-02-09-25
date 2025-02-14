@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, ReactNode, useCallback, useEffect } from 'react';
 import { PublishedForm } from '@/types/forms/publish';
+import { PaymentMethodEnum, PaymentStatusEnum, PaymentTypeEnum, PAYMENT_TYPE_MAPPINGS } from '@/types/bookings';
 
 interface LocationState {
   branchId: string | null;
@@ -22,10 +23,16 @@ interface ItemsState {
   selectedItems: Record<string, number>; // itemId -> quantity
 }
 
+interface PaymentState {
+  method: PaymentMethodEnum | null;
+  type: PaymentTypeEnum | null;
+}
+
 interface FormState {
   location: LocationState;
   shift: ShiftState;
   items: ItemsState;
+  payment: PaymentState;
   currentStep: number;
   empresa_id: string | null;
 }
@@ -34,6 +41,7 @@ type FormAction =
   | { type: 'SET_LOCATION'; payload: LocationState }
   | { type: 'SET_SHIFT'; payload: ShiftState }
   | { type: 'SET_ITEMS'; payload: ItemsState }
+  | { type: 'SET_PAYMENT'; payload: PaymentState }
   | { type: 'SET_STEP'; payload: number }
   | { type: 'SET_EMPRESA_ID'; payload: string }
   | { type: 'CLEAR_AFTER_STEP'; payload: number }
@@ -58,6 +66,10 @@ const initialState: FormState = {
   },
   items: {
     selectedItems: {},
+  },
+  payment: {
+    method: null,
+    type: null
   },
   currentStep: 0,
   empresa_id: null,
@@ -86,6 +98,24 @@ function formReducer(state: FormState, action: FormAction): FormState {
       return {
         ...state,
         items: action.payload,
+      };
+    
+    case 'SET_PAYMENT':
+      console.log('FormContext: Actualizando estado de pago:', action.payload);
+      
+      const paymentType = action.payload.type as PaymentTypeEnum;
+      const paymentMapping = paymentType ? PAYMENT_TYPE_MAPPINGS[paymentType] : null;
+      
+      const newPaymentState = {
+        method: paymentMapping?.defaultMethod || action.payload.method,
+        type: action.payload.type
+      };
+
+      console.log('FormContext: Nuevo estado de pago:', newPaymentState);
+
+      return {
+        ...state,
+        payment: newPaymentState
       };
     
     case 'SET_STEP':
@@ -133,6 +163,7 @@ interface FormContextType {
   setLocation: (location: LocationState) => void;
   setShift: (shift: ShiftState) => void;
   setItems: (items: ItemsState) => void;
+  setPayment: (payment: PaymentState) => void;
   setStep: (step: number) => void;
   clearAfterStep: (step: number) => void;
   resetForm: () => void;
@@ -184,6 +215,10 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
     dispatch({ type: 'SET_ITEMS', payload: items });
   }, []);
 
+  const setPayment = useCallback((payment: PaymentState) => {
+    dispatch({ type: 'SET_PAYMENT', payload: payment });
+  }, []);
+
   const setStep = useCallback((step: number) => {
     dispatch({ type: 'SET_STEP', payload: step });
   }, []);
@@ -199,6 +234,7 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
         setLocation,
         setShift,
         setItems,
+        setPayment,
         setStep,
         clearAfterStep,
         resetForm,

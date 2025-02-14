@@ -6,6 +6,7 @@ import { FormError } from '../shared/FormStatusMessages';
 import { FormContainer } from './FormContainer';
 import { useForm } from '@/contexts/FormContext';
 import { toast } from 'react-hot-toast';
+import { useCallback } from 'react';
 
 interface PublicFormContentProps {
   fields: FormStepField[];
@@ -44,38 +45,58 @@ export function PublicFormContent({
     onStepChange(field.id, newSettings);
   };
 
-  const handleNext = () => {
-    if (!currentField) {
-      console.log('No hay campo actual');
+  const handleNext = useCallback(async () => {
+    const currentField = fields[currentStep];
+    const nextField = fields[currentStep + 1];
+
+    console.log('[Navigation] Iniciando navegación:', {
+      from: currentField?.type,
+      currentType: currentField?.type,
+      currentStep,
+      nextStep: currentStep + 1,
+      hasNextField: !!nextField,
+      totalFields: fields.length
+    });
+
+    // Si estamos en el paso summary, asegurarnos de que podemos navegar a farewell
+    if (currentField?.type === 'summary') {
+      const farewellField = fields.find(f => f.type === 'farewell');
+      if (!farewellField) {
+        console.warn('No se encontró el paso farewell');
+        return;
+      }
+      
+      const isValidOrder = validateStepOrder(currentField.type, 'farewell');
+      if (!isValidOrder) {
+        console.warn('Orden de pasos inválido para farewell');
+        return;
+      }
+
+      await onNext();
       return;
     }
 
-    if (isLastStep) {
-      console.log('Último paso, enviando formulario');
-      onSubmit();
-      return;
-    }
-
+    // Manejo normal de navegación
     if (!nextField) {
-      console.log('No hay siguiente paso');
+      console.log('No hay siguiente paso disponible:', {
+        currentStep,
+        totalSteps: fields.length,
+        currentType: currentField?.type
+      });
       return;
     }
 
     const isValidOrder = validateStepOrder(currentField.type, nextField.type);
-    console.log('Validación de orden:', { 
-      currentType: currentField.type, 
-      nextType: nextField.type, 
-      isValid: isValidOrder 
-    });
-
-    if (isValidOrder) {
-      console.log('Orden válido, avanzando al siguiente paso');
-      onNext();
-    } else {
-      console.log('No se puede avanzar: orden de pasos inválido');
-      toast.error('Error en el orden de los pasos');
+    if (!isValidOrder) {
+      console.warn('Orden de pasos inválido:', {
+        currentType: currentField?.type,
+        nextType: nextField?.type
+      });
+      return;
     }
-  };
+
+    await onNext();
+  }, [currentStep, fields, onNext]);
 
   // Determinar si es un paso especial que maneja su propia navegación
   const isSpecialStep = (type: string) => {
@@ -108,7 +129,7 @@ export function PublicFormContent({
 
   // Obtener el texto del botón según el tipo de paso
   const getNextButtonLabel = () => {
-    if (isLastStep) return 'Reservar';
+    if (currentField?.type === 'farewell') return 'Finalizar';
     return 'Siguiente';
   };
 

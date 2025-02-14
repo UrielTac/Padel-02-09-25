@@ -1,6 +1,6 @@
 import { createSupabaseClient } from '@/lib/supabase'
 import { type Database } from '@/types/supabase'
-import { type BookingCreationData, PaymentStatusEnum, PaymentMethodEnum } from '@/types/bookings'
+import { type BookingCreationData, PaymentStatusEnum, PaymentMethodEnum, PaymentTypeEnum } from '@/types/bookings'
 import type { BookingParticipant, SelectedBooking } from '@/types/bookings'
 import { PAYMENT_METHODS, PAYMENT_STATUS } from '@/types/bookings'
 import { timeToMinutes } from '@/lib/time-utils'
@@ -21,13 +21,13 @@ const resetSupabaseInstance = () => {
   supabaseInstance = null;
 };
 
-interface ServiceResponse<T> {
-  data?: T
+export interface ServiceResponse<T> {
+  data?: T;
   error?: {
-    message: string
-    code: string
-    details?: string
-  }
+    message: string;
+    code: string;
+    details?: string;
+  };
 }
 
 interface BookingFromDB {
@@ -76,7 +76,7 @@ interface RentalItemDB {
   total_price: number;
 }
 
-interface CreateBookingParams {
+export interface CreateBookingParams {
   p_court_id: string;
   p_date: string;
   p_start_time: string;
@@ -85,11 +85,12 @@ interface CreateBookingParams {
   p_rental_items_price: number;
   p_payment_method: PaymentMethodEnum;
   p_payment_status: PaymentStatusEnum;
+  p_payment_type: PaymentTypeEnum;
   p_deposit_amount: number;
   p_title?: string;
   p_description?: string;
   p_participants: Array<{
-    member_id: string;
+    user_id: string;
     role: string;
   }>;
   p_rental_items: RentalItemDB[];
@@ -114,83 +115,33 @@ const validatePaymentStatus = (status: string): PaymentStatusEnum => {
 }
 
 const transformBookingDataForDB = (data: BookingCreationData): CreateBookingParams => {
-  // Validar y transformar participantes
-  const participants = (data.participants || []).map(participant => ({
-    member_id: participant.memberId || '',
-    role: participant.role || 'player'
-  }))
-
-  // Validar y transformar rental items con validaciones estrictas
-  const rentalItems: RentalItemDB[] = (data.rentalItems || []).map(rental => {
-    // Validaciones básicas
-    if (!rental.quantity || rental.quantity <= 0) {
-      throw new Error(`Cantidad inválida para el item ${rental.itemId}`)
-    }
-    if (!rental.pricePerUnit || rental.pricePerUnit <= 0) {
-      throw new Error(`Precio por unidad inválido para el item ${rental.itemId}`)
-    }
-
-    // Calcular el precio total
-    const calculatedTotal = Number((rental.quantity * rental.pricePerUnit).toFixed(2))
-
-    // Validar que el precio total sea válido
-    if (isNaN(calculatedTotal) || calculatedTotal <= 0) {
-      throw new Error(`Error al calcular el precio total para el item ${rental.itemId}`)
-    }
-
-    return {
-      item_id: rental.itemId,
-      quantity: rental.quantity,
-      price_per_unit: rental.pricePerUnit,
-      total_price: calculatedTotal
-    }
-  })
-
-  // Log detallado de rentals transformados
-  console.log('Rentals transformados:', {
-    original: data.rentalItems?.length || 0,
-    transformed: rentalItems.length,
-    items: rentalItems.map(item => ({
-      ...item,
-      validation: {
-        hasQuantity: item.quantity > 0,
-        hasPricePerUnit: item.price_per_unit > 0,
-        hasTotalPrice: item.total_price > 0,
-        priceConsistency: Math.abs(item.quantity * item.price_per_unit - item.total_price) <= 0.01
-      }
-    }))
-  })
-
-  // Calcular y validar precios
-  const courtPrice = Math.max(0, Number(data.courtPrice) || 0)
+  console.log('Transformando datos para DB:', data);
   
-  // Calcular precio total de rentals basado en los items validados
-  const calculatedRentalPrice = rentalItems.reduce((total, rental) => 
-    total + rental.total_price, 0
-  )
-  
-  // Validar y asegurar el precio total de rentals
-  const providedRentalPrice = Number(data.rentalItemsPrice)
-  const rentalItemsPrice = !isNaN(providedRentalPrice) && providedRentalPrice >= 0
-    ? providedRentalPrice
-    : calculatedRentalPrice
-
   return {
     p_court_id: data.courtId,
     p_date: data.date,
     p_start_time: data.startTime,
     p_end_time: data.endTime,
-    p_court_price: courtPrice,
-    p_rental_items_price: rentalItemsPrice,
-    p_payment_method: validatePaymentMethod(data.paymentMethod),
-    p_payment_status: validatePaymentStatus(data.paymentStatus),
+    p_court_price: data.courtPrice,
+    p_rental_items_price: data.rentalItemsPrice,
+    p_payment_method: data.paymentMethod,
+    p_payment_status: data.paymentStatus,
+    p_payment_type: data.paymentType,
     p_deposit_amount: data.depositAmount || 0,
-    p_title: data.title || '',
-    p_description: data.description || '',
-    p_participants: participants,
-    p_rental_items: rentalItems
-  }
-}
+    p_title: data.title,
+    p_description: data.description,
+    p_participants: data.participants?.map(p => ({
+      user_id: p.userId || p.id,
+      role: p.role || 'player'
+    })) || [],
+    p_rental_items: data.rentalItems?.map(item => ({
+      item_id: item.itemId,
+      quantity: item.quantity,
+      price_per_unit: item.pricePerUnit,
+      total_price: item.totalPrice
+    })) || []
+  };
+};
 
 const validateBookingDataTypes = (data: any): boolean => {
   try {
@@ -282,8 +233,8 @@ const validateBookingDataTypes = (data: any): boolean => {
       
       // Validar estructura de cada participante
       for (const participant of participants) {
-        if (!participant.member_id || typeof participant.member_id !== 'string' || 
-            !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.member_id)) {
+        if (!participant.user_id || typeof participant.user_id !== 'string' || 
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.user_id)) {
           console.error('ID de participante inválido:', participant)
           return false
         }
@@ -780,135 +731,38 @@ export const bookingService = {
 
   async createBooking(data: BookingCreationData): Promise<ServiceResponse<any>> {
     try {
-      const supabase = this.getSupabase()
-      // Log detallado de los datos de entrada
-      console.info('📝 Datos de entrada para la reserva:', {
-        ...data,
-        participantsCount: data.participants?.length || 0,
-        rentalItemsCount: data.rentalItems?.length || 0
-      });
+      console.log('Creando reserva con datos:', data);
 
-      // Validación inicial de datos
       if (!this.validateBookingData(data)) {
         return {
           error: {
-            message: 'Los datos de la reserva son inválidos',
-            code: 'VALIDATION_ERROR',
-            details: 'Revisa los logs para más detalles de la validación'
+            message: 'Datos de reserva inválidos',
+            code: 'INVALID_DATA'
           }
         };
       }
 
-      // Verificar disponibilidad antes de proceder
-      const availabilityCheck = await this.checkAvailability(data);
-      if (availabilityCheck.error) {
-        return availabilityCheck;
-      }
+      const transformedData = transformBookingDataForDB(data);
+      console.log('Datos transformados:', transformedData);
 
-      let bookingData;
-      try {
-        // Transformar datos para la base de datos
-        bookingData = transformBookingDataForDB(data);
+      const { data: result, error } = await getSupabaseInstance()
+        .rpc('create_booking_v2', transformedData);
 
-        // Log detallado para debugging
-        console.log('📦 Datos preparados para RPC:', {
-          participantsStructure: {
-            isArray: Array.isArray(bookingData.p_participants),
-            length: bookingData.p_participants.length,
-            sample: bookingData.p_participants[0]
-          },
-          prices: {
-            court: bookingData.p_court_price,
-            rentals: bookingData.p_rental_items_price,
-            total: bookingData.p_court_price + bookingData.p_rental_items_price
-          },
-          rentals: {
-            count: bookingData.p_rental_items.length,
-            items: bookingData.p_rental_items
-          }
-        });
-
-        // Llamada RPC
-        const { data: result, error: dbError } = await supabase
-          .rpc('create_booking_v2', bookingData);
-
-        if (dbError) {
-          console.error('❌ Error de base de datos:', {
-            code: dbError.code,
-            message: dbError.message,
-            hint: dbError.hint,
-            details: dbError.details,
-            data: bookingData
-          });
-
-          // Mejorar el manejo de errores específicos
-          switch(dbError.code) {
-            case '23503':
-              return {
-                error: {
-                  message: 'La cancha o algún participante no existe',
-                  code: 'REFERENCE_ERROR',
-                  details: dbError.message
-                }
-              };
-            case '23514':
-              return {
-                error: {
-                  message: 'Los datos no cumplen con las restricciones de la base de datos',
-                  code: 'CONSTRAINT_ERROR',
-                  details: dbError.message
-                }
-              };
-            case 'P0001':
-              return {
-                error: {
-                  message: dbError.message,
-                  code: 'CUSTOM_ERROR',
-                  details: dbError.hint || 'Error personalizado de la base de datos'
-                }
-              };
-            default:
-              return {
-                error: {
-                  message: 'Error al procesar la reserva en la base de datos',
-                  code: `DB_ERROR_${dbError.code}`,
-                  details: `${dbError.message} (${dbError.hint || 'Sin detalles adicionales'})`
-                }
-              };
-          }
-        }
-
-        // Verificar la respuesta
-        if (!result) {
-          console.error('❌ Error en la respuesta:', result);
-          return {
-            error: {
-              message: 'Error al procesar la reserva',
-              code: 'UNKNOWN_ERROR',
-              details: 'No se recibió respuesta del procedimiento almacenado'
-            }
-          };
-        }
-
-        console.info('✅ Reserva creada exitosamente:', result);
-        return { data: result };
-      } catch (error: any) {
-        console.error('❌ Error general:', error);
+      if (error) {
+        console.error('Error al crear reserva:', error);
         return {
-          error: {
-            message: 'Error inesperado al crear la reserva',
-            code: 'UNEXPECTED_ERROR',
-            details: error.message
-          }
+          error: this.getDBErrorMessage(error)
         };
       }
-    } catch (error: any) {
-      console.error('❌ Error general:', error);
+
+      return { data: result };
+    } catch (error) {
+      console.error('Error inesperado al crear reserva:', error);
       return {
         error: {
-          message: 'Error inesperado al crear la reserva',
-          code: 'UNEXPECTED_ERROR',
-          details: error.message
+          message: 'Error al procesar la reserva en la base de datos',
+          code: 'DB_ERROR',
+          details: (error as Error).message
         }
       };
     }
@@ -1004,8 +858,8 @@ export const bookingService = {
 
         // Validar estructura de cada participante
         for (const participant of participants) {
-          if (!participant.member_id || typeof participant.member_id !== 'string' || 
-              !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.member_id)) {
+          if (!participant.user_id || typeof participant.user_id !== 'string' || 
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.user_id)) {
             console.error('ID de participante inválido:', participant)
             return false
           }

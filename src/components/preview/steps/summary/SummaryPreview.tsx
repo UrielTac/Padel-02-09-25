@@ -15,13 +15,17 @@ import { PaymentTypeModal } from "./modals/PaymentTypeModal";
 import { CouponsModal } from "./modals/CouponsModal";
 import { TotalPrice } from "./components/TotalPrice";
 import { PreviewPopup } from "../../shared/PreviewPopup";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { SummaryStepField } from "@/components/steps/summary/types";
 import { PaymentMethod, Coupon, PaymentConfig } from "./types";
 import { StripeProvider } from "@/providers/StripeProvider";
 import { useFormConfig } from '@/hooks/useFormConfig';
 import { Loader2 } from "lucide-react";
 import { StripeConfigProvider } from "@/contexts/StripeConfigContext";
+import { useSummaryBooking } from './hooks/use-summary-booking';
+import { toast } from "react-hot-toast";
+import { Button } from "@/components/ui/button";
+import { useForm } from '@/contexts/FormContext';
 
 interface SummaryPreviewProps {
   field: SummaryStepField;
@@ -50,6 +54,7 @@ export function SummaryPreview({
   const [isValidForNextStep, setIsValidForNextStep] = useState(false);
   const [showStripeError, setShowStripeError] = useState(false);
   const [stripeInitialized, setStripeInitialized] = useState(false);
+  const { state, setPayment } = useForm();
 
   const { 
     calculations,
@@ -73,6 +78,21 @@ export function SummaryPreview({
     couponError,
     setCouponError
   } = useSummaryState();
+
+  const {
+    isValid,
+    hasWarnings,
+    validationErrors,
+    isProcessing
+  } = useSummaryBooking({
+    onSuccess: () => {
+      toast.success('Configuración completada');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setShowStripeError(true);
+    }
+  });
 
   const [showPopup, setShowPopup] = useState(false);
 
@@ -100,13 +120,62 @@ export function SummaryPreview({
     }
   }, [empresaId, isConfigLoading]);
 
-  const handleNext = () => {
-    if (!isValidForNextStep) {
-      setCouponError('Por favor, selecciona un método de pago');
+  useEffect(() => {
+    if (selectedPaymentMethod && selectedPaymentType) {
+      setPayment({
+        method: selectedPaymentMethod.type,
+        type: selectedPaymentType,
+        config: {
+          paymentMethodId: selectedPaymentMethod.id,
+          brand: selectedPaymentMethod.brand,
+          last4: selectedPaymentMethod.last4
+        }
+      });
+    }
+  }, [selectedPaymentMethod, selectedPaymentType, setPayment]);
+
+  const handleNext = useCallback(() => {
+    console.log('[SummaryPreview] Intentando avanzar:', {
+      isValid,
+      hasWarnings,
+      selectedPaymentType,
+      selectedPaymentMethod
+    });
+
+    if (!isValid) {
+      const errors = validationErrors
+        .map(err => err.message)
+        .join('\n');
+      toast.error(`Por favor, verifica los siguientes campos:\n${errors}`);
       return;
     }
+
+    if (hasWarnings) {
+      toast('Tienes advertencias pendientes', {
+        icon: '⚠️',
+        style: {
+          background: '#fff7ed',
+          color: '#9a3412',
+          border: '1px solid #fdba74'
+        }
+      });
+    }
+
+    if (!selectedPaymentType || !selectedPaymentMethod) {
+      toast.error('Por favor, completa la configuración de pago');
+      return;
+    }
+
+    console.log('[SummaryPreview] Configuración válida, permitiendo navegación');
     onNext();
-  };
+  }, [
+    isValid,
+    validationErrors,
+    hasWarnings,
+    selectedPaymentType,
+    selectedPaymentMethod,
+    onNext
+  ]);
 
   const handleModalAction = (action: () => void) => {
     if (!isPublicView) {
@@ -116,18 +185,33 @@ export function SummaryPreview({
     action();
   };
 
+  const handleReservar = async () => {
+    if (!isValid) {
+      console.warn('Formulario inválido, no se puede proceder');
+      return;
+    }
+
+    if (!selectedPaymentMethod || !selectedPaymentType) {
+      toast.error('Por favor, completa la configuración de pago');
+      return;
+    }
+
+    console.log('Formulario válido, procediendo a farewell');
+    await onNext();
+  };
+
   return (
     <PreviewContainer 
       viewType={viewType} 
       theme={theme}
-      onNext={handleNext}
+      onNext={handleReservar}
       onPrev={onPrev}
       isFirstStep={isFirstStep}
       isLastStep={isLastStep}
       nextLabel="Reservar"
       prevLabel="Volver"
       isPublicView={isPublicView}
-      isNextDisabled={!isValidForNextStep}
+      isNextDisabled={!isValid || isProcessing}
     >
       {empresaId && stripeInitialized ? (
         <StripeConfigProvider empresaId={empresaId}>
@@ -274,6 +358,25 @@ export function SummaryPreview({
           </div>
         </div>
       )}
+
+      {isProcessing && (
+        <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 shadow-lg">
+            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+            <p className="text-sm text-gray-500 mt-2">Procesando reserva...</p>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <Button
+          onClick={handleReservar}
+          disabled={!isValid}
+          className="w-full"
+        >
+          Reservar
+        </Button>
+      </div>
     </PreviewContainer>
   );
 } 

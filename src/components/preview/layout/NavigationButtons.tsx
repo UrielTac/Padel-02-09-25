@@ -13,6 +13,7 @@ interface NavigationButtonsProps {
   nextLabel?: string;
   prevLabel?: string;
   isPreview?: boolean;
+  showNextButton?: boolean;
 }
 
 export function NavigationButtons({ 
@@ -25,7 +26,8 @@ export function NavigationButtons({
   isNextDisabled,
   nextLabel = "Siguiente",
   prevLabel = "Volver",
-  isPreview = false
+  isPreview = false,
+  showNextButton = true
 }: NavigationButtonsProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -39,7 +41,7 @@ export function NavigationButtons({
     return () => clearTimeout(timer);
   }, [isFirstStep, isLastStep]);
 
-  const showNextButton = !isLastStep || (isLastStep && nextLabel !== "Siguiente");
+  const shouldShowNextButton = showNextButton;
 
   return (
     <div 
@@ -78,7 +80,7 @@ export function NavigationButtons({
             {prevLabel}
           </Button>
         )}
-        {showNextButton && (
+        {shouldShowNextButton && (
           <Button
             onClick={onNext}
             disabled={isNextDisabled}

@@ -1,5 +1,5 @@
 import { FormStepField } from "@/types/form-steps";
-import { LocationStepField } from "@/components/steps/location/types";
+import { LocationStepField, LocationStepSettings } from "@/components/steps/location/types";
 import { PreviewContainer } from "../layout/PreviewContainer";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -34,7 +34,19 @@ export function LocationPreview({
   isPublicView,
   slug
 }: LocationPreviewProps) {
-  const { settings } = field;
+  const defaultSettings: LocationStepSettings = {
+    isActive: true,
+    showMap: false,
+    showAddress: true,
+    showDirections: false,
+    defaultLocation: { lat: 0, lng: 0 },
+    showBranches: true,
+    showSchedule: true,
+    showContactInfo: false,
+    allowMultipleBranches: false
+  };
+  
+  const { settings = defaultSettings } = field || {};
   const { state, setLocation } = useForm();
   
   // Validar que el slug esté presente

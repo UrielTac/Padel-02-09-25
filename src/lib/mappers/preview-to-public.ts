@@ -31,7 +31,6 @@ const STEP_ORDER = [
 
 // Mapeo bidireccional de tipos con transformaciones
 const TYPE_MAPPINGS = {
-  // Mapeo de tipo original a tipo del sistema
   toSystem: {
     'date': {
       type: STEP_SEQUENCE.LOCATION,
@@ -49,13 +48,15 @@ const TYPE_MAPPINGS = {
         };
 
         return {
-          id: field.id,
+          ...field,
           type: 'location',
-          label: field.label,
-          title: 'Seleccionar Ubicación',
-          description: 'Elige la sede más conveniente para ti',
-          required: true,
-          settings: defaultSettings
+          title: field.title || 'Seleccionar Ubicación',
+          description: field.description || 'Elige la sede más conveniente para ti',
+          required: field.required ?? true,
+          settings: {
+            ...defaultSettings,
+            ...field.settings
+          }
         };
       }
     },
@@ -83,13 +84,15 @@ const TYPE_MAPPINGS = {
         };
 
         return {
-          id: field.id,
+          ...field,
           type: 'shifts',
-          label: field.label,
-          title: 'Seleccionar Turno',
-          description: 'Elige el horario que mejor se adapte a tu agenda',
-          required: true,
-          settings: defaultSettings
+          title: field.title || 'Seleccionar Turno',
+          description: field.description || 'Elige el horario que mejor se adapte a tu agenda',
+          required: field.required ?? true,
+          settings: {
+            ...defaultSettings,
+            ...field.settings
+          }
         };
       }
     },
@@ -111,13 +114,15 @@ const TYPE_MAPPINGS = {
         };
 
         return {
-          id: field.id,
+          ...field,
           type: 'items',
-          label: field.label,
-          title: 'Seleccionar Jugadores',
-          description: 'Indica cuántos jugadores participarán',
-          required: true,
-          settings: defaultSettings
+          title: field.title || 'Seleccionar Artículos',
+          description: field.description || 'Elige los artículos que desees agregar',
+          required: field.required ?? true,
+          settings: {
+            ...defaultSettings,
+            ...field.settings
+          }
         };
       }
     },
@@ -128,68 +133,54 @@ const TYPE_MAPPINGS = {
           isActive: true,
           showCoupons: true,
           paymentTypes: {
-            payment: true
+            booking: true,
+            guarantee: true
           },
           sections: {
+            summary: true,
             payment: true
           }
         };
 
         return {
-          id: field.id,
+          ...field,
           type: 'summary',
-          label: field.label,
-          title: 'Resumen de Reserva',
-          description: 'Revisa los detalles de tu reserva',
-          required: true,
-          settings: defaultSettings
+          title: field.title || 'Resumen de Reserva',
+          description: field.description || 'Revisa los detalles de tu reserva',
+          required: field.required ?? true,
+          settings: {
+            ...defaultSettings,
+            ...field.settings
+          }
         };
       }
-    },
-    'greeting': {
-      type: STEP_SEQUENCE.GREETING,
-      transform: (field: FormStepField): GreetingStepField => ({
-        id: field.id,
-        type: 'greeting',
-        label: field.label,
-        settings: {
-          title: '¡Bienvenido!',
-          subtitle: 'Comencemos con tu reserva'
-        }
-      })
     },
     'farewell': {
       type: STEP_SEQUENCE.FAREWELL,
       transform: (field: FormStepField): FarewellStepField => {
         const defaultSettings: FarewellStepSettings = {
           isActive: true,
-          showDirections: true,
+          showConfirmationNumber: true,
           showBookingSummary: true,
           showContactInfo: true,
           showSocialShare: true,
-          showAddToCalendar: true,
-          showDownloadPDF: true,
-          showSendEmail: true,
           showQRCode: true,
-          showConfirmationNumber: true,
-          messageStyle: 'success',
-          customMessage: '',
-          actions: {
-            downloadPDF: true,
-            sendEmail: true,
-            addToCalendar: true,
-            share: true
-          }
+          showDirections: true,
+          showCalendarAdd: true,
+          showPrint: true,
+          showEmail: true
         };
 
         return {
-          id: field.id,
+          ...field,
           type: 'farewell',
-          label: field.label,
-          title: '¡Gracias!',
-          description: 'Tu reserva ha sido confirmada',
-          required: true,
-          settings: defaultSettings
+          title: field.title || '¡Reserva Exitosa!',
+          description: field.description || 'Tu reserva ha sido confirmada',
+          required: field.required ?? true,
+          settings: {
+            ...defaultSettings,
+            ...field.settings
+          }
         };
       }
     }
@@ -206,23 +197,116 @@ const componentMap: Record<StepType, any> = {
   [STEP_SEQUENCE.FAREWELL]: PreviewComponents.FarewellPreview,
 };
 
+// Función para obtener el tipo de paso normalizado
+export function getStepType(type: string): StepType {
+  const mapping = TYPE_MAPPINGS.toSystem[type as keyof typeof TYPE_MAPPINGS.toSystem];
+  const systemType = mapping ? mapping.type : type as StepType;
+  
+  console.log('[StepType] Normalizando tipo:', {
+    original: type,
+    systemType,
+    hasMapping: !!mapping
+  });
+  
+  return systemType;
+}
+
+// Validación de orden de pasos
+export function validateStepOrder(currentType: string, nextType: string): boolean {
+  const currentSystemType = getStepType(currentType);
+  const nextSystemType = getStepType(nextType);
+
+  console.log('[StepOrder] Validando orden:', {
+    currentType: currentSystemType,
+    nextType: nextSystemType,
+    STEP_ORDER,
+    totalSteps: STEP_ORDER.length
+  });
+
+  const currentOrder = STEP_ORDER.indexOf(currentSystemType);
+  const nextOrder = STEP_ORDER.indexOf(nextSystemType);
+
+  // Validar que ambos tipos existan en el orden
+  if (currentOrder === -1 || nextOrder === -1) {
+    console.warn('[StepOrder] Tipo de paso no encontrado en el orden:', {
+      currentOrder,
+      nextOrder,
+      currentType: currentSystemType,
+      nextType: nextSystemType
+    });
+    return false;
+  }
+
+  // Permitir la navegación si:
+  // 1. El siguiente paso es el siguiente en la secuencia, o
+  // 2. Estamos en summary y el siguiente es farewell
+  const isValid = nextOrder === currentOrder + 1 || 
+    (currentSystemType === STEP_SEQUENCE.SUMMARY && nextSystemType === STEP_SEQUENCE.FAREWELL);
+
+  console.log('[StepOrder] Resultado de validación:', {
+    currentOrder,
+    nextOrder,
+    isValid,
+    isSummaryToFarewell: currentSystemType === STEP_SEQUENCE.SUMMARY && nextSystemType === STEP_SEQUENCE.FAREWELL
+  });
+
+  return isValid;
+}
+
+// Función para obtener el componente público
+export function getPublicComponent(field: FormStepField) {
+  const originalType = field.type;
+  const systemType = getStepType(originalType);
+  
+  console.log('[ComponentMapper] Mapeando componente:', {
+    originalType,
+    systemType,
+    availableTypes: Object.keys(componentMap)
+  });
+
+  const component = componentMap[systemType];
+  
+  if (!component) {
+    console.error(`[ComponentMapper] No se encontró componente para: ${originalType} -> ${systemType}`);
+    return null;
+  }
+
+  console.log('[ComponentMapper] Componente encontrado:', {
+    originalType,
+    systemType,
+    component: component.name
+  });
+
+  return component;
+}
+
 // Función para mapear y transformar el campo
 function mapField(field: FormStepField): FormStepField {
   const mapping = TYPE_MAPPINGS.toSystem[field.type as keyof typeof TYPE_MAPPINGS.toSystem];
   
   if (!mapping) {
-    console.warn(`[TypeMapper] No se encontró mapeo para: ${field.type}`);
-    return field;
+    console.log(`[TypeMapper] Usando tipo original para: ${field.type}`);
+    return {
+      ...field,
+      title: field.title || '',
+      description: field.description || '',
+      required: field.required ?? true
+    };
   }
 
   console.log(`[TypeMapper] Mapeando tipo: ${field.type} -> ${mapping.type}`);
-  return mapping.transform(field);
+  return {
+    ...field,
+    ...mapping.transform(field),
+    title: field.title || '',
+    description: field.description || '',
+    required: field.required ?? true
+  };
 }
 
 // Función para obtener el orden de un tipo
 function getStepOrder(type: string): number {
-  const mapping = TYPE_MAPPINGS.toSystem[type as keyof typeof TYPE_MAPPINGS.toSystem];
-  const systemType = mapping ? mapping.type : type as StepType;
+  const systemType = getStepType(type);
   const order = STEP_ORDER.indexOf(systemType);
   
   console.log(`[OrderMapper] Orden para ${type} -> ${systemType}: ${order}`);
@@ -231,31 +315,40 @@ function getStepOrder(type: string): number {
 
 // Función para ordenar los campos según el orden definido
 export function sortFormFields(fields: FormStepField[]): FormStepField[] {
+  if (!fields || !Array.isArray(fields)) {
+    console.warn('[FieldSorter] No hay campos para ordenar o formato inválido');
+    return [];
+  }
+
   console.log('[FieldSorter] Campos originales:', fields.map(f => f.type));
 
-  // Asegurar que tenemos el paso de bienvenida
-  const hasGreeting = fields.some(f => f.type === STEP_SEQUENCE.GREETING);
-  const completeFields = hasGreeting ? fields : [
-    {
-      id: 'greeting-step',
-      type: STEP_SEQUENCE.GREETING,
-      label: 'Bienvenida',
-      title: '¡Bienvenido!',
-      description: 'Comencemos con tu reserva',
+  // Asegurar que farewell esté incluido
+  const hasFarewell = fields.some(f => getStepType(f.type) === STEP_SEQUENCE.FAREWELL);
+  if (!hasFarewell) {
+    console.log('[FieldSorter] Agregando paso farewell');
+    fields = [...fields, {
+      id: 'farewell',
+      type: 'farewell',
+      title: '¡Reserva Exitosa!',
+      description: 'Tu reserva ha sido confirmada',
       required: true,
       settings: {
-        title: '¡Bienvenido a nuestra plataforma de reservas!',
-        subtitle: 'Estamos encantados de ayudarte con tu reserva',
-        description: 'Sigue los pasos para completar tu reserva de manera fácil y rápida.',
-        showAnimation: true,
-        theme: 'light'
+        isActive: true,
+        showConfirmationNumber: true,
+        showBookingSummary: true,
+        showContactInfo: true,
+        showSocialShare: true,
+        showQRCode: true,
+        showDirections: true,
+        showCalendarAdd: true,
+        showPrint: true,
+        showEmail: true
       }
-    } as FormStepField,
-    ...fields
-  ];
+    } as FarewellStepField];
+  }
 
   // Mapear y transformar campos
-  const mappedFields = completeFields.map(field => {
+  const mappedFields = fields.map(field => {
     const mappedField = mapField(field);
     const order = getStepOrder(field.type);
     
@@ -276,88 +369,8 @@ export function sortFormFields(fields: FormStepField[]): FormStepField[] {
 
   console.log('[FieldSorter] Campos ordenados:', sortedFields.map(f => ({ 
     type: f.type, 
-    order: getStepOrder(f.type),
-    settings: f.settings 
+    order: getStepOrder(f.type)
   })));
   
   return sortedFields;
-}
-
-// Validación de orden de pasos
-export function validateStepOrder(currentType: string, nextType: string): boolean {
-  console.log('[StepOrder] Validando orden:', {
-    currentType,
-    nextType,
-    STEP_ORDER,
-    totalSteps: STEP_ORDER.length,
-    currentIndex: STEP_ORDER.indexOf(currentType),
-    nextIndex: STEP_ORDER.indexOf(nextType)
-  });
-
-  // Si nextType es 'end', significa que estamos en el último paso
-  if (nextType === 'end') {
-    console.log('[StepOrder] Último paso alcanzado');
-    return true;
-  }
-
-  const currentOrder = getStepOrder(currentType);
-  const nextOrder = getStepOrder(nextType);
-
-  // Si alguno de los tipos no está en la secuencia, permitir el avance
-  if (currentOrder === -1 || nextOrder === -1) {
-    console.log('[StepOrder] Tipo no encontrado en secuencia, permitiendo avance');
-    return true;
-  }
-
-  const isConsecutive = nextOrder - currentOrder === 1;
-  const isValid = nextOrder > currentOrder;
-  const isLastStep = nextOrder === STEP_ORDER.length - 1;
-
-  console.log('[StepOrder] Análisis de orden:', {
-    currentOrder,
-    nextOrder,
-    isConsecutive,
-    isValid,
-    isLastStep,
-    currentType,
-    nextType
-  });
-
-  // Para el paso de items a summary, siempre permitir
-  if (currentType === STEP_SEQUENCE.ITEMS && nextType === STEP_SEQUENCE.SUMMARY) {
-    console.log('[StepOrder] Permitiendo avance de items a summary');
-    return true;
-  }
-
-  // Para el último paso, permitir si es válido
-  if (isLastStep) {
-    console.log('[StepOrder] Avanzando al último paso');
-    return isValid;
-  }
-
-  return isValid && isConsecutive;
-}
-
-// Función para obtener el componente público
-export function getPublicComponent(field: FormStepField) {
-  console.log('[ComponentMapper] Obteniendo componente para:', {
-    fieldType: field.type,
-    availableComponents: Object.keys(componentMap)
-  });
-
-  const mapping = TYPE_MAPPINGS.toSystem[field.type as keyof typeof TYPE_MAPPINGS.toSystem];
-  const systemType = mapping ? mapping.type : field.type as StepType;
-  const component = componentMap[systemType];
-  
-  if (!component) {
-    console.warn(`[ComponentMapper] No se encontró componente para: ${field.type} -> ${systemType}`);
-  } else {
-    console.log(`[ComponentMapper] Componente encontrado:`, {
-      originalType: field.type,
-      mappedType: systemType,
-      hasComponent: !!component
-    });
-  }
-
-  return component;
 }

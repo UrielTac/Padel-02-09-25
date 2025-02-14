@@ -3,9 +3,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useForm } from '@/contexts/FormContext';
 import { FormPublishService } from '@/lib/services/forms/publish-service';
-import { validateStepOrder } from '@/lib/mappers/preview-to-public';
+import { validateStepOrder, getStepType } from '@/lib/mappers/preview-to-public';
 import { PublishedForm } from '@/types/forms/publish';
 import { PublicFormLayout } from './layout/PublicFormLayout';
+import { toast } from 'sonner';
 
 interface PublicFormContentProps {
   form: PublishedForm;
@@ -16,84 +17,91 @@ export function PublicFormContent({ form }: PublicFormContentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
 
-  // Efecto para reiniciar el formulario cuando cambia
+  // Obtener el campo actual y siguiente
+  const currentField = form.fields[state.currentStep];
+  const currentType = getStepType(currentField?.type);
+  const nextField = form.fields[state.currentStep + 1];
+
+  // Simplificar la lógica de navegación
+  const showNextButton = true; // Siempre mostrar el botón excepto en casos específicos
+  const isNextDisabled = isNavigating;
+
+  useEffect(() => {
+    console.log('[PublicFormContent] Estado actual:', {
+      currentStep: state.currentStep,
+      totalSteps: form.fields.length,
+      currentField: currentField?.type,
+      currentType,
+      nextField: nextField?.type,
+      showNextButton,
+      isNextDisabled
+    });
+  }, [state.currentStep, form.fields.length, currentField, currentType, nextField, showNextButton, isNextDisabled]);
+
   useEffect(() => {
     console.log('[PublicFormContent] Inicializando formulario:', {
       id: form.id,
-      empresa_id: form.empresa_id
+      empresa_id: form.empresa_id,
+      totalSteps: form.fields.length,
+      currentStep: state.currentStep,
+      canNavigateNext: showNextButton
     });
     resetForm();
-  }, [form, resetForm]);
+  }, [form, resetForm, showNextButton]);
 
-  // Incrementar vistas al cargar
   useEffect(() => {
     const formService = new FormPublishService();
     formService.incrementViews(form.slug).catch(console.error);
   }, [form.slug]);
 
-  const handleNext = useCallback(() => {
-    if (!form?.fields) {
-      console.warn('[Navigation] No hay campos definidos en el formulario');
+  // Manejar la navegación entre pasos
+  const handleNext = useCallback(async () => {
+    if (isNavigating) {
+      console.log('[Navigation] Navegación en progreso, ignorando');
       return;
     }
 
-    const currentField = form.fields[state.currentStep];
-    const nextStepIndex = state.currentStep + 1;
-    const nextField = form.fields[nextStepIndex];
+    try {
+      setIsNavigating(true);
+      console.log('[Navigation] Iniciando navegación:', {
+        from: currentField?.type,
+        currentType,
+        currentStep: state.currentStep,
+        nextStep: state.currentStep + 1,
+        hasNextField: !!nextField
+      });
 
-    console.log('[Navigation] Iniciando navegación al siguiente paso:', {
-      currentStep: currentField?.type,
-      nextStep: nextField?.type,
-      isLastStep: !nextField,
-      canProceed: true // Siempre permitimos avanzar en el formulario público
-    });
+      // Navegar al siguiente paso
+      setStep(state.currentStep + 1);
+      console.log('[Navigation] Navegación completada al paso:', state.currentStep + 1);
 
-    if (!currentField) {
-      console.warn('[Navigation] Campo actual no encontrado');
-      return;
+    } catch (error) {
+      console.error('[Navigation] Error en navegación:', error);
+      toast.error('Error al navegar al siguiente paso');
+    } finally {
+      setIsNavigating(false);
     }
+  }, [state.currentStep, setStep, isNavigating, currentField, currentType, nextField]);
 
-    const isValid = validateStepOrder(
-      currentField.type,
-      nextField ? nextField.type : 'end'
-    );
-
-    console.log('[Navigation] Validación de orden:', { isValid });
-
-    if (!isValid) {
-      console.warn('[Navigation] Orden de pasos inválido');
-      return;
-    }
-
-    console.log('[Navigation] Avanzando al siguiente paso:', nextField?.type || 'end');
-    setStep(nextStepIndex);
-  }, [form?.fields, state.currentStep, setStep]);
-
-  const handlePrev = () => {
+  const handlePrev = useCallback(() => {
     if (state.currentStep <= 0) {
-      console.log('[PublicFormContent] Ya estamos en el primer paso');
+      console.log('[Navigation] Ya estamos en el primer paso');
       return;
     }
-
-    console.log('[PublicFormContent] Retrocediendo desde paso:', {
-      from: state.currentStep,
-      to: state.currentStep - 1,
-      type: form?.fields[state.currentStep - 1]?.type
-    });
-    
     setStep(state.currentStep - 1);
-  };
+    console.log('[Navigation] Retrocediendo al paso:', state.currentStep - 1);
+  }, [state.currentStep, setStep]);
 
-  const handleExitClick = () => {
-    // Verificar si hay datos pendientes
+  const handleExitClick = useCallback(() => {
     const hasUnsavedChanges = Object.values(state).some(value => value !== null);
     if (hasUnsavedChanges) {
       setShowExitDialog(true);
     } else {
       window.location.href = '/';
     }
-  };
+  }, [state]);
 
   if (isLoading) {
     return (
@@ -115,10 +123,10 @@ export function PublicFormContent({ form }: PublicFormContentProps) {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-red-600 mb-2">
-            Error al cargar el formulario
+            Error al procesar el formulario
           </h2>
           <p className="text-gray-500">
-            {error?.message || 'No se pudo cargar el formulario'}
+            {error.message || 'Error inesperado al procesar el formulario'}
           </p>
         </div>
       </div>
@@ -134,6 +142,9 @@ export function PublicFormContent({ form }: PublicFormContentProps) {
       onPrev={handlePrev}
       isPublicView
       slug={form.slug}
+      isNextDisabled={isNextDisabled}
+      showNextButton={showNextButton}
+      nextLabel={currentType === 'farewell' ? 'Finalizar' : 'Siguiente'}
     />
   );
 }
