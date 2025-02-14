@@ -203,11 +203,31 @@
     "numeric_precision": 10,
     "numeric_scale": 2,
     "column_default": "0"
+  },
+  {
+    "table_schema": "public",
+    "table_name": "bookings",
+    "column_name": "payment_type",
+    "ordinal_position": 34,
+    "data_type": "USER-DEFINED",
+    "is_nullable": "NO",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": "'booking'::payment_type"
   }
 ]
 
 -- Índices de la tabla
 [
+  {
+    "indexname": "idx_bookings_payment_status",
+    "indexdef": "CREATE INDEX idx_bookings_payment_status ON public.bookings USING btree (payment_status)"
+  },
+  {
+    "indexname": "idx_bookings_cancelled_at",
+    "indexdef": "CREATE INDEX idx_bookings_cancelled_at ON public.bookings USING btree (cancelled_at) WHERE (cancelled_at IS NOT NULL)"
+  },
   {
     "indexname": "bookings_pkey",
     "indexdef": "CREATE UNIQUE INDEX bookings_pkey ON public.bookings USING btree (id)"
@@ -219,6 +239,18 @@
   {
     "indexname": "bookings_date_idx",
     "indexdef": "CREATE INDEX bookings_date_idx ON public.bookings USING btree (date)"
+  },
+  {
+    "indexname": "idx_bookings_date_times",
+    "indexdef": "CREATE INDEX idx_bookings_date_times ON public.bookings USING btree (date, start_time, end_time)"
+  },
+  {
+    "indexname": "idx_bookings_date_time",
+    "indexdef": "CREATE INDEX idx_bookings_date_time ON public.bookings USING btree (date, start_time, end_time)"
+  },
+  {
+    "indexname": "idx_bookings_payment_type",
+    "indexdef": "CREATE INDEX idx_bookings_payment_type ON public.bookings USING btree (payment_type)"
   }
 ]
 
@@ -229,8 +261,16 @@
     "constraint_type": "FOREIGN KEY"
   },
   {
+    "constraint_name": "bookings_court_price_check",
+    "constraint_type": "CHECK"
+  },
+  {
     "constraint_name": "bookings_pkey",
     "constraint_type": "PRIMARY KEY"
+  },
+  {
+    "constraint_name": "bookings_rental_items_price_check",
+    "constraint_type": "CHECK"
   },
   {
     "constraint_name": "2200_77926_1_not_null",
@@ -262,6 +302,18 @@
   },
   {
     "constraint_name": "2200_77926_13_not_null",
+    "constraint_type": "CHECK"
+  },
+  {
+    "constraint_name": "2200_77926_32_not_null",
+    "constraint_type": "CHECK"
+  },
+  {
+    "constraint_name": "2200_77926_33_not_null",
+    "constraint_type": "CHECK"
+  },
+  {
+    "constraint_name": "2200_77926_34_not_null",
     "constraint_type": "CHECK"
   }
 ]
@@ -339,18 +391,7 @@
     "table_name": "bookings",
     "table_schema": "public",
     "function_name": "update_updated_at_column",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nbegin\r\n  new.updated_at = now();\r\n  return new;\r\nend;\r\n$function$\n"
-  },
-  {
-    "trigger_name": "check_booking_overlap_trigger",
-    "trigger_timing": "AFTER",
-    "trigger_events": [
-      "DELETE"
-    ],
-    "table_name": "bookings",
-    "table_schema": "public",
-    "function_name": "check_booking_overlap",
-    "function_definition": "CREATE OR REPLACE FUNCTION public.check_booking_overlap()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nbegin\r\n  if exists (\r\n    select 1 from bookings\r\n    where court_id = new.court_id\r\n    and date = new.date\r\n    and payment_status != 'cancelled'\r\n    and (\r\n      (start_time, end_time) overlaps (new.start_time, new.end_time)\r\n    )\r\n    and id != new.id\r\n  ) then\r\n    raise exception 'La cancha ya está reservada en ese horario';\r\n  end if;\r\n  return new;\r\nend;\r\n$function$\n"
+    "function_definition": "CREATE OR REPLACE FUNCTION public.update_updated_at_column()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    NEW.updated_at = TIMEZONE('utc', NOW());\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
   },
   {
     "trigger_name": "RI_ConstraintTrigger_a_87215",
@@ -384,6 +425,39 @@
     "function_definition": "CREATE OR REPLACE FUNCTION public.create_payment_on_booking()\n RETURNS trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\r\nBEGIN\r\n    -- Insertar el registro en la tabla payments\r\n    INSERT INTO public.payments (\r\n        booking_id,\r\n        deposit_amount,        -- Cambiado de amount a deposit_amount\r\n        total_price,\r\n        payment_method,\r\n        payment_status,\r\n        notes,\r\n        created_at,\r\n        updated_at\r\n    ) VALUES (\r\n        NEW.id,\r\n        COALESCE(NEW.deposit_amount, 0),\r\n        NEW.total_price,\r\n        NEW.payment_method,\r\n        NEW.payment_status,\r\n        'Pago inicial generado automáticamente',\r\n        NOW(),\r\n        NOW()\r\n    );\r\n\r\n    -- Log de la operación exitosa\r\n    INSERT INTO trigger_logs (\r\n        trigger_name, \r\n        booking_data, \r\n        error_message\r\n    ) VALUES (\r\n        'create_payment_on_booking',\r\n        jsonb_build_object(\r\n            'booking_id', NEW.id,\r\n            'payment_method', NEW.payment_method,\r\n            'payment_status', NEW.payment_status,\r\n            'total_price', NEW.total_price,\r\n            'deposit_amount', NEW.deposit_amount\r\n        ),\r\n        'Pago creado exitosamente'\r\n    );\r\n\r\n    RETURN NEW;\r\n\r\nEXCEPTION WHEN OTHERS THEN\r\n    -- Log del error\r\n    INSERT INTO trigger_logs (\r\n        trigger_name, \r\n        booking_data, \r\n        error_message\r\n    ) VALUES (\r\n        'create_payment_on_booking',\r\n        jsonb_build_object(\r\n            'booking_id', NEW.id,\r\n            'error_detail', SQLERRM,\r\n            'error_hint', SQLSTATE\r\n        ),\r\n        'Error al crear pago: ' || SQLERRM\r\n    );\r\n    \r\n    RAISE EXCEPTION 'Error al crear el pago: %', SQLERRM;\r\nEND;\r\n$function$\n"
   },
   {
+    "trigger_name": "RI_ConstraintTrigger_a_147893",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "INSERT"
+    ],
+    "table_name": "bookings",
+    "table_schema": "public",
+    "function_name": "RI_FKey_cascade_del",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_cascade_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_cascade_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_147894",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "DELETE"
+    ],
+    "table_name": "bookings",
+    "table_schema": "public",
+    "function_name": "RI_FKey_noaction_upd",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "validate_booking_creation_trigger",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "DELETE"
+    ],
+    "table_name": "bookings",
+    "table_schema": "public",
+    "function_name": "validate_booking_creation",
+    "function_definition": "CREATE OR REPLACE FUNCTION public.validate_booking_creation()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n    -- Validar que la hora de inicio sea menor que la hora de fin\r\n    IF NEW.start_time >= NEW.end_time THEN\r\n        RAISE EXCEPTION 'La hora de inicio debe ser menor a la hora de fin';\r\n    END IF;\r\n\r\n    RETURN NEW;\r\nEND;\r\n$function$\n"
+  },
+  {
     "trigger_name": "update_total_price",
     "trigger_timing": "AFTER",
     "trigger_events": [
@@ -395,3 +469,4 @@
     "function_definition": "CREATE OR REPLACE FUNCTION public.calculate_total_price()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\r\nBEGIN\r\n  -- Usar los precios proporcionados directamente\r\n  NEW.total_price = COALESCE(NEW.court_price, 0) + COALESCE(NEW.rental_items_price, 0);\r\n  \r\n  -- Log para debugging\r\n  RAISE NOTICE 'Calculando precio total: court_price=%, rental_items_price=%, total=%', \r\n    NEW.court_price, NEW.rental_items_price, NEW.total_price;\r\n    \r\n  RETURN NEW;\r\nEND;\r\n$function$\n"
   }
 ]
+

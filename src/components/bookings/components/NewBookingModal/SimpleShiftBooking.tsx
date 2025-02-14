@@ -111,7 +111,15 @@ export function SimpleShiftBooking({
   }
 
   const handleParticipantAdd = (participant: Participant) => {
-    onParticipantChange([...participants, participant])
+    // Asegurarnos de que el participante tenga todos los campos necesarios
+    const newParticipant = {
+      ...participant,
+      userId: participant.userId || participant.id, // Usar userId si existe, sino usar id
+      role: participant.role || 'player'
+    }
+
+    console.log('Agregando participante a la reserva:', newParticipant)
+    onParticipantChange([...participants, newParticipant])
   }
 
   const handleParticipantRemove = (participantId: string) => {
@@ -122,6 +130,25 @@ export function SimpleShiftBooking({
     setRentals(newRentals)
     onValidationChange(true)
   }
+
+  const handlePaymentChange = (details: PaymentDetails) => {
+    console.log('Payment details updated:', details);
+    // Actualizar el precio manual si existe
+    if (details.manualPrice !== undefined) {
+      setManualCourtPrice(details.manualPrice);
+    }
+
+    // Determinar el tipo de pago basado en el estado
+    const paymentType = details.paymentStatus === 'completed' ? 'booking' :
+                       details.paymentStatus === 'partial' ? 'deposit' :
+                       'booking';
+
+    onPaymentChange({
+      ...details,
+      paymentType
+    });
+    onValidationChange(true);
+  };
 
   // Validación inicial y cuando cambie el número de participantes
   useEffect(() => {
@@ -236,15 +263,7 @@ export function SimpleShiftBooking({
             selectedCourts={selectedCourts}
             startTime={timeSelection?.startTime || '00:00'}
             endTime={timeSelection?.endTime || '00:00'}
-            onPaymentChange={(details) => {
-              console.log('Payment details updated:', details)
-              // Actualizar el precio manual si existe
-              if (details.manualPrice !== undefined) {
-                setManualCourtPrice(details.manualPrice)
-              }
-              onValidationChange(true)
-              onPaymentChange(details)
-            }}
+            onPaymentChange={handlePaymentChange}
             onNext={() => onValidationChange(true)}
             onBack={() => onValidationChange(true)}
           />
@@ -267,7 +286,20 @@ export function SimpleShiftBooking({
 
   return (
     <div className="space-y-8 px-8 py-2">
-      {renderStep()}
+      {currentStep === 'payment' ? (
+        <PaymentStep
+          totalAmount={total}
+          selectedRentals={rentals}
+          selectedCourts={selectedCourts}
+          startTime={timeSelection?.startTime || '00:00'}
+          endTime={timeSelection?.endTime || '00:00'}
+          onPaymentChange={handlePaymentChange}
+          onNext={() => onValidationChange(true)}
+          onBack={() => onValidationChange(true)}
+        />
+      ) : (
+        renderStep()
+      )}
     </div>
   )
 } 

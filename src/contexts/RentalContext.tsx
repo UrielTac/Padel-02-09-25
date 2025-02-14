@@ -6,6 +6,7 @@ interface RentalContextType {
   totalPrice: number
   updateRentals: (rentals: RentalSelection[]) => void
   calculateTotalPrice: () => number
+  validateRental: (rental: RentalSelection) => boolean
 }
 
 const RentalContext = createContext<RentalContextType | undefined>(undefined)
@@ -149,7 +150,8 @@ export function RentalProvider({ children }: { children: React.ReactNode }) {
       rentals,
       totalPrice,
       updateRentals,
-      calculateTotalPrice
+      calculateTotalPrice,
+      validateRental
     }}>
       {children}
     </RentalContext.Provider>

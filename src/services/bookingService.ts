@@ -117,6 +117,38 @@ const validatePaymentStatus = (status: string): PaymentStatusEnum => {
 const transformBookingDataForDB = (data: BookingCreationData): CreateBookingParams => {
   console.log('Transformando datos para DB:', data);
   
+  // Determinar el tipo de pago basado en el estado
+  const paymentType = data.paymentType || (
+    data.paymentStatus === 'completed' ? 'booking' :
+    data.paymentStatus === 'partial' ? 'deposit' :
+    'booking'
+  ) as PaymentTypeEnum;
+
+  // Transformar los rentals al formato esperado por la RPC
+  const transformedRentals = data.rentalItems?.map(rental => ({
+    item_id: rental.itemId,
+    quantity: rental.quantity,
+    price_per_unit: rental.pricePerUnit,
+    total_price: rental.totalPrice
+  })) || [];
+
+  // Transformar los participantes asegurando que tengan user_id
+  const transformedParticipants = data.participants?.map(p => {
+    if (!p.userId) {
+      console.warn('Participante sin user_id, usando id como respaldo:', p);
+    }
+    return {
+      user_id: p.userId || p.id,
+      role: p.role
+    };
+  }) || [];
+
+  console.log('Datos transformados:', {
+    rentals: transformedRentals,
+    participants: transformedParticipants,
+    paymentType
+  });
+  
   return {
     p_court_id: data.courtId,
     p_date: data.date,
@@ -126,20 +158,12 @@ const transformBookingDataForDB = (data: BookingCreationData): CreateBookingPara
     p_rental_items_price: data.rentalItemsPrice,
     p_payment_method: data.paymentMethod,
     p_payment_status: data.paymentStatus,
-    p_payment_type: data.paymentType,
+    p_payment_type: paymentType,
     p_deposit_amount: data.depositAmount || 0,
     p_title: data.title,
     p_description: data.description,
-    p_participants: data.participants?.map(p => ({
-      user_id: p.userId || p.id,
-      role: p.role || 'player'
-    })) || [],
-    p_rental_items: data.rentalItems?.map(item => ({
-      item_id: item.itemId,
-      quantity: item.quantity,
-      price_per_unit: item.pricePerUnit,
-      total_price: item.totalPrice
-    })) || []
+    p_participants: transformedParticipants,
+    p_rental_items: transformedRentals
   };
 };
 
@@ -941,29 +965,34 @@ export const bookingService = {
           deposit_amount,
           title,
           description,
-          courts (
+          courts:court_id!left (
             id,
             name,
             branch_id
           ),
-          booking_participants (
+          booking_participants!left (
             id,
-            member_id,
+            user_id,
             role,
-            members (
+            usuarios!left (
               id,
-              first_name,
-              last_name,
+              nombre,
               email,
-              phone
+              telefono
             )
           )
         `)
         .eq('date', date)
-        .neq('payment_status', 'cancelled')
+        .or('payment_status.neq.cancelled,payment_status.is.null')
 
       if (bookingsError) {
-        console.error('Error al obtener reservas:', bookingsError)
+        console.error('Error al obtener reservas:', {
+          error: bookingsError,
+          query: {
+            date,
+            branchId
+          }
+        })
         return {
           error: {
             message: 'Error al obtener las reservas',
@@ -974,46 +1003,74 @@ export const bookingService = {
       }
 
       if (!bookingsData || bookingsData.length === 0) {
+        console.log('No se encontraron reservas para la fecha:', date)
         return { data: [] }
       }
 
+      console.log('Reservas encontradas:', {
+        total: bookingsData.length,
+        date,
+        branchId
+      })
+
       // Filtrar por sucursal si es necesario
-      let filteredBookings = bookingsData as unknown as BookingFromDB[]
+      let filteredBookings = bookingsData
       if (branchId) {
         filteredBookings = filteredBookings.filter(booking => 
           booking.courts?.branch_id === branchId
         )
+        console.log('Reservas filtradas por sucursal:', {
+          total: filteredBookings.length,
+          branchId
+        })
       }
 
       // Transformar los datos
-      const transformedData: SelectedBooking[] = filteredBookings.map(booking => ({
-        id: booking.id,
-        courtId: booking.court_id,
-        court: booking.courts?.name || '',
-        date: booking.date,
-        startTime: booking.start_time,
-        endTime: booking.end_time,
-        totalAmount: booking.total_price,
-        depositAmount: booking.deposit_amount,
-        courtPrice: booking.court_price || 0,
-        rentalItemsPrice: booking.rental_items_price || 0,
-        paymentStatus: booking.payment_status,
-        paymentMethod: booking.payment_method,
-        title: booking.title || '',
-        description: booking.description || '',
-        participants: booking.booking_participants?.map(participant => ({
-          id: participant.id,
-          memberId: participant.member_id,
-          role: participant.role,
-          firstName: participant.members?.first_name || '',
-          lastName: participant.members?.last_name || ''
-        })) || []
-      }))
+      const transformedData: SelectedBooking[] = filteredBookings.map(booking => {
+        // Transformar los participantes
+        const participants = booking.booking_participants?.map(participant => {
+          // Dividir el nombre completo en nombre y apellido
+          const [firstName = '', lastName = ''] = participant.usuarios?.nombre?.split(' ') || ['', ''];
+          
+          return {
+            id: participant.id,
+            userId: participant.user_id,
+            role: participant.role || 'player', // Valor por defecto si es null
+            firstName,
+            lastName
+          };
+        }) || [];
 
-      console.log('BookingService - Reservas transformadas:', transformedData)
+        return {
+          id: booking.id,
+          courtId: booking.court_id,
+          court: booking.courts?.name || 'Cancha sin nombre',
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          totalAmount: booking.total_price || 0,
+          depositAmount: booking.deposit_amount || 0,
+          courtPrice: booking.court_price || 0,
+          rentalItemsPrice: booking.rental_items_price || 0,
+          paymentStatus: booking.payment_status || 'pending',
+          paymentMethod: booking.payment_method || 'cash',
+          title: booking.title || '',
+          description: booking.description || '',
+          participants
+        };
+      });
+
+      console.log('Datos transformados:', {
+        total: transformedData.length,
+        sample: transformedData[0]
+      })
+
       return { data: transformedData }
     } catch (error: any) {
-      console.error('Error inesperado al obtener reservas:', error)
+      console.error('Error inesperado al obtener reservas:', {
+        error,
+        stack: error.stack
+      })
       return {
         error: {
           message: 'Error inesperado al obtener las reservas',
@@ -1037,13 +1094,13 @@ export const bookingService = {
           ),
           booking_participants (
             id,
-            member_id,
+            user_id,
             role,
-            members (
-              first_name,
-              last_name,
+            usuarios (
+              id,
+              nombre,
               email,
-              phone
+              telefono
             )
           )
         `)
@@ -1053,6 +1110,19 @@ export const bookingService = {
       if (error) throw error
 
       // Transformar los datos al formato esperado
+      const participants = booking.booking_participants?.map(participant => {
+        // Dividir el nombre completo en nombre y apellido
+        const [firstName = '', lastName = ''] = participant.usuarios?.nombre?.split(' ') || ['', ''];
+        
+        return {
+          id: participant.id,
+          userId: participant.user_id,
+          role: participant.role,
+          firstName,
+          lastName
+        };
+      }) || [];
+
       const transformedBooking: SelectedBooking = {
         id: booking.id,
         courtId: booking.court_id,
@@ -1061,21 +1131,15 @@ export const bookingService = {
         startTime: booking.start_time,
         endTime: booking.end_time,
         totalAmount: booking.total_price,
-        depositAmount: booking.deposit_amount,
+        depositAmount: booking.deposit_amount || 0,
         courtPrice: booking.court_price || 0,
         rentalItemsPrice: booking.rental_items_price || 0,
         paymentStatus: booking.payment_status,
         paymentMethod: booking.payment_method,
         title: booking.title || '',
         description: booking.description || '',
-        participants: booking.booking_participants?.map((participant: BookingParticipantDB & { members?: any }) => ({
-          id: participant.id,
-          memberId: participant.member_id,
-          role: participant.role,
-          firstName: participant.members?.first_name,
-          lastName: participant.members?.last_name
-        })) || [],
-        rentedItems: booking.rented_items || []
+        participants,
+        rentedItems: booking.rental_items || []
       }
 
       return transformedBooking

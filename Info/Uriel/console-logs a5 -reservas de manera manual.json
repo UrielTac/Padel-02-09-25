@@ -1,0 +1,1341 @@
+[
+  {
+    "type": "log",
+    "message": [
+      "Log capturing started. Use save() in the console to download logs."
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Iniciando inicialización de stock:",
+      {
+        "itemsCount": 5,
+        "hasRequiredParams": {
+          "startTime": true,
+          "endTime": true,
+          "date": true
+        },
+        "params": {
+          "startTime": "06:00",
+          "endTime": "07:30",
+          "date": "2025-02-14"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Iniciando verificación de disponibilidad para items con fecha:",
+      "2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 1 (19380ce9-78cc-473c-a9e0-b6c422415158) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 2 (61c7b47d-a093-4a9b-bacc-6f04b104d3ca) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 3 (8e76de4a-d5d0-4083-afee-581ecf0c9dc9) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 4 (5088e195-5053-4160-8997-4786ba61b873) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 5 (a54f254d-1cc4-40bd-bdad-3d182ebc304e) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Iniciando inicialización de stock:",
+      {
+        "itemsCount": 5,
+        "hasRequiredParams": {
+          "startTime": true,
+          "endTime": true,
+          "date": true
+        },
+        "params": {
+          "startTime": "06:00",
+          "endTime": "07:30",
+          "date": "2025-02-14"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Iniciando verificación de disponibilidad para items con fecha:",
+      "2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 1 (19380ce9-78cc-473c-a9e0-b6c422415158) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 2 (61c7b47d-a093-4a9b-bacc-6f04b104d3ca) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 3 (8e76de4a-d5d0-4083-afee-581ecf0c9dc9) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 4 (5088e195-5053-4160-8997-4786ba61b873) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Verificando stock para item: Artículo 5 (a54f254d-1cc4-40bd-bdad-3d182ebc304e) en fecha: 2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "baseStock": 50,
+        "itemData": {
+          "stock": 50
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "baseStock": 60,
+        "itemData": {
+          "stock": 60
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "baseStock": 40,
+        "itemData": {
+          "stock": 40
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "baseStock": 17,
+        "itemData": {
+          "stock": 17
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "5088e195-5053-4160-8997-4786ba61b873",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "baseStock": 60,
+        "itemData": {
+          "stock": 60
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "itemName": "Artículo 5",
+        "baseStock": 40,
+        "availableStock": 38,
+        "reservedUnits": 2,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "itemName": "Artículo 2",
+        "baseStock": 60,
+        "availableStock": 60,
+        "reservedUnits": 0,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "itemName": "Artículo 1",
+        "baseStock": 50,
+        "availableStock": 48,
+        "reservedUnits": 2,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "baseStock": 40,
+        "itemData": {
+          "stock": 40
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "baseStock": 17,
+        "itemData": {
+          "stock": 17
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "5088e195-5053-4160-8997-4786ba61b873",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "itemName": "Artículo 4",
+        "baseStock": 17,
+        "availableStock": 14,
+        "reservedUnits": 3,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "baseStock": 50,
+        "itemData": {
+          "stock": 50
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "baseStock": 24,
+        "itemData": {
+          "stock": 24
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "61c7b47d-a093-4a9b-bacc-6f04b104d3ca",
+        "itemName": "Artículo 2",
+        "baseStock": 60,
+        "availableStock": 60,
+        "reservedUnits": 0,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+        "itemName": "Artículo 5",
+        "baseStock": 40,
+        "availableStock": 38,
+        "reservedUnits": 2,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "itemName": "Artículo 4",
+        "baseStock": 17,
+        "availableStock": 14,
+        "reservedUnits": 3,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "19380ce9-78cc-473c-a9e0-b6c422415158",
+        "itemName": "Artículo 1",
+        "baseStock": 50,
+        "availableStock": 48,
+        "reservedUnits": 2,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Stock base obtenido:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "baseStock": 24,
+        "itemData": {
+          "stock": 24
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Consultando get_available_stock con parámetros:",
+      {
+        "p_item_id": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "p_booking_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "itemName": "Artículo 3",
+        "baseStock": 24,
+        "availableStock": 24,
+        "reservedUnits": 0,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock actualizado para todos los items:",
+      {
+        "itemsCount": 5,
+        "items": [
+          {
+            "name": "Artículo 1",
+            "availableStock": 48,
+            "baseStock": 50
+          },
+          {
+            "name": "Artículo 2",
+            "availableStock": 60,
+            "baseStock": 60
+          },
+          {
+            "name": "Artículo 3",
+            "availableStock": 24,
+            "baseStock": 24
+          },
+          {
+            "name": "Artículo 4",
+            "availableStock": 14,
+            "baseStock": 17
+          },
+          {
+            "name": "Artículo 5",
+            "availableStock": 38,
+            "baseStock": 40
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Finalizando proceso de stock"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock verificado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "itemName": "Artículo 3",
+        "baseStock": 24,
+        "availableStock": 24,
+        "reservedUnits": 0,
+        "date": "2025-02-14"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Stock actualizado para todos los items:",
+      {
+        "itemsCount": 5,
+        "items": [
+          {
+            "name": "Artículo 1",
+            "availableStock": 48,
+            "baseStock": 50
+          },
+          {
+            "name": "Artículo 2",
+            "availableStock": 60,
+            "baseStock": 60
+          },
+          {
+            "name": "Artículo 3",
+            "availableStock": 24,
+            "baseStock": 24
+          },
+          {
+            "name": "Artículo 4",
+            "availableStock": 14,
+            "baseStock": 17
+          },
+          {
+            "name": "Artículo 5",
+            "availableStock": 38,
+            "baseStock": 40
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Finalizando proceso de stock"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 1,
+          "duration": 90,
+          "price": 14.5,
+          "pricePerUnit": 14.5,
+          "totalPrice": 14.5
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 1,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 14.5,
+        "duration": 90,
+        "totalPrice": 14.5
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      14.5
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 1,
+          "duration": 90,
+          "price": 14.5,
+          "pricePerUnit": 14.5,
+          "totalPrice": 14.5
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 1,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 14.5,
+        "duration": 90,
+        "totalPrice": 14.5
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      14.5
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 2,
+          "duration": 90,
+          "price": 29,
+          "pricePerUnit": 14.5,
+          "totalPrice": 29
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 29,
+        "duration": 90,
+        "totalPrice": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      29
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 2,
+          "duration": 90,
+          "price": 29,
+          "pricePerUnit": 14.5,
+          "totalPrice": 29
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 29,
+        "duration": 90,
+        "totalPrice": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      29
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 2,
+          "duration": 90,
+          "price": 29,
+          "pricePerUnit": 14.5,
+          "totalPrice": 29
+        },
+        {
+          "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+          "quantity": 1,
+          "duration": 90,
+          "price": 15,
+          "pricePerUnit": 15,
+          "totalPrice": 15
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 29,
+        "duration": 90,
+        "totalPrice": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "calculatedTotal": 15,
+        "duration": 90,
+        "totalPrice": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      44
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Actualizando rentals:",
+      [
+        {
+          "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+          "quantity": 2,
+          "duration": 90,
+          "price": 29,
+          "pricePerUnit": 14.5,
+          "totalPrice": 29
+        },
+        {
+          "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+          "quantity": 1,
+          "duration": 90,
+          "price": 15,
+          "pricePerUnit": 15,
+          "totalPrice": 15
+        }
+      ]
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "calculatedTotal": 29,
+        "duration": 90,
+        "totalPrice": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Rental validado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "calculatedTotal": 15,
+        "duration": 90,
+        "totalPrice": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Nuevo precio total:",
+      44
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "itemTotal": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "itemTotal": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "itemTotal": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "itemTotal": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Calculando nuevo total:",
+      {
+        "effectiveCourtPrice": 90,
+        "rentalsPriceTotal": 44,
+        "newTotal": 134,
+        "manualPrice": null,
+        "currentTotal": 0,
+        "currentDeposit": 0,
+        "currentStatus": "completed"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "isPaid": false,
+        "courtPrice": 90,
+        "rentalItemsPrice": 44
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sincronizando estado con nuevo total:",
+      {
+        "total": 134,
+        "oldState": {
+          "totalAmount": 0,
+          "deposit": 0,
+          "paymentStatus": "completed",
+          "paymentMethod": "cash",
+          "isPaid": false
+        },
+        "newState": {
+          "totalAmount": 134,
+          "deposit": 134,
+          "paymentStatus": "completed",
+          "paymentMethod": "cash",
+          "isPaid": false
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "isPaid": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "paymentType": "booking",
+        "isPaid": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Calculando nuevo total:",
+      {
+        "effectiveCourtPrice": 90,
+        "rentalsPriceTotal": 44,
+        "newTotal": 134,
+        "manualPrice": null,
+        "currentTotal": 0,
+        "currentDeposit": 0,
+        "currentStatus": "completed"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "isPaid": false,
+        "courtPrice": 90,
+        "rentalItemsPrice": 44
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sincronizando estado con nuevo total:",
+      {
+        "total": 134,
+        "oldState": {
+          "totalAmount": 0,
+          "deposit": 0,
+          "paymentStatus": "completed",
+          "paymentMethod": "cash",
+          "isPaid": false
+        },
+        "newState": {
+          "totalAmount": 134,
+          "deposit": 134,
+          "paymentStatus": "completed",
+          "paymentMethod": "cash",
+          "isPaid": false
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "isPaid": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Payment details updated:",
+      {
+        "totalAmount": 134,
+        "deposit": 134,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "paymentType": "booking",
+        "isPaid": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "itemTotal": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "itemTotal": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+        "quantity": 2,
+        "pricePerUnit": 14.5,
+        "itemTotal": 29
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Precio calculado para item rentado:",
+      {
+        "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+        "quantity": 1,
+        "pricePerUnit": 15,
+        "itemTotal": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Creando reserva con datos:",
+      {
+        "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "date": "2025-02-14",
+        "startTime": "06:00",
+        "endTime": "07:30",
+        "courtPrice": 90,
+        "rentalItemsPrice": 44,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "depositAmount": 134,
+        "participants": [
+          {
+            "id": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "memberId": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "role": "player",
+            "firstName": "",
+            "lastName": "",
+            "name": "Sin nombre"
+          }
+        ],
+        "rentalItems": [
+          {
+            "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+            "quantity": 2,
+            "duration": 90,
+            "price": 29,
+            "pricePerUnit": 14.5,
+            "totalPrice": 29
+          },
+          {
+            "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+            "quantity": 1,
+            "duration": 90,
+            "price": 15,
+            "pricePerUnit": 15,
+            "totalPrice": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Transformando datos para DB:",
+      {
+        "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "date": "2025-02-14",
+        "startTime": "06:00",
+        "endTime": "07:30",
+        "courtPrice": 90,
+        "rentalItemsPrice": 44,
+        "paymentStatus": "completed",
+        "paymentMethod": "cash",
+        "depositAmount": 134,
+        "participants": [
+          {
+            "id": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "memberId": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "role": "player",
+            "firstName": "",
+            "lastName": "",
+            "name": "Sin nombre"
+          }
+        ],
+        "rentalItems": [
+          {
+            "itemId": "5088e195-5053-4160-8997-4786ba61b873",
+            "quantity": 2,
+            "duration": 90,
+            "price": 29,
+            "pricePerUnit": 14.5,
+            "totalPrice": 29
+          },
+          {
+            "itemId": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+            "quantity": 1,
+            "duration": 90,
+            "price": 15,
+            "pricePerUnit": 15,
+            "totalPrice": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "warn",
+    "message": [
+      "Participante sin user_id, usando id como respaldo:",
+      {
+        "id": "8b896425-e5e1-428b-a837-aa35935baf55",
+        "memberId": "8b896425-e5e1-428b-a837-aa35935baf55",
+        "role": "player",
+        "firstName": "",
+        "lastName": "",
+        "name": "Sin nombre"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos transformados:",
+      {
+        "rentals": [
+          {
+            "item_id": "5088e195-5053-4160-8997-4786ba61b873",
+            "quantity": 2,
+            "price_per_unit": 14.5,
+            "total_price": 29
+          },
+          {
+            "item_id": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+            "quantity": 1,
+            "price_per_unit": 15,
+            "total_price": 15
+          }
+        ],
+        "participants": [
+          {
+            "user_id": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "role": "player"
+          }
+        ],
+        "paymentType": "booking"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos transformados:",
+      {
+        "p_court_id": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "p_date": "2025-02-14",
+        "p_start_time": "06:00",
+        "p_end_time": "07:30",
+        "p_court_price": 90,
+        "p_rental_items_price": 44,
+        "p_payment_method": "cash",
+        "p_payment_status": "completed",
+        "p_payment_type": "booking",
+        "p_deposit_amount": 134,
+        "p_participants": [
+          {
+            "user_id": "8b896425-e5e1-428b-a837-aa35935baf55",
+            "role": "player"
+          }
+        ],
+        "p_rental_items": [
+          {
+            "item_id": "5088e195-5053-4160-8997-4786ba61b873",
+            "quantity": 2,
+            "price_per_unit": 14.5,
+            "total_price": 29
+          },
+          {
+            "item_id": "8e76de4a-d5d0-4083-afee-581ecf0c9dc9",
+            "quantity": 1,
+            "price_per_unit": 15,
+            "total_price": 15
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "BookingService - Consultando reservas para fecha:",
+      "2025-02-14"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Reservas encontradas:",
+      {
+        "total": 15,
+        "date": "2025-02-14",
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Reservas filtradas por sucursal:",
+      {
+        "total": 15,
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos transformados:",
+      {
+        "total": 15,
+        "sample": {
+          "id": "602cadce-c085-447f-bd4a-aeb1f307bce6",
+          "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+          "court": "Pista 5",
+          "date": "2025-02-14",
+          "startTime": "05:00:00",
+          "endTime": "06:00:00",
+          "totalAmount": 40,
+          "depositAmount": 0,
+          "courtPrice": 30,
+          "rentalItemsPrice": 10,
+          "paymentStatus": "pending",
+          "paymentMethod": "stripe",
+          "title": "",
+          "description": "",
+          "participants": []
+        }
+      }
+    ]
+  }
+]

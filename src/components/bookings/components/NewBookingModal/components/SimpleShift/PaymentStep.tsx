@@ -12,6 +12,8 @@ import type { Court } from '@/types/court'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRentalContext } from '@/contexts/RentalContext'
+import { PaymentMethodEnum, PaymentStatusEnum, PaymentTypeEnum } from '@/types/bookings'
+import type { RentalSelection } from '@/types/items'
 
 interface PaymentStepProps {
   selectedCourts: string[]
@@ -43,7 +45,7 @@ export function PaymentStep({
     paymentMethod: 'cash',
     isPaid: false
   }))
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer' | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodEnum>('cash')
 
   // Calcular la duración de la reserva en minutos con validación
   const reservationDuration = useMemo(() => {
@@ -357,6 +359,30 @@ export function PaymentStep({
       onPaymentChange(newState)
     }
   }, [calculateTotalAmount, paymentState.paymentStatus])
+
+  useEffect(() => {
+    // Determinar el tipo de pago basado en el estado
+    const paymentType = paymentState.paymentStatus === 'completed' ? 'booking' :
+                       paymentState.paymentStatus === 'partial' ? 'deposit' :
+                       'booking';
+
+    onPaymentChange({
+      totalAmount: calculateTotalAmount(),
+      deposit: calculateDeposit(),
+      paymentStatus: paymentState.paymentStatus,
+      paymentMethod: paymentState.paymentMethod,
+      paymentType,
+      isPaid: paymentState.paymentStatus === 'completed',
+      manualPrice: manualPrice || undefined
+    })
+  }, [paymentState.paymentStatus, paymentState.paymentMethod, manualPrice])
+
+  const calculateDeposit = () => {
+    const total = calculateTotalAmount()
+    return paymentState.paymentStatus === 'completed' ? total :
+           paymentState.paymentStatus === 'partial' ? total * 0.3 :
+           0
+  }
 
   return (
     <div className="space-y-6">

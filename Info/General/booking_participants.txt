@@ -27,18 +27,6 @@
   {
     "table_schema": "public",
     "table_name": "booking_participants",
-    "column_name": "member_id",
-    "ordinal_position": 3,
-    "data_type": "uuid",
-    "is_nullable": "NO",
-    "character_maximum_length": null,
-    "numeric_precision": null,
-    "numeric_scale": null,
-    "column_default": null
-  },
-  {
-    "table_schema": "public",
-    "table_name": "booking_participants",
     "column_name": "created_at",
     "ordinal_position": 5,
     "data_type": "timestamp with time zone",
@@ -59,17 +47,23 @@
     "numeric_precision": null,
     "numeric_scale": null,
     "column_default": "'player'::participant_role_enum"
-  }
-]
+  },
+  {
+    "table_schema": "public",
+    "table_name": "booking_participants",
+    "column_name": "user_id",
+    "ordinal_position": 10,
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": null
   }
 ]
 
 -- Índices de la tabla
 [
-  {
-    "indexname": "idx_booking_participants_member_id",
-    "indexdef": "CREATE INDEX idx_booking_participants_member_id ON public.booking_participants USING btree (member_id)"
-  },
   {
     "indexname": "booking_participants_pkey",
     "indexdef": "CREATE UNIQUE INDEX booking_participants_pkey ON public.booking_participants USING btree (id)"
@@ -91,12 +85,12 @@
     "constraint_type": "FOREIGN KEY"
   },
   {
-    "constraint_name": "booking_participants_member_id_fkey",
-    "constraint_type": "FOREIGN KEY"
-  },
-  {
     "constraint_name": "booking_participants_pkey",
     "constraint_type": "PRIMARY KEY"
+  },
+  {
+    "constraint_name": "booking_participants_user_id_fkey",
+    "constraint_type": "FOREIGN KEY"
   },
   {
     "constraint_name": "2200_42591_1_not_null",
@@ -104,10 +98,6 @@
   },
   {
     "constraint_name": "2200_42591_2_not_null",
-    "constraint_type": "CHECK"
-  },
-  {
-    "constraint_name": "2200_42591_3_not_null",
     "constraint_type": "CHECK"
   },
   {
@@ -124,8 +114,8 @@
     "referenced_column": "id"
   },
   {
-    "foreign_key": "member_id",
-    "referenced_table": "members",
+    "foreign_key": "user_id",
+    "referenced_table": "usuarios",
     "referenced_column": "id"
   }
 ]
@@ -153,7 +143,7 @@
     "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
   },
   {
-    "trigger_name": "RI_ConstraintTrigger_c_42607",
+    "trigger_name": "RI_ConstraintTrigger_c_283621",
     "trigger_timing": "AFTER",
     "trigger_events": [],
     "table_name": "booking_participants",
@@ -162,7 +152,7 @@
     "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
   },
   {
-    "trigger_name": "RI_ConstraintTrigger_c_42608",
+    "trigger_name": "RI_ConstraintTrigger_c_283622",
     "trigger_timing": "AFTER",
     "trigger_events": [
       "DELETE"
@@ -173,3 +163,4 @@
     "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
   }
 ]
+

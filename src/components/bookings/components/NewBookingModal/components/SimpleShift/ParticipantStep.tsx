@@ -5,14 +5,19 @@ import { useParticipantSearch } from '@/components/bookings/hooks/useParticipant
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
+import type { ParticipantRoleEnum } from '@/types/bookings'
+
+interface Participant {
+  id: string
+  userId: string
+  fullName: string
+  email?: string
+  role: ParticipantRoleEnum
+}
 
 interface ParticipantStepProps {
-  participants: Array<{
-    id: string
-    fullName: string
-    email?: string
-  }>
-  onParticipantAdd: (participant: any) => void
+  participants: Participant[]
+  onParticipantAdd: (participant: Participant) => void
   onParticipantRemove: (participantId: string) => void
 }
 
@@ -25,13 +30,23 @@ export function ParticipantStep({
   const { data: searchResults, isLoading } = useParticipantSearch(searchTerm)
 
   const handleParticipantSelect = (participant: any) => {
+    // Validar que el participante tenga un ID válido
+    if (!participant.id) {
+      toast.error('Error al seleccionar participante: ID no válido')
+      return
+    }
+
     // Formatear el participante como lo espera el servicio de reservas
-    onParticipantAdd({
+    const formattedParticipant: Participant = {
       id: participant.id,
+      userId: participant.id, // Usar el mismo ID como user_id
       fullName: `${participant.first_name} ${participant.last_name}`.trim(),
       email: participant.email,
-      role: 'player' // Rol por defecto
-    })
+      role: 'player'
+    }
+
+    console.log('Agregando participante:', formattedParticipant)
+    onParticipantAdd(formattedParticipant)
     setSearchTerm('')
   }
 

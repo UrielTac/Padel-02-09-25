@@ -27,9 +27,7 @@ export function useBookingCreation(options: UseBookingCreationOptions) {
   
   const { transformedData, isValid, validationErrors, hasWarnings } = useBookingTransformer({
     rentals: options.rentals,
-    rentalItemsPrice: options.rentalItemsPrice,
-    paymentMethod: options.paymentMethod,
-    paymentType: options.paymentType
+    rentalItemsPrice: options.rentalItemsPrice
   });
 
   const { maxRetries = DEFAULT_OPTIONS.maxRetries, retryDelay = DEFAULT_OPTIONS.retryDelay } = options;
@@ -38,14 +36,23 @@ export function useBookingCreation(options: UseBookingCreationOptions) {
 
   const createBookingWithRetry = useCallback(async (attempt = 1): Promise<any> => {
     try {
+      if (!transformedData) {
+        throw new Error('No hay datos para crear la reserva');
+      }
+
+      console.log('Intentando crear reserva con datos:', {
+        ...transformedData,
+        rentals: transformedData.rentalItems
+      });
+
       // Verificar disponibilidad
-      const availabilityCheck = await bookingService.checkAvailability(transformedData!);
+      const availabilityCheck = await bookingService.checkAvailability(transformedData);
       if (availabilityCheck.error) {
         throw new Error(availabilityCheck.error.message);
       }
 
       // Crear la reserva
-      const result = await bookingService.createBooking(transformedData!);
+      const result = await bookingService.createBooking(transformedData);
       
       if (result.error) {
         throw new Error(result.error.message);
@@ -103,14 +110,22 @@ export function useBookingCreation(options: UseBookingCreationOptions) {
       setError(null);
 
       // Verificar disponibilidad
-      console.log('Verificando disponibilidad con datos:', transformedData);
+      console.log('Verificando disponibilidad con datos:', {
+        ...transformedData,
+        rentals: transformedData.rentalItems
+      });
+      
       const availabilityCheck = await bookingService.checkAvailability(transformedData);
       if (availabilityCheck.error) {
         throw new Error(availabilityCheck.error.message);
       }
 
       // Crear la reserva
-      console.log('Creando reserva con datos:', transformedData);
+      console.log('Creando reserva con datos:', {
+        ...transformedData,
+        rentals: transformedData.rentalItems
+      });
+      
       const result = await bookingService.createBooking(transformedData);
       
       if (result.error) {
