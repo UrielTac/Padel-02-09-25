@@ -1,8 +1,7 @@
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { bookingService } from '@/services/bookingService'
-import { paymentService } from '@/services/paymentService'
+import { useQuery } from '@tanstack/react-query'
+import { bookingQueryService } from '@/services/bookingQueryService'
 import { toast } from '@/components/ui/use-toast'
-import { SelectedBooking } from '@/types/bookings'
+import type { SelectedBooking } from '@/types/bookings'
 import { queryKeys } from '@/config/query-keys'
 import { keepPreviousData } from '@tanstack/react-query'
 
@@ -18,8 +17,8 @@ interface CancelBookingParams {
   reason?: string
 }
 
-interface UseBookingsParams {
-  date?: Date
+interface UseBookingsProps {
+  selectedDate?: string
   branchId?: string
 }
 
@@ -31,179 +30,75 @@ function formatDateForQuery(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
-export function useBookings({ date, branchId }: UseBookingsParams = {}) {
-  const queryClient = useQueryClient()
+export function useBookings(params?: UseBookingsProps) {
+  const { selectedDate, branchId } = params || {}
 
-  // Query optimizada para obtener las reservas
-  const bookingsQuery = useQuery({
-    queryKey: queryKeys.bookings.list({ 
-      date: date ? formatDateForQuery(date) : undefined, 
-      branchId 
-    }),
-    queryFn: async () => {
-      if (!date) return []
-      
-      const formattedDate = formatDateForQuery(date)
-      console.log('🔍 Fetching bookings for:', { date: formattedDate, branchId })
-      
-      const response = await bookingService.getBookingsByDate(formattedDate, branchId)
-      
-      if (response.error) {
-        console.error('❌ Error fetching bookings:', response.error)
-        throw new Error(response.error.message)
-      }
-      
-      console.log('✅ Bookings loaded:', {
-        date: formattedDate,
-        branchId,
-        count: response.data?.length || 0
-      })
-      
-      return response.data || []
-    },
-    enabled: !!date,
-    placeholderData: keepPreviousData,
-    staleTime: 1000 * 60 * 5, // 5 minutos
-    gcTime: 1000 * 60 * 30, // 30 minutos
-    retry: (failureCount, error) => {
-      if (error instanceof Error && error.message.includes('404')) {
-        return false
-      }
-      return failureCount < 2
-    }
+  const { 
+    data: bookings = [], 
+    isLoading, 
+    isError,
+    refetch
+  } = useQuery({
+    queryKey: ['bookings', selectedDate, branchId],
+    queryFn: () => bookingQueryService.getBookingsByDate(
+      selectedDate || new Date().toISOString().split('T')[0], 
+      branchId
+    ),
+    enabled: true
   })
 
-  // Mutación optimizada para registrar pagos
-  const registerPaymentMutation = useMutation<
-    any,
-    Error,
-    RegisterPaymentParams,
-    MutationContext
-  >({
-    mutationFn: async (params) => {
-      return paymentService.registerPayment(params)
-    },
-    onMutate: async (newPayment) => {
-      await queryClient.cancelQueries({ 
-        queryKey: queryKeys.bookings.detail(newPayment.bookingId)
-      })
-
-      const previousBooking = queryClient.getQueryData<SelectedBooking>(
-        queryKeys.bookings.detail(newPayment.bookingId)
-      )
-
-      queryClient.setQueryData<SelectedBooking>(
-        queryKeys.bookings.detail(newPayment.bookingId),
-        (old) => {
-          if (!old) return old
-          const totalPaid = (old.depositAmount || 0) + newPayment.depositAmount
-          return {
-            ...old,
-            depositAmount: totalPaid,
-            paymentStatus: totalPaid >= old.totalAmount ? 'completed' : 'partial'
-          }
-        }
-      )
-
-      return { previousBooking: previousBooking || null }
-    },
-    onError: (_, __, context) => {
-      if (context?.previousBooking) {
-        queryClient.setQueryData(
-          queryKeys.bookings.detail(context.previousBooking.id),
-          context.previousBooking
-        )
+  const registerPayment = async (params: RegisterPaymentParams) => {
+    try {
+      const result = await bookingQueryService.registerPayment(params)
+      if (result.error) {
+        toast({
+          title: 'Error al registrar pago',
+          description: result.error.message,
+          variant: 'destructive'
+        })
+        throw result.error
       }
       toast({
-        description: 'Error al procesar el pago',
-        variant: 'destructive'
-      })
-    },
-    onSuccess: () => {
-      toast({
-        description: 'Pago registrado correctamente',
+        title: 'Pago registrado',
+        description: 'El pago se ha registrado exitosamente',
         variant: 'default'
       })
-    },
-    onSettled: (_, __, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.bookings.detail(variables.bookingId)
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.bookings.lists()
-      })
+      await refetch()
+    } catch (error) {
+      console.error('Error al registrar pago:', error)
+      throw error
     }
-  })
+  }
 
-  // Mutación optimizada para cancelar reservas
-  const cancelBookingMutation = useMutation<
-    any,
-    Error,
-    CancelBookingParams,
-    MutationContext
-  >({
-    mutationFn: async (params) => {
-      return bookingService.cancelBooking(params.bookingId, params.reason)
-    },
-    onMutate: async (cancelParams) => {
-      await queryClient.cancelQueries({ 
-        queryKey: queryKeys.bookings.detail(cancelParams.bookingId)
-      })
-
-      const previousBooking = queryClient.getQueryData<SelectedBooking>(
-        queryKeys.bookings.detail(cancelParams.bookingId)
-      )
-
-      queryClient.setQueryData<SelectedBooking>(
-        queryKeys.bookings.detail(cancelParams.bookingId),
-        (old) => {
-          if (!old) return old
-          return {
-            ...old,
-            paymentStatus: 'cancelled'
-          }
-        }
-      )
-
-      return { previousBooking: previousBooking || null }
-    },
-    onError: (_, __, context) => {
-      if (context?.previousBooking) {
-        queryClient.setQueryData(
-          queryKeys.bookings.detail(context.previousBooking.id),
-          context.previousBooking
-        )
+  const cancelBooking = async (params: CancelBookingParams) => {
+    try {
+      const result = await bookingQueryService.cancelBooking(params.bookingId, params.reason)
+      if (result.error) {
+        toast({
+          title: 'Error al cancelar reserva',
+          description: result.error.message,
+          variant: 'destructive'
+        })
+        throw result.error
       }
       toast({
-        description: 'Error al cancelar la reserva',
-        variant: 'destructive'
-      })
-    },
-    onSuccess: () => {
-      toast({
-        description: 'Reserva cancelada correctamente',
+        title: 'Reserva cancelada',
+        description: 'La reserva se ha cancelado exitosamente',
         variant: 'default'
       })
-    },
-    onSettled: (_, __, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.bookings.detail(variables.bookingId)
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.bookings.lists()
-      })
+      await refetch()
+    } catch (error) {
+      console.error('Error al cancelar reserva:', error)
+      throw error
     }
-  })
+  }
 
   return {
-    bookings: bookingsQuery.data || [],
-    isLoading: bookingsQuery.isLoading,
-    isError: bookingsQuery.isError,
-    error: bookingsQuery.error,
-    refetch: bookingsQuery.refetch,
-    registerPayment: registerPaymentMutation.mutate,
-    isRegistering: registerPaymentMutation.isPending,
-    cancelBooking: cancelBookingMutation.mutate,
-    isCancelling: cancelBookingMutation.isPending
+    bookings,
+    isLoading,
+    isError,
+    refetch,
+    registerPayment,
+    cancelBooking
   }
 } 

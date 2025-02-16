@@ -233,6 +233,7 @@ export interface SelectedBooking {
   rentalItemsPrice: number
   paymentStatus: PaymentStatusEnum
   paymentMethod: PaymentMethodEnum
+  paymentType: PaymentTypeEnum
   title?: string
   description?: string
   participants: Array<{

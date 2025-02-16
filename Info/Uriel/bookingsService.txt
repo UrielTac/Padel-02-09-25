@@ -389,6 +389,14 @@ const validateStock = async (rentals: RentalSelection[]): Promise<boolean> => {
   }
 };
 
+// Sistema de logging estructurado
+const logMutation = (action: string, data: any) => {
+  console.log(`🔄 [BookingMutation - ${action}]`, {
+    timestamp: new Date().toISOString(),
+    ...data
+  })
+}
+
 export const bookingService = {
   getSupabase() {
     try {
@@ -427,14 +435,9 @@ export const bookingService = {
         throw itemError;
       }
 
-      if (!itemData || typeof itemData.stock !== 'number') {
-        console.error('❌ No se encontró stock para el item:', itemId);
-        return 0;
-      }
-
       console.log('📦 Stock base obtenido:', {
         itemId,
-        baseStock: itemData.stock,
+        baseStock: itemData?.stock,
         itemData
       })
 
@@ -451,7 +454,7 @@ export const bookingService = {
           p_booking_date: date,
           p_start_time: startTime,
           p_end_time: endTime
-        } as any)
+        })
 
       if (error) {
         console.error('❌ Error al verificar disponibilidad:', {
@@ -677,7 +680,7 @@ export const bookingService = {
     // Validación específica para rentals
     if (data.rentalItems && data.rentalItems.length > 0) {
       const rentalItemsTotal = data.rentalItems.reduce(
-        (total: number, rental: RentalSelection) => total + (Number(rental.pricePerUnit || 0) * Number(rental.quantity || 1)),
+        (total, rental) => total + (Number(rental.pricePerUnit || 0) * Number(rental.quantity || 1)),
         0
       );
       
@@ -763,6 +766,8 @@ export const bookingService = {
 
   async createBooking(data: BookingCreationData): Promise<ServiceResponse<any>> {
     try {
+      logMutation('CreateBooking - Start', { data })
+
       console.log('Creando reserva con datos:', data);
 
       if (!this.validateBookingData(data)) {
@@ -777,8 +782,8 @@ export const bookingService = {
       const transformedData = transformBookingDataForDB(data);
       console.log('Datos transformados:', transformedData);
 
-      const { data: result, error } = await this.getSupabase()
-        .rpc('create_booking_v2', transformedData as any);
+      const { data: result, error } = await getSupabaseInstance()
+        .rpc('create_booking_v2', transformedData);
 
       if (error) {
         console.error('Error al crear reserva:', error);
@@ -787,8 +792,10 @@ export const bookingService = {
         };
       }
 
+      logMutation('CreateBooking - Success', { bookingId: result.id })
       return { data: result };
     } catch (error) {
+      logMutation('CreateBooking - Error', { error })
       console.error('Error inesperado al crear reserva:', error);
       return {
         error: {
@@ -797,6 +804,313 @@ export const bookingService = {
           details: (error as Error).message
         }
       };
+    }
+  },
+
+  validateBookingDataTypes(data: any): boolean {
+    try {
+      // Validar UUID
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(data.p_court_id)) {
+        console.error('UUID inválido:', data.p_court_id);
+        return false;
+      }
+
+      // Validar fecha
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(data.p_date)) {
+        console.error('Fecha inválida:', data.p_date);
+        return false;
+      }
+
+      // Validar horas
+      const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(data.p_start_time)) {
+        console.error('Hora de inicio inválida:', data.p_start_time);
+        return false;
+      }
+      if (!timeRegex.test(data.p_end_time)) {
+        console.error('Hora de fin inválida:', data.p_end_time);
+        return false;
+      }
+
+      // Validar precios
+      if (typeof data.p_court_price !== 'number' || isNaN(data.p_court_price) || data.p_court_price < 0) {
+        console.error('Precio de cancha inválido:', data.p_court_price);
+        return false;
+      }
+
+      if (typeof data.p_rental_items_price !== 'number' || isNaN(data.p_rental_items_price) || data.p_rental_items_price < 0) {
+        console.error('Precio de rentals inválido:', data.p_rental_items_price);
+        return false;
+      }
+
+      if (typeof data.p_deposit_amount !== 'number' || isNaN(data.p_deposit_amount) || data.p_deposit_amount < 0) {
+        console.error('Depósito inválido:', data.p_deposit_amount);
+        return false;
+      }
+
+      const totalPrice = data.p_court_price + data.p_rental_items_price;
+
+      // Validar estado de pago
+      if (!['pending', 'partial', 'completed'].includes(data.p_payment_status)) {
+        console.error('Estado de pago inválido:', data.p_payment_status);
+        return false;
+      }
+
+      // Validar método de pago
+      if (!['cash', 'stripe', 'transfer'].includes(data.p_payment_method)) {
+        console.error('Método de pago inválido:', data.p_payment_method);
+        return false;
+      }
+
+      // Validar consistencia de pagos
+      if (data.p_payment_status === 'completed' && data.p_deposit_amount !== totalPrice) {
+        console.error('Inconsistencia en pago completed:', {
+          deposit: data.p_deposit_amount,
+          total: totalPrice
+        });
+        return false;
+      }
+
+      if (data.p_payment_status === 'partial' && 
+          (data.p_deposit_amount >= totalPrice || data.p_deposit_amount <= 0)) {
+        console.error('Inconsistencia en pago partial:', {
+          deposit: data.p_deposit_amount,
+          total: totalPrice
+        });
+        return false;
+      }
+
+      if (data.p_payment_status === 'pending' && data.p_deposit_amount > 0) {
+        console.error('Inconsistencia en pago pending:', {
+          deposit: data.p_deposit_amount
+        });
+        return false;
+      }
+
+      // Validar participantes
+      try {
+        const participants = JSON.parse(data.p_participants)
+        if (!Array.isArray(participants)) {
+          console.error('Formato de participantes inválido:', participants)
+          return false
+        }
+
+        // Validar estructura de cada participante
+        for (const participant of participants) {
+          if (!participant.user_id || typeof participant.user_id !== 'string' || 
+              !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(participant.user_id)) {
+            console.error('ID de participante inválido:', participant)
+            return false
+          }
+          if (!participant.role || !['player', 'guest'].includes(participant.role)) {
+            console.error('Rol de participante inválido:', participant)
+            return false
+          }
+        }
+      } catch (error) {
+        console.error('Error al parsear participantes:', error)
+        return false
+      }
+
+      // Validar items rentados
+      if (data.p_rental_items) {
+        try {
+          const rentals = JSON.parse(data.p_rental_items)
+          if (!Array.isArray(rentals)) {
+            console.error('Formato de rentals inválido:', rentals)
+            return false
+          }
+          
+          // Validar estructura de cada rental
+          for (const rental of rentals) {
+            if (!rental.item_id || typeof rental.item_id !== 'string' ||
+                !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(rental.item_id)) {
+              console.error('ID de item inválido:', rental)
+              return false
+            }
+            if (typeof rental.quantity !== 'number' || rental.quantity <= 0) {
+              console.error('Cantidad inválida:', rental)
+              return false
+            }
+            if (typeof rental.price_per_unit !== 'number' || rental.price_per_unit <= 0) {
+              console.error('Precio por unidad inválido:', rental)
+              return false
+            }
+          }
+        } catch (error) {
+          console.error('Error al parsear rentals:', error)
+          return false
+        }
+      }
+
+      return true
+    } catch (error) {
+      console.error('Error en validación de tipos:', error)
+      return false
+    }
+  },
+
+  async getBookingsByDate(date: string, branchId?: string): Promise<ServiceResponse<SelectedBooking[]>> {
+    try {
+      if (!date) {
+        return {
+          error: {
+            message: 'La fecha es requerida',
+            code: 'MISSING_DATE'
+          }
+        }
+      }
+
+      console.log('BookingService - Consultando reservas para fecha:', date)
+
+      const supabase = this.getSupabase()
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select(`
+          id,
+          court_id,
+          date,
+          start_time,
+          end_time,
+          total_price,
+          court_price,
+          rental_items_price,
+          payment_status,
+          payment_method,
+          payment_type,
+          deposit_amount,
+          title,
+          description,
+          courts:court_id!left (
+            id,
+            name,
+            branch_id
+          ),
+          booking_participants!left (
+            id,
+            user_id,
+            role,
+            usuarios!left (
+              id,
+              nombre,
+              email,
+              telefono
+            )
+          )
+        `)
+        .eq('date', date)
+        .or('payment_status.neq.cancelled,payment_status.is.null')
+
+      if (bookingsError) {
+        console.error('Error al obtener reservas:', {
+          error: bookingsError,
+          query: {
+            date,
+            branchId
+          }
+        })
+        return {
+          error: {
+            message: 'Error al obtener las reservas',
+            code: 'FETCH_ERROR',
+            details: bookingsError.message
+          }
+        }
+      }
+
+      if (!bookingsData || bookingsData.length === 0) {
+        console.log('No se encontraron reservas para la fecha:', date)
+        return { data: [] }
+      }
+
+      // Log de datos crudos para debugging
+      console.log('📦 Datos crudos de reservas:', bookingsData.map(booking => ({
+        id: booking.id,
+        payment_type: booking.payment_type,
+        payment_status: booking.payment_status,
+        payment_method: booking.payment_method
+      })))
+
+      // Filtrar por sucursal si es necesario
+      let filteredBookings = bookingsData
+      if (branchId) {
+        filteredBookings = filteredBookings.filter(booking => 
+          booking.courts?.branch_id === branchId
+        )
+      }
+
+      // Transformar los datos
+      const transformedData: SelectedBooking[] = filteredBookings.map(booking => {
+        // Procesar payment_type
+        const processedPaymentType = (() => {
+          if (booking.payment_type) {
+            const validTypes: PaymentTypeEnum[] = ['booking', 'deposit', 'remaining', 'guarantee', 'no_show_charge']
+            if (validTypes.includes(booking.payment_type as PaymentTypeEnum)) {
+              return booking.payment_type as PaymentTypeEnum
+            }
+          }
+          // Lógica de fallback
+          if (booking.payment_status === 'completed') return 'booking'
+          if (booking.payment_status === 'partial') return 'deposit'
+          return 'booking'
+        })()
+
+        // Transformar participantes
+        const participants = booking.booking_participants?.map(participant => {
+          const [firstName = '', lastName = ''] = participant.usuarios?.nombre?.split(' ') || ['', '']
+          return {
+            id: participant.id,
+            userId: participant.user_id,
+            role: participant.role || 'player',
+            firstName,
+            lastName
+          }
+        }) || []
+
+        return {
+          id: booking.id,
+          courtId: booking.court_id,
+          court: booking.courts?.name || 'Cancha sin nombre',
+          date: booking.date,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          totalAmount: booking.total_price || 0,
+          depositAmount: booking.deposit_amount || 0,
+          courtPrice: booking.court_price || 0,
+          rentalItemsPrice: booking.rental_items_price || 0,
+          paymentStatus: booking.payment_status || 'pending',
+          paymentMethod: booking.payment_method || 'cash',
+          paymentType: processedPaymentType,
+          title: booking.title || '',
+          description: booking.description || '',
+          participants
+        }
+      })
+
+      // Log de datos transformados para verificación
+      console.log('✅ Datos transformados:', {
+        total: transformedData.length,
+        sample: transformedData[0],
+        payment_types: transformedData.map(b => ({
+          id: b.id,
+          paymentType: b.paymentType,
+          paymentStatus: b.paymentStatus
+        }))
+      })
+
+      return { data: transformedData }
+    } catch (error: any) {
+      console.error('Error inesperado al obtener reservas:', {
+        error,
+        stack: error.stack
+      })
+      return {
+        error: {
+          message: 'Error inesperado al obtener las reservas',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
     }
   },
 
@@ -959,6 +1273,8 @@ export const bookingService = {
 
   async cancelBooking(bookingId: string, reason?: string): Promise<ServiceResponse<any>> {
     try {
+      logMutation('CancelBooking - Start', { bookingId, reason })
+
       console.log('📝 Cancelando reserva:', { bookingId, reason })
 
       if (!bookingId) {
@@ -968,7 +1284,6 @@ export const bookingService = {
             code: 'MISSING_ID'
           }
         }
-      }
 
       const supabase = this.getSupabase()
       const { data: booking, error: fetchError } = await supabase
@@ -994,9 +1309,11 @@ export const bookingService = {
       }
 
       console.info('✅ Reserva cancelada exitosamente:', booking)
+      logMutation('CancelBooking - Success', { bookingId })
       return { data: booking }
     } catch (error: any) {
       console.error('❌ Error general al cancelar la reserva:', error)
+      logMutation('CancelBooking - Error', { error, bookingId })
       return {
         error: {
           message: 'Error inesperado al cancelar la reserva',
@@ -1015,5 +1332,24 @@ export const bookingService = {
   async deleteBooking(id: string) {
     const supabase = this.getSupabase()
     // ... existing code ...
+  },
+
+  async registerPayment(params: {
+    bookingId: string
+    depositAmount: number
+    paymentMethod: string
+    notes?: string
+  }) {
+    try {
+      logMutation('RegisterPayment - Start', { params })
+
+      // ... resto del código de registro de pago ...
+
+      logMutation('RegisterPayment - Success', { bookingId: params.bookingId })
+      return result
+    } catch (error) {
+      logMutation('RegisterPayment - Error', { error })
+      throw error
+    }
   }
 } 

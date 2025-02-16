@@ -5,7 +5,7 @@ import { es } from "date-fns/locale"
 import { useCourts } from "@/hooks/useCourts"
 import { useBranchContext } from "@/contexts/BranchContext"
 import { timeToMinutes } from "@/lib/time-utils"
-import { type PaymentStatusEnum, type SelectedBooking } from '@/types/bookings'
+import { type PaymentStatusEnum, type PaymentTypeEnum, type SelectedBooking, type PaymentMethodEnum } from '@/types/bookings'
 import { cn } from "@/lib/utils"
 import { useState, useEffect, useMemo } from "react"
 import { bookingService } from "@/services/bookingService"
@@ -20,6 +20,7 @@ import { CancelBookingModal } from "../CancelBookingModal/CancelBookingModal"
 import { useToast } from '@/components/ui/use-toast'
 import { IconCircleCheck } from '@tabler/icons-react'
 import { createPortal } from "react-dom"
+import { bookingQueryService } from '@/services/bookingQueryService'
 
 interface ViewBookingModalProps {
   isOpen: boolean
@@ -133,20 +134,75 @@ const formatPrice = (amount: number | undefined | null) => {
   }
 }
 
+// Sistema de logging estructurado para debugging
+const logBookingData = (stage: string, data: any) => {
+  console.log(`🔍 [${stage}]`, {
+    timestamp: new Date().toISOString(),
+    data: {
+      id: data?.id,
+      paymentType: data?.paymentType,
+      paymentStatus: data?.paymentStatus,
+      paymentMethod: data?.paymentMethod,
+      isGuarantee: data?.paymentType === 'guarantee'
+    }
+  })
+}
+
 function PaymentDetails({ 
   total, 
   deposit,
   paymentMethod, 
   status,
+  paymentType,
   onNewPayment
 }: { 
   total: number
   deposit: number
   paymentMethod: string
   status: string
+  paymentType: PaymentTypeEnum
   onNewPayment: (amount: number, method: string) => void
 }) {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+
+  // Log detallado de props y validación
+  useEffect(() => {
+    console.log('💰 PaymentDetails Props:', {
+      timestamp: new Date().toISOString(),
+      props: {
+        total,
+        deposit,
+        paymentMethod,
+        status,
+        paymentType
+      },
+      validation: {
+        isGuarantee: paymentType === 'guarantee',
+        hasPaymentType: Boolean(paymentType),
+        paymentTypeValue: paymentType,
+        paymentTypeType: typeof paymentType,
+        rawPaymentType: JSON.stringify(paymentType),
+        isValidType: ['booking', 'deposit', 'remaining', 'guarantee', 'no_show_charge'].includes(paymentType)
+      }
+    })
+  }, [total, deposit, paymentMethod, status, paymentType])
+
+  // Validación explícita del paymentType
+  const isValidPaymentType = (type: string): type is PaymentTypeEnum => {
+    return ['booking', 'deposit', 'remaining', 'guarantee', 'no_show_charge'].includes(type)
+  }
+
+  // Log en cada renderizado
+  console.log('🎯 Renderizando PaymentDetails:', {
+    paymentType,
+    isGuarantee: paymentType === 'guarantee',
+    shouldShowGuarantee: Boolean(paymentType === 'guarantee'),
+    validation: {
+      isValid: isValidPaymentType(paymentType),
+      type: typeof paymentType,
+      value: String(paymentType)
+    }
+  })
 
   const formatPaymentMethod = (method: string) => {
     if (!method) return 'No especificado'
@@ -182,6 +238,16 @@ function PaymentDetails({
         </span>
       </div>
 
+      {/* Tipo de Pago - Solo mostrar si es guarantee */}
+      {paymentType === 'guarantee' && (
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-500">Tipo de pago</span>
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+            Garantía
+          </span>
+        </div>
+      )}
+
       {/* Estado */}
       <div className="flex justify-between text-sm">
         <span className="text-gray-500">Estado</span>
@@ -195,8 +261,8 @@ function PaymentDetails({
         </span>
       </div>
 
-      {/* Botón de Registrar Resto */}
-      {status === 'partial' && (
+      {/* Botones de Pago - No mostrar si es guarantee */}
+      {status === 'partial' && paymentType !== 'guarantee' && (
         <Button
           onClick={() => setShowPaymentModal(true)}
           variant="outline"
@@ -206,11 +272,21 @@ function PaymentDetails({
         </Button>
       )}
 
+      {status === 'pending' && paymentType !== 'guarantee' && (
+        <Button
+          onClick={() => setShowPaymentModal(true)}
+          variant="outline"
+          className="w-full mt-4 border-dashed hover:border-solid hover:border-green-200 hover:bg-green-50 hover:text-green-600 transition-all duration-200"
+        >
+          Registrar Pago
+        </Button>
+      )}
+
       <PaymentModal
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onConfirm={onNewPayment}
-        remainingAmount={total - deposit}
+        remainingAmount={status === 'pending' ? total : total - deposit}
       />
     </div>
   )
@@ -236,8 +312,9 @@ interface ProcessedData {
   durationInMinutes: number
   totalAmount: number
   depositAmount: number
-  paymentMethod: string
+  paymentMethod: PaymentMethodEnum
   paymentStatus: PaymentStatusEnum
+  paymentType: PaymentTypeEnum
   rentalsTotal: number
 }
 
@@ -254,22 +331,57 @@ export function ViewBookingModal({
   const [showCancelModal, setShowCancelModal] = useState(false)
   const { toast } = useToast()
 
+  const { registerPayment, cancelBooking } = useBookings({
+    branchId: currentBranch?.id
+  })
+
   const { data: currentBooking, isLoading } = useQuery({
     queryKey: ['booking', booking?.id] as const,
     queryFn: async () => {
       if (!booking?.id) throw new Error('No booking ID provided')
-      const result = await bookingService.getBookingById(booking.id)
-      if (!result) throw new Error('Booking not found')
-      return result as SelectedBooking
+      
+      // Log inicial
+      console.log('🔍 Consultando reserva:', {
+        id: booking.id,
+        paymentType: booking.paymentType,
+        timestamp: new Date().toISOString()
+      })
+      
+      const result = await bookingQueryService.getBookingById(booking.id)
+      
+      // Log después de obtener datos
+      console.log('📦 Datos recibidos:', {
+        id: result.id,
+        paymentType: result.paymentType,
+        isGuarantee: result.paymentType === 'guarantee',
+        rawType: typeof result.paymentType,
+        timestamp: new Date().toISOString()
+      })
+      
+      return result
     },
     enabled: !!booking?.id && isOpen,
-    initialData: booking || undefined,
+    placeholderData: (previousData) => {
+      if (previousData) return previousData
+      if (booking) return booking
+      return undefined
+    },
     staleTime: 1000 * 30,
     gcTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false
   })
 
-  const { registerPayment, cancelBooking } = useBookings()
+  // Efecto para logging de datos actuales
+  useEffect(() => {
+    if (currentBooking) {
+      console.log('💾 Estado actual de la reserva:', {
+        id: currentBooking.id,
+        paymentType: currentBooking.paymentType,
+        isGuarantee: currentBooking.paymentType === 'guarantee',
+        timestamp: new Date().toISOString()
+      })
+    }
+  }, [currentBooking])
 
   const handlePayment = async (amount: number, method: string) => {
     if (!currentBooking) return
@@ -287,7 +399,7 @@ export function ViewBookingModal({
       await queryClient.invalidateQueries({ queryKey: ['bookings'] })
 
       // Actualizar el estado local
-      const updatedData = await bookingService.getBookingById(currentBooking.id)
+      const updatedData = await bookingQueryService.getBookingById(currentBooking.id)
       setSelectedBooking(updatedData)
     } catch (error) {
       console.error('Error al procesar el pago:', error)
@@ -331,6 +443,20 @@ export function ViewBookingModal({
   const processedData = useMemo<ProcessedData | null>(() => {
     if (!currentBooking) return null
 
+    // Validación explícita del paymentType
+    const isValidPaymentType = (type: string): type is PaymentTypeEnum => {
+      return ['booking', 'deposit', 'remaining', 'guarantee', 'no_show_charge'].includes(type)
+    }
+
+    // Log inicial para debugging
+    console.log('🔍 Datos sin procesar:', {
+      id: currentBooking.id,
+      paymentType: currentBooking.paymentType,
+      isValid: isValidPaymentType(currentBooking.paymentType),
+      rawType: typeof currentBooking.paymentType,
+      timestamp: new Date().toISOString()
+    })
+
     // Encontrar el nombre de la pista
     const court = courts.find((c: Court) => c.id === currentBooking.court)
     const courtName = court?.name || 'Pista no encontrada'
@@ -338,25 +464,26 @@ export function ViewBookingModal({
     // Validación y procesamiento de participantes
     const participants = Array.isArray(currentBooking.participants) ? currentBooking.participants : []
 
-    // Debugging de items rentados
-    console.log('Current Booking Items:', currentBooking.rentedItems)
-    
     // Validación más robusta de items rentados
     const rentedItems = currentBooking.rentedItems && Array.isArray(currentBooking.rentedItems) 
       ? currentBooking.rentedItems
       : []
-
-    console.log('Processed Rented Items:', rentedItems)
     
     const rentalsTotal = rentedItems.reduce((acc: number, item: RentalItem) => {
       return acc + (item.pricePerUnit * item.quantity)
     }, 0)
 
     const hasRentedItems = rentedItems.length > 0
-    console.log('Has Rented Items:', hasRentedItems)
 
     // Asegurar que el precio de la pista sea un número válido
     const courtPrice = typeof currentBooking.courtPrice === 'number' ? currentBooking.courtPrice : 0
+
+    // Log de validación del paymentType
+    console.log('🔄 Validación de paymentType:', {
+      original: currentBooking.paymentType,
+      type: typeof currentBooking.paymentType,
+      isValid: ['booking', 'deposit', 'remaining', 'guarantee', 'no_show_charge'].includes(currentBooking.paymentType)
+    })
 
     return {
       courtName,
@@ -377,8 +504,11 @@ export function ViewBookingModal({
       durationInMinutes: timeToMinutes(currentBooking.endTime) - timeToMinutes(currentBooking.startTime),
       totalAmount: currentBooking.totalAmount ?? 0,
       depositAmount: currentBooking.depositAmount ?? 0,
-      paymentMethod: currentBooking.paymentMethod ?? '',
-      paymentStatus: currentBooking.paymentStatus ?? 'pending',
+      paymentMethod: currentBooking.paymentMethod as PaymentMethodEnum,
+      paymentStatus: currentBooking.paymentStatus as PaymentStatusEnum,
+      paymentType: isValidPaymentType(currentBooking.paymentType) 
+        ? currentBooking.paymentType 
+        : 'booking' as PaymentTypeEnum,
       rentalsTotal
     }
   }, [currentBooking, courts])
@@ -599,10 +729,11 @@ export function ViewBookingModal({
 
                     {/* Detalles de Pago */}
                     <PaymentDetails
-                      total={currentBooking.totalAmount}
-                      deposit={currentBooking.depositAmount}
-                      paymentMethod={currentBooking.paymentMethod}
-                      status={currentBooking.paymentStatus}
+                      total={processedData.totalAmount}
+                      deposit={processedData.depositAmount}
+                      paymentMethod={processedData.paymentMethod}
+                      status={processedData.paymentStatus}
+                      paymentType={processedData.paymentType}
                       onNewPayment={handlePayment}
                     />
                   </motion.div>
