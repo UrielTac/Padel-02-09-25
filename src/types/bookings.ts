@@ -83,6 +83,7 @@ export interface BookingCreationData {
   paymentMethod: PaymentMethodEnum;
   paymentType: PaymentTypeEnum;
   depositAmount?: number;
+  empresa_id?: string;
   participants?: Array<{
     id: string;
     userId: string;

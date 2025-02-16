@@ -2,9 +2,8 @@ import { useForm } from '@/contexts/FormContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMemo } from 'react';
 import type { BookingCreationData, PaymentMethodEnum, PaymentTypeEnum, ParticipantRoleEnum } from '@/types/bookings';
-import type { RentalSelection } from '@/types/items';
 import { PAYMENT_TYPE_MAPPINGS } from '@/types/bookings';
-import { useRentalContext } from '@/contexts/RentalContext';
+import { useFormItems } from '@/contexts/FormItemsContext';
 
 interface ValidationError {
   field: string;
@@ -12,60 +11,10 @@ interface ValidationError {
   severity: 'error' | 'warning';
 }
 
-interface UseBookingTransformerOptions {
-  rentals: RentalSelection[];
-  rentalItemsPrice: number;
-}
-
-export function useBookingTransformer({ 
-  rentals, 
-  rentalItemsPrice
-}: UseBookingTransformerOptions) {
+export function useBookingTransformer() {
   const { state } = useForm();
   const { user } = useAuth();
-  const { validateRental, calculateTotalPrice } = useRentalContext();
-
-  // Transformar los items seleccionados del formulario
-  const transformedRentals = useMemo(() => {
-    // Obtener los items seleccionados de calculations
-    const selectedItems = rentals
-      .filter(rental => state.items.selectedItems[rental.itemId] > 0)
-      .map(rental => {
-        const quantity = state.items.selectedItems[rental.itemId];
-        const pricePerUnit = rental.price;
-        const duration = state.shift.duration || 60; // Duración por defecto 1 hora
-        const totalPrice = quantity * pricePerUnit;
-
-        console.log('Transformando rental:', {
-          itemId: rental.itemId,
-          quantity,
-          pricePerUnit,
-          duration,
-          totalPrice
-        });
-
-        const transformedRental: RentalSelection = {
-          itemId: rental.itemId,
-          quantity,
-          pricePerUnit,
-          duration,
-          totalPrice,
-          price: totalPrice // Mantener compatibilidad
-        };
-
-        // Validar el rental transformado
-        if (!validateRental(transformedRental)) {
-          console.error('Rental inválido después de transformación:', transformedRental);
-          return null;
-        }
-
-        return transformedRental;
-      })
-      .filter((rental): rental is RentalSelection => rental !== null);
-
-    console.log('Items transformados para DB:', selectedItems);
-    return selectedItems;
-  }, [state.items.selectedItems, rentals, state.shift.duration, validateRental]);
+  const { rentals, selectedItems, totalPrice: formItemsPrice } = useFormItems();
 
   const validationErrors = useMemo(() => {
     const errors: ValidationError[] = [];
@@ -103,53 +52,39 @@ export function useBookingTransformer({
       });
     }
 
-    // Validación exhaustiva del estado de pago
-    if (!state.payment.method) {
-      errors.push({
-        field: 'payment',
-        message: 'Selecciona un método de pago',
-        severity: 'error'
-      });
-    }
-
-    if (!state.payment.type) {
-      errors.push({
-        field: 'payment',
-        message: 'Selecciona un tipo de pago',
-        severity: 'error'
-      });
-    }
-
-    // Validaciones específicas para garantía
-    if (state.payment.type === 'guarantee') {
-      if (!user?.metadata?.email) {
+    // Validación de items si hay seleccionados
+    if (Object.keys(selectedItems).length > 0) {
+      if (!rentals || rentals.length === 0) {
         errors.push({
-          field: 'user',
-          message: 'Se requiere un email válido para la garantía',
+          field: 'items',
+          message: 'Error en la transformación de items',
           severity: 'error'
         });
       }
 
-      if (!user?.metadata?.phone) {
-        errors.push({
-          field: 'user',
-          message: 'Se requiere un número de teléfono para la garantía',
-          severity: 'warning'
-        });
-      }
+      // Validar que cada rental tenga los datos necesarios
+      rentals.forEach(rental => {
+        if (!rental.itemId || !rental.quantity || !rental.pricePerUnit || !rental.duration) {
+          errors.push({
+            field: 'items',
+            message: `Datos incompletos para el item ${rental.itemId}`,
+            severity: 'error'
+          });
+        }
+      });
     }
 
-    // Validación de precios
-    if (typeof state.shift.price !== 'number' || state.shift.price <= 0) {
+    // Agregar validación para empresa_id
+    if (!state.empresa_id) {
       errors.push({
-        field: 'price',
-        message: 'Precio de cancha inválido',
+        field: 'empresa_id',
+        message: 'ID de empresa no encontrado',
         severity: 'error'
       });
     }
 
     return errors;
-  }, [state.payment, user, state.location.branchId, state.shift]);
+  }, [user, state.location.branchId, state.shift, state.empresa_id, selectedItems, rentals]);
 
   const transformedData = useMemo((): BookingCreationData | null => {
     if (validationErrors.some(error => error.severity === 'error')) {
@@ -161,31 +96,38 @@ export function useBookingTransformer({
     const paymentType = state.payment.type as PaymentTypeEnum;
     const paymentMapping = PAYMENT_TYPE_MAPPINGS[paymentType];
 
-    const paymentData = {
-      paymentMethod: paymentMapping.defaultMethod,
-      paymentStatus: paymentMapping.defaultStatus,
-      paymentType: paymentType,
-      depositAmount: 0
-    };
+    // Transformar rentals al formato esperado por la RPC
+    const transformedRentals = rentals.map(rental => {
+      // Asegurar que todos los campos necesarios estén presentes
+      if (!rental.itemId || !rental.quantity || !rental.pricePerUnit || !rental.duration) {
+        console.warn('Rental inválido, falta información:', rental);
+        return null;
+      }
 
-    // Usar los rentals transformados y validados
-    const validatedRentals = transformedRentals.map(rental => ({
-      itemId: rental.itemId,
-      quantity: rental.quantity,
-      pricePerUnit: rental.pricePerUnit,
-      totalPrice: rental.totalPrice,
-      duration: rental.duration
-    }));
+      // Calcular el precio total
+      const totalPrice = rental.quantity * rental.pricePerUnit;
 
-    console.log('Datos de pago transformados:', paymentData);
-    console.log('Items rentados a transformar:', validatedRentals);
+      // Estructura que mantiene la compatibilidad de tipos
+      return {
+        itemId: rental.itemId,
+        quantity: rental.quantity,
+        pricePerUnit: rental.pricePerUnit,
+        totalPrice,
+        duration: rental.duration,
+        price: totalPrice
+      };
+    }).filter((rental): rental is NonNullable<typeof rental> => rental !== null);
 
-    const calculatedRentalItemsPrice = validatedRentals.reduce(
-      (sum, rental) => sum + rental.totalPrice,
-      0
-    );
+    // Log detallado de la transformación de rentals
+    console.log('Transformación de rentals:', {
+      rentalsOriginales: rentals,
+      rentalsTransformados: transformedRentals,
+      selectedItems,
+      formItemsPrice
+    });
 
-    return {
+    // Crear la estructura final de la reserva
+    const bookingData: BookingCreationData = {
       // Datos de la cancha
       courtId: state.shift.courtId!,
       date: state.shift.date!,
@@ -194,26 +136,41 @@ export function useBookingTransformer({
       courtPrice: state.shift.price || 0,
 
       // Datos de pago
-      ...paymentData,
+      paymentMethod: paymentMapping.defaultMethod,
+      paymentStatus: paymentMapping.defaultStatus,
+      paymentType: paymentType,
+      depositAmount: 0,
 
       // Datos de rentals
-      rentalItems: validatedRentals,
-      rentalItemsPrice: calculatedRentalItemsPrice,
+      rentalItems: transformedRentals,
+      rentalItemsPrice: formItemsPrice,
 
       // Datos de participantes
       participants: [{
         id: user!.id,
         userId: user!.id,
         role: 'player' as ParticipantRoleEnum
-      }]
+      }],
+
+      // Datos de empresa
+      empresa_id: state.empresa_id || undefined
     };
-  }, [state, user, transformedRentals, validationErrors]);
+
+    // Log detallado de la estructura final
+    console.log('Estructura final de la reserva:', {
+      ...bookingData,
+      rentalsFinales: bookingData.rentalItems,
+      rentalsLength: bookingData.rentalItems?.length || 0
+    });
+
+    return bookingData;
+  }, [state, user, rentals, selectedItems, formItemsPrice, validationErrors]);
 
   return {
     transformedData,
     isValid: !validationErrors.some(error => error.severity === 'error'),
     validationErrors,
-    isReady: !!user && !!state.location.branchId && !!state.shift.courtId,
+    isReady: !!user && !!state.location.branchId && !!state.shift.courtId && !!state.empresa_id,
     hasWarnings: validationErrors.some(error => error.severity === 'warning')
   };
 } 

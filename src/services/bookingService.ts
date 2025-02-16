@@ -94,6 +94,7 @@ export interface CreateBookingParams {
     role: string;
   }>;
   p_rental_items: RentalItemDB[];
+  p_empresa_id?: string;
 }
 
 const validatePaymentMethod = (method: string): PaymentMethodEnum => {
@@ -124,32 +125,26 @@ const transformBookingDataForDB = (data: BookingCreationData): CreateBookingPara
     'booking'
   ) as PaymentTypeEnum;
 
-  // Transformar los rentals al formato esperado por la RPC
-  const transformedRentals = data.rentalItems?.map(rental => ({
+  // Asegurar que los rentals estén presentes y transformarlos
+  const transformedRentals = (data.rentalItems || []).map(rental => ({
     item_id: rental.itemId,
     quantity: rental.quantity,
     price_per_unit: rental.pricePerUnit,
     total_price: rental.totalPrice
-  })) || [];
+  }));
+
+  console.log('Rentals transformados:', {
+    original: data.rentalItems,
+    transformed: transformedRentals
+  });
 
   // Transformar los participantes asegurando que tengan user_id
-  const transformedParticipants = data.participants?.map(p => {
-    if (!p.userId) {
-      console.warn('Participante sin user_id, usando id como respaldo:', p);
-    }
-    return {
-      user_id: p.userId || p.id,
-      role: p.role
-    };
-  }) || [];
+  const transformedParticipants = data.participants?.map(p => ({
+    user_id: p.userId || p.id,
+    role: p.role
+  })) || [];
 
-  console.log('Datos transformados:', {
-    rentals: transformedRentals,
-    participants: transformedParticipants,
-    paymentType
-  });
-  
-  return {
+  const transformedData = {
     p_court_id: data.courtId,
     p_date: data.date,
     p_start_time: data.startTime,
@@ -163,8 +158,16 @@ const transformBookingDataForDB = (data: BookingCreationData): CreateBookingPara
     p_title: data.title,
     p_description: data.description,
     p_participants: transformedParticipants,
-    p_rental_items: transformedRentals
+    p_rental_items: transformedRentals,
+    p_empresa_id: data.empresa_id
   };
+
+  console.log('Datos transformados para RPC:', {
+    ...transformedData,
+    rentals: transformedRentals
+  });
+
+  return transformedData;
 };
 
 const validateBookingDataTypes = (data: any): boolean => {

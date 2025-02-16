@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useItems } from '@/hooks/useItems';
 import { useForm } from '@/contexts/FormContext';
+import { useFormItems } from '@/contexts/FormItemsContext';
 import { PaymentType, PaymentMethod, Coupon, SummaryState, Calculations } from '../types';
 import type { Item } from '@/types/items';
 
@@ -96,17 +97,30 @@ export function useSummaryState() {
   const setCouponError = (error: string | null) =>
     setState(prev => ({ ...prev, couponError: error }));
 
-  // Obtener estado del formulario
+  // Obtener estado del formulario y contexto de items
   const { state: formState } = useForm();
-  const { location, shift, items } = formState;
+  const { location, shift } = formState;
+  const { selectedItems, rentals } = useFormItems();
 
   // Obtener información de los artículos
   const { data: availableItems = [] } = useItems(location.branchId || undefined);
 
   // Cálculos
   const calculations = useMemo<Calculations>(() => {
-    const selectedItems = Object.entries(items.selectedItems).map(([itemId, quantity]) => {
-      const item = (availableItems as Item[]).find(i => i.id === itemId);
+    // Validar que tenemos los datos necesarios
+    if (!selectedItems || !Array.isArray(availableItems)) {
+      return {
+        selectedItems: [],
+        courtPrice: shift.price || 0,
+        itemsTotal: 0,
+        subtotal: shift.price || 0,
+        discount: 0,
+        total: shift.price || 0
+      };
+    }
+
+    const calculatedItems = Object.entries(selectedItems).map(([itemId, quantity]) => {
+      const item = (availableItems as Item[]).find((i: Item) => i.id === itemId);
       if (!item || !shift.duration) return null;
 
       const durationInMinutes = shift.duration * 60;
@@ -121,7 +135,7 @@ export function useSummaryState() {
       };
     }).filter(Boolean) as Calculations['selectedItems'];
 
-    const itemsTotal = selectedItems.reduce((sum, item) => sum + item.total, 0);
+    const itemsTotal = calculatedItems.reduce((sum, item) => sum + item.total, 0);
     const courtPrice = shift.price || 0;
     const subtotal = courtPrice + itemsTotal;
 
@@ -132,14 +146,14 @@ export function useSummaryState() {
     ) : 0;
 
     return {
-      selectedItems,
+      selectedItems: calculatedItems,
       courtPrice,
       itemsTotal,
       subtotal,
       discount,
       total: subtotal - discount
     };
-  }, [items.selectedItems, availableItems, shift.duration, shift.price, state.appliedCoupon]);
+  }, [selectedItems, availableItems, shift.duration, shift.price, state.appliedCoupon]);
 
   return {
     ...state,

@@ -19,24 +19,17 @@ $$ LANGUAGE plpgsql;
 SELECT temp_save_permissions();
 
 -- 3. Eliminar todas las versiones existentes de la función
-DO $$ 
-DECLARE 
-    func_record RECORD;
-BEGIN
-    FOR func_record IN 
-        SELECT ns.nspname as schema_name,
-               p.proname as procedure_name,
-               pg_get_function_identity_arguments(p.oid) as args
-        FROM pg_proc p
-        JOIN pg_namespace ns ON p.pronamespace = ns.oid
-        WHERE p.proname = 'create_booking_v2'
-    LOOP
-        EXECUTE 'DROP FUNCTION IF EXISTS ' || 
-                func_record.schema_name || '.' || 
-                func_record.procedure_name || 
-                '(' || func_record.args || ') CASCADE';
-    END LOOP;
-END $$;
+DROP FUNCTION IF EXISTS public.create_booking_v2(
+    uuid, date, time without time zone, time without time zone,
+    numeric, numeric, payment_method_enum, booking_payment_status,
+    payment_type, numeric, text, text, jsonb, jsonb
+) CASCADE;
+
+DROP FUNCTION IF EXISTS public.create_booking_v2(
+    uuid, date, time without time zone, time without time zone,
+    numeric, numeric, payment_method_enum, booking_payment_status,
+    payment_type, numeric, text, text, jsonb, jsonb, uuid
+) CASCADE;
 
 -- 4. Crear la nueva versión de la función
 CREATE OR REPLACE FUNCTION public.create_booking_v2(
@@ -53,7 +46,8 @@ CREATE OR REPLACE FUNCTION public.create_booking_v2(
     p_title text DEFAULT NULL,
     p_description text DEFAULT NULL,
     p_participants jsonb DEFAULT '[]',
-    p_rental_items jsonb DEFAULT '[]'
+    p_rental_items jsonb DEFAULT '[]',
+    p_empresa_id uuid DEFAULT NULL
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -72,7 +66,8 @@ BEGIN
             'date', p_date,
             'court_price', p_court_price,
             'rental_items_price', p_rental_items_price,
-            'payment_type', p_payment_type
+            'payment_type', p_payment_type,
+            'empresa_id', p_empresa_id
         ),
         'Iniciando creación de reserva'
     );
@@ -90,7 +85,8 @@ BEGIN
         payment_type,
         deposit_amount,
         title,
-        description
+        description,
+        empresa_id
     ) VALUES (
         p_court_id,
         p_date,
@@ -103,7 +99,8 @@ BEGIN
         p_payment_type,
         COALESCE(p_deposit_amount, 0),
         p_title,
-        p_description
+        p_description,
+        p_empresa_id
     )
     RETURNING id INTO v_booking_id;
 
@@ -156,27 +153,14 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $function$;
 
--- 5. Restaurar los permisos
-DO $$ 
-DECLARE 
-    perm_record RECORD;
-BEGIN
-    FOR perm_record IN SELECT * FROM temp_permissions
-    LOOP
-        EXECUTE format(
-            'GRANT EXECUTE ON FUNCTION %I.%I(%s) TO %I',
-            perm_record.schema_name,
-            perm_record.function_name,
-            perm_record.args,
-            perm_record.grantee
-        );
-    END LOOP;
-END $$;
+-- 5. Otorgar permisos básicos
+GRANT EXECUTE ON FUNCTION public.create_booking_v2(
+    uuid, date, time without time zone, time without time zone,
+    numeric, numeric, payment_method_enum, booking_payment_status,
+    payment_type, numeric, text, text, jsonb, jsonb, uuid
+) TO authenticated;
 
--- 6. Limpiar la tabla temporal
-DROP TABLE IF EXISTS temp_permissions;
-
--- 7. Verificar la instalación
+-- 6. Verificar la instalación
 DO $$ 
 BEGIN
     -- Verificar que solo existe una versión
@@ -196,15 +180,8 @@ BEGIN
         JOIN pg_namespace n ON p.pronamespace = n.oid
         WHERE p.proname = 'create_booking_v2'
         AND n.nspname = 'public'
-        AND pg_get_function_arguments(p.oid) LIKE '%payment_type payment_type%'
+        AND pg_get_function_arguments(p.oid) LIKE '%empresa_id uuid%'
     ) THEN
-        RAISE EXCEPTION 'La función create_booking_v2 no tiene el parámetro payment_type';
+        RAISE EXCEPTION 'La función create_booking_v2 no tiene el parámetro empresa_id';
     END IF;
 END $$;
-
--- 8. Otorgar permisos básicos
-GRANT EXECUTE ON FUNCTION public.create_booking_v2(
-    uuid, date, time without time zone, time without time zone,
-    numeric, numeric, payment_method_enum, booking_payment_status,
-    payment_type, numeric, text, text, jsonb, jsonb
-) TO authenticated;

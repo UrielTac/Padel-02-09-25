@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { useItems } from "@/hooks/useItems";
 import { toast } from "sonner";
 import { bookingService } from "@/services/bookingService";
-import type { Item, ItemType } from "@/types/items";
+import type { Item, ItemType, RentalSelection } from "@/types/items";
 import { format, parseISO } from "date-fns";
 import { useForm } from "@/contexts/FormContext";
+import { useFormItems } from '@/contexts/FormItemsContext';
 
 // Interfaces
 interface ItemsPreviewProps {
@@ -116,16 +117,23 @@ export function ItemsPreview({
   isPublicView
 }: ItemsPreviewProps) {
   const { title, description } = field;
-  const { state, setItems } = useForm();
-  const [quantities, setQuantities] = useState<Record<string, number>>(state.items.selectedItems);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { state } = useForm();
+  const { 
+    updateRentals, 
+    rentals, 
+    totalPrice,
+    selectedItems,
+    updateSelectedItems 
+  } = useFormItems();
+  
   const [itemsWithStock, setItemsWithStock] = useState<ItemWithStock[]>([]);
   const [isLoadingStock, setIsLoadingStock] = useState(true);
   const [lastCheckedSlot, setLastCheckedSlot] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Obtener datos del contexto
   const { location, shift } = state;
-  const branchId = location.branchId;
+  const branchId = location.branchId || undefined;
   const selectedSlot = shift.date ? {
     date: shift.date,
     startTime: shift.startTime!,
@@ -133,26 +141,13 @@ export function ItemsPreview({
     duration: shift.duration
   } : undefined;
 
-  // Efecto para sincronizar el estado local con cambios externos
-  useEffect(() => {
-    const contextItems = state.items.selectedItems;
-    const localItemsStr = JSON.stringify(quantities);
-    const contextItemsStr = JSON.stringify(contextItems);
-
-    if (contextItemsStr !== localItemsStr) {
-      console.log('[ItemsPreview] Sincronizando estado local:', {
-        from: localItemsStr,
-        to: contextItemsStr
-      });
-      setQuantities(contextItems);
-    }
-  }, [state.items.selectedItems]);
-
   // Función para actualizar cantidades y contexto
-  const updateQuantities = useCallback((itemId: string, newQuantity: number) => {
+  const handleQuantityChange = useCallback((itemId: string, newQuantity: number) => {
     console.log('[ItemsPreview] Actualizando cantidad:', {
       itemId,
-      newQuantity
+      newQuantity,
+      shift,
+      duration: shift.duration
     });
 
     const item = itemsWithStock.find(i => i.id === itemId);
@@ -177,18 +172,67 @@ export function ItemsPreview({
       return;
     }
 
-    // Actualizar estado local y contexto en una sola operación
-    const newQuantities = { ...quantities };
+    // Actualizar cantidades
+    const newSelectedItems = { ...selectedItems };
     
     if (newQuantity === 0) {
-      delete newQuantities[itemId];
+      delete newSelectedItems[itemId];
     } else {
-      newQuantities[itemId] = newQuantity;
+      newSelectedItems[itemId] = newQuantity;
     }
 
-    setQuantities(newQuantities);
-    setItems({ selectedItems: newQuantities });
-  }, [itemsWithStock, quantities, setItems]);
+    updateSelectedItems(newSelectedItems);
+
+    // Calcular duración en minutos
+    const durationInMinutes = (shift.duration || 1) * 60;
+    console.log('[ItemsPreview] Calculando precio:', {
+      duration: shift.duration,
+      durationInMinutes,
+      availablePrices: item.duration_pricing
+    });
+
+    // Crear rentals actualizados con la estructura completa
+    const updatedRentals = Object.entries(newSelectedItems).map(([id, qty]) => {
+      const itemWithStock = itemsWithStock.find(i => i.id === id);
+      if (!itemWithStock) return null;
+
+      // Obtener precio por duración
+      const pricePerUnit = itemWithStock.duration_pricing[durationInMinutes.toString()] || 0;
+      const totalPrice = qty * pricePerUnit;
+
+      console.log('[ItemsPreview] Precio calculado para item:', {
+        itemId: id,
+        durationInMinutes,
+        pricePerUnit,
+        quantity: qty,
+        totalPrice,
+        availablePrices: itemWithStock.duration_pricing
+      });
+
+      // Crear rental con todos los campos necesarios
+      const rental: RentalSelection = {
+        itemId: id,
+        quantity: qty,
+        duration: shift.duration || 1,
+        pricePerUnit,
+        price: totalPrice,
+        totalPrice
+      };
+
+      console.log('[ItemsPreview] Creando rental:', rental);
+      return rental;
+    }).filter((rental): rental is RentalSelection => rental !== null);
+
+    console.log('[ItemsPreview] Actualizando rentals:', {
+      updatedRentals,
+      selectedItems: newSelectedItems,
+      duration: shift.duration,
+      durationInMinutes
+    });
+
+    updateRentals(updatedRentals);
+
+  }, [itemsWithStock, selectedItems, updateSelectedItems, updateRentals, shift.duration]);
 
   // Validar si se puede avanzar al siguiente paso
   const canProceed = useMemo(() => {
@@ -199,7 +243,7 @@ export function ItemsPreview({
   const handleNext = useCallback(() => {
     console.log('[ItemsPreview] Intentando avanzar al siguiente paso:', {
       currentStep: state.currentStep,
-      hasItems: Object.keys(quantities).length > 0,
+      hasItems: Object.keys(selectedItems).length > 0,
       isLastStep
     });
     
@@ -210,17 +254,17 @@ export function ItemsPreview({
     } else {
       console.error('[ItemsPreview] Error: onNext no es una función');
     }
-  }, [onNext, state.currentStep, quantities, isLastStep]);
+  }, [onNext, state.currentStep, selectedItems, isLastStep]);
 
   // Manejar el click en un item
   const handleItemClick = useCallback((item: ItemWithStock) => {
     if (item.availableStock <= 0) return;
 
-    const currentQuantity = quantities[item.id] || 0;
+    const currentQuantity = selectedItems[item.id] || 0;
     const newQuantity = currentQuantity === 0 ? 1 : 0;
     
-    updateQuantities(item.id, newQuantity);
-  }, [quantities, updateQuantities]);
+    handleQuantityChange(item.id, newQuantity);
+  }, [selectedItems, handleQuantityChange]);
 
   // Obtener items usando el hook
   const { data: items = [], isLoading, error } = useItems(branchId);
@@ -254,7 +298,7 @@ export function ItemsPreview({
   // Efecto para inicializar itemsWithStock cuando items cambia
   useEffect(() => {
     // Si no hay cambios en el slot o items, no hacer nada
-    if (!slotKey || !items.length || slotKey === lastCheckedSlot) {
+    if (!slotKey || !Array.isArray(items) || items.length === 0 || slotKey === lastCheckedSlot) {
       return;
     }
 
@@ -269,7 +313,7 @@ export function ItemsPreview({
         const { date, startTime, endTime } = selectedSlot!;
 
         // Verificar todos los items en paralelo
-        const stockPromises = items.map(async (item) => {
+        const stockPromises = (items as Item[]).map(async (item: Item) => {
           try {
             const stock = await bookingService.checkFutureAvailability(
               item.id,
@@ -301,7 +345,7 @@ export function ItemsPreview({
       } catch (error) {
         console.error('Error al verificar disponibilidad:', error);
         toast.error('Error al verificar disponibilidad de artículos');
-        setItemsWithStock(items.map(item => ({
+        setItemsWithStock((items as Item[]).map(item => ({
           ...item,
           availableStock: 0,
           baseStock: item.stock || 0,
@@ -478,7 +522,7 @@ export function ItemsPreview({
                       </div>
                     ) : (
                       filteredItems.map((item, index) => {
-                        const quantity = quantities[item.id] || 0;
+                        const quantity = selectedItems[item.id] || 0;
                         const remainingStock = item.availableStock - quantity;
                         const isOutOfStock = remainingStock === 0 && quantity === 0;
                         const isSelected = quantity > 0;
@@ -612,7 +656,7 @@ export function ItemsPreview({
                                 <div onClick={(e) => e.stopPropagation()}>
                                   <QuantitySelector 
                                     value={quantity}
-                                    onChange={(newValue) => updateQuantities(item.id, newValue)}
+                                    onChange={(newValue) => handleQuantityChange(item.id, newValue)}
                                     theme={theme}
                                     min={0}
                                     max={item.availableStock}

@@ -19,10 +19,6 @@ interface ShiftState {
   price?: number;
 }
 
-interface ItemsState {
-  selectedItems: Record<string, number>; // itemId -> quantity
-}
-
 interface PaymentState {
   method: PaymentMethodEnum | null;
   type: PaymentTypeEnum | null;
@@ -31,7 +27,6 @@ interface PaymentState {
 interface FormState {
   location: LocationState;
   shift: ShiftState;
-  items: ItemsState;
   payment: PaymentState;
   currentStep: number;
   empresa_id: string | null;
@@ -40,11 +35,9 @@ interface FormState {
 type FormAction =
   | { type: 'SET_LOCATION'; payload: LocationState }
   | { type: 'SET_SHIFT'; payload: ShiftState }
-  | { type: 'SET_ITEMS'; payload: ItemsState }
   | { type: 'SET_PAYMENT'; payload: PaymentState }
   | { type: 'SET_STEP'; payload: number }
   | { type: 'SET_EMPRESA_ID'; payload: string }
-  | { type: 'CLEAR_AFTER_STEP'; payload: number }
   | { type: 'RESET_FORM' };
 
 interface FormProviderProps {
@@ -64,9 +57,6 @@ const initialState: FormState = {
     courtId: null,
     price: 0,
   },
-  items: {
-    selectedItems: {},
-  },
   payment: {
     method: null,
     type: null
@@ -83,21 +73,12 @@ function formReducer(state: FormState, action: FormAction): FormState {
         location: action.payload,
         // Limpiar estados posteriores
         shift: initialState.shift,
-        items: initialState.items,
       };
     
     case 'SET_SHIFT':
       return {
         ...state,
         shift: action.payload,
-        // Limpiar estados posteriores
-        items: initialState.items,
-      };
-    
-    case 'SET_ITEMS':
-      return {
-        ...state,
-        items: action.payload,
       };
     
     case 'SET_PAYMENT':
@@ -130,21 +111,6 @@ function formReducer(state: FormState, action: FormAction): FormState {
         empresa_id: action.payload
       };
     
-    case 'CLEAR_AFTER_STEP':
-      if (action.payload === 0) {
-        return {
-          ...state,
-          shift: initialState.shift,
-          items: initialState.items,
-        };
-      } else if (action.payload === 1) {
-        return {
-          ...state,
-          items: initialState.items,
-        };
-      }
-      return state;
-    
     case 'RESET_FORM':
       // Mantener empresa_id al resetear el formulario
       return {
@@ -162,10 +128,8 @@ interface FormContextType {
   state: FormState;
   setLocation: (location: LocationState) => void;
   setShift: (shift: ShiftState) => void;
-  setItems: (items: ItemsState) => void;
   setPayment: (payment: PaymentState) => void;
   setStep: (step: number) => void;
-  clearAfterStep: (step: number) => void;
   resetForm: () => void;
 }
 
@@ -185,7 +149,7 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
         payload: initialForm.empresa_id 
       });
     }
-  }, [initialForm?.empresa_id]); // Solo se ejecuta cuando cambia el empresa_id
+  }, [initialForm?.empresa_id]);
 
   // Efecto para limpiar el formulario al cerrar la ventana
   useEffect(() => {
@@ -197,7 +161,7 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, []); // Solo se ejecuta una vez al montar
+  }, []);
 
   const resetForm = useCallback(() => {
     dispatch({ type: 'RESET_FORM' });
@@ -211,10 +175,6 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
     dispatch({ type: 'SET_SHIFT', payload: shift });
   }, []);
 
-  const setItems = useCallback((items: ItemsState) => {
-    dispatch({ type: 'SET_ITEMS', payload: items });
-  }, []);
-
   const setPayment = useCallback((payment: PaymentState) => {
     dispatch({ type: 'SET_PAYMENT', payload: payment });
   }, []);
@@ -223,20 +183,14 @@ export function FormProvider({ children, initialForm }: FormProviderProps) {
     dispatch({ type: 'SET_STEP', payload: step });
   }, []);
 
-  const clearAfterStep = useCallback((step: number) => {
-    dispatch({ type: 'CLEAR_AFTER_STEP', payload: step });
-  }, []);
-
   return (
     <FormContext.Provider
       value={{
         state,
         setLocation,
         setShift,
-        setItems,
         setPayment,
         setStep,
-        clearAfterStep,
         resetForm,
       }}
     >

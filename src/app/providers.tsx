@@ -4,6 +4,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { OrganizationProvider } from '@/contexts/OrganizationContext'
+import { BranchProvider } from '@/contexts/BranchContext'
+import { FormItemsProvider } from '@/contexts/FormItemsContext'
 
 function makeQueryClient() {
   return new QueryClient({
@@ -51,7 +54,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {children}
+        <OrganizationProvider>
+          <BranchProvider>
+            <FormItemsProvider>
+              {children}
+            </FormItemsProvider>
+          </BranchProvider>
+        </OrganizationProvider>
       </AuthProvider>
       <Toaster position="top-right" />
       {process.env.NODE_ENV === 'development' && (

@@ -8,6 +8,7 @@ import { useBookingState } from "./hooks/useBookingState"
 import { bookingService } from "@/services/bookingService"
 import { useDateContext } from "@/contexts/DateContext"
 import { useBranchContext } from "@/contexts/BranchContext"
+import { useOrganization } from "@/contexts/OrganizationContext"
 import { useCourts } from "@/hooks/useCourts"
 import { useItems } from "@/hooks/useItems"
 import { timeToMinutes } from "@/lib/time-utils"
@@ -21,7 +22,8 @@ import type {
   Participant,
   PaymentMethodEnum,
   PaymentStatusEnum,
-  BookingType
+  BookingType,
+  ParticipantRoleEnum
 } from "@/types/bookings"
 import type { RentalSelection } from "@/types/items"
 import { useQueryClient } from '@tanstack/react-query'
@@ -126,6 +128,8 @@ export function SimpleShiftBookingModal({
     disableTypeSelection: true,
     initialStep: 'participants'
   })
+
+  const { organization } = useOrganization()
 
   useEffect(() => {
     setMounted(true)
@@ -268,6 +272,11 @@ export function SimpleShiftBookingModal({
       return;
     }
 
+    if (!organization?.id) {
+      toast.error('No se encontró la empresa asociada');
+      return;
+    }
+
     try {
       const bookingData: BookingCreationData = {
         courtId: selectedCourts[0],
@@ -278,17 +287,21 @@ export function SimpleShiftBookingModal({
         rentalItemsPrice: calculatedPrices.rentalPrice,
         paymentStatus: paymentDetails.paymentStatus,
         paymentMethod: paymentDetails.paymentMethod,
+        paymentType: paymentDetails.paymentStatus === 'completed' ? 'booking' : 'deposit',
         depositAmount: Math.min(paymentDetails.deposit, calculatedPrices.total),
         participants: participants.map(p => ({
           id: p.id,
-          memberId: p.id,
-          role: 'player',
-          firstName: p.firstName || '',
-          lastName: p.lastName || '',
-          name: `${p.firstName || ''} ${p.lastName || ''}`.trim() || 'Sin nombre'
+          userId: p.id,
+          role: 'player' as ParticipantRoleEnum
         })),
-        rentalItems: rentals
+        rentalItems: rentals,
+        empresa_id: organization.id
       };
+
+      console.log('Creando reserva manual con datos:', {
+        ...bookingData,
+        empresa_id: organization.id
+      });
 
       const bookingResult = await bookingService.createBooking(bookingData);
       if (bookingResult.error) throw new Error(bookingResult.error.message);
@@ -304,7 +317,7 @@ export function SimpleShiftBookingModal({
       toast.error(error.message || 'Error al crear la reserva');
       handleBack();
     }
-  }, [selection, selectedDate, timeSelection, calculatedPrices, paymentDetails, participants, rentals, selectedCourts, currentBranch?.id]);
+  }, [selection, selectedDate, timeSelection, calculatedPrices, paymentDetails, participants, rentals, selectedCourts, currentBranch?.id, organization?.id]);
 
   const handleBackAction = () => {
     if (currentStep === 'participants') {

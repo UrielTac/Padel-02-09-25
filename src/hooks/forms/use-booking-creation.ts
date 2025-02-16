@@ -25,10 +25,7 @@ export function useBookingCreation(options: UseBookingCreationOptions) {
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   
-  const { transformedData, isValid, validationErrors, hasWarnings } = useBookingTransformer({
-    rentals: options.rentals,
-    rentalItemsPrice: options.rentalItemsPrice
-  });
+  const { transformedData, isValid, validationErrors, hasWarnings } = useBookingTransformer();
 
   const { maxRetries = DEFAULT_OPTIONS.maxRetries, retryDelay = DEFAULT_OPTIONS.retryDelay } = options;
 
@@ -148,7 +145,7 @@ export function useBookingCreation(options: UseBookingCreationOptions) {
 
       // Mensajes de error más descriptivos
       const errorMessage = error.message.includes('overlap')
-        ? 'El horario ya no está disponible. Por favor, seleccione otro horario.'
+        ? 'El horario seleccionado no está disponible. Por favor, seleccione otro horario.'
         : error.message.includes('stock')
         ? 'Algunos artículos ya no están disponibles. Por favor, revise su selección.'
         : error.message || 'Error al crear la reserva';

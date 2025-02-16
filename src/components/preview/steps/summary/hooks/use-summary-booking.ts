@@ -3,8 +3,9 @@ import { useCallback, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import { useForm } from '@/contexts/FormContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { PAYMENT_TYPE_MAPPINGS, PaymentTypeEnum } from '@/types/bookings';
+import { PAYMENT_TYPE_MAPPINGS, PaymentTypeEnum, ParticipantRoleEnum } from '@/types/bookings';
 import { bookingService } from '@/services/bookingService';
+import { useFormItems } from '@/contexts/FormItemsContext';
 
 interface ValidationError {
   field: string;
@@ -24,6 +25,7 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
   const creationAttempted = useRef(false);
   const { setPayment, state } = useForm();
   const { user } = useAuth();
+  const { rentals, selectedItems, totalPrice: formItemsPrice } = useFormItems();
 
   const {
     selectedPaymentMethod,
@@ -82,8 +84,17 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
       });
     }
 
+    // Validar empresa_id
+    if (!state.empresa_id) {
+      errors.push({
+        field: 'empresa',
+        message: 'No se encontró la empresa asociada',
+        severity: 'error'
+      });
+    }
+
     return errors;
-  }, [state.payment, calculations.total]);
+  }, [state.payment, calculations.total, state.empresa_id]);
 
   // Actualizar errores cuando cambian los valores relevantes
   useEffect(() => {
@@ -116,6 +127,10 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
       throw new Error('Usuario no autenticado');
     }
 
+    if (!state.empresa_id) {
+      throw new Error('No se encontró la empresa asociada');
+    }
+
     try {
       setIsCreating(true);
       creationAttempted.current = true;
@@ -124,7 +139,10 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         payment: state.payment,
         calculations,
         validationErrors,
-        userId: user.id
+        userId: user.id,
+        empresa_id: state.empresa_id,
+        rentals,
+        selectedItems
       });
 
       const errors = validatePaymentConfig();
@@ -159,12 +177,20 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         participants: [{ 
           id: user.id,
           userId: user.id,
-          role: 'player'
-        }]
+          role: 'player' as ParticipantRoleEnum
+        }],
+        rentalItems: rentals.map(rental => ({
+          itemId: rental.itemId,
+          quantity: rental.quantity,
+          pricePerUnit: rental.pricePerUnit,
+          totalPrice: rental.totalPrice
+        })),
+        empresa_id: state.empresa_id
       };
 
       console.log('Datos de reserva preparados:', {
         ...bookingData,
+        rentals: bookingData.rentalItems,
         paymentConfig,
         originalPaymentType: state.payment.type
       });
@@ -192,7 +218,7 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
     } finally {
       setIsCreating(false);
     }
-  }, [state, calculations, validatePaymentConfig, options, isCreating, calculateDeposit, user]);
+  }, [state, calculations, validatePaymentConfig, options, isCreating, calculateDeposit, user, rentals, selectedItems]);
 
   // Función para finalizar configuración
   const finishConfiguration = useCallback(() => {
