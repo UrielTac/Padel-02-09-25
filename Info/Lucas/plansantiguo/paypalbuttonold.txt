@@ -10,7 +10,7 @@ import { PAYPAL_CONFIG } from '@/config/paypal'
 import { useState } from 'react'
 
 interface PayPalSubscriptionButtonProps {
-  planType: 'monthly' | 'quarterly' | 'annually'
+  planType: 'monthly' | 'quarterly'
   onSuccess?: (data: OnApproveData) => void
   onError?: (error: unknown) => void
 }
@@ -30,12 +30,9 @@ export function PayPalSubscriptionButton({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const plan = 
-    planType === 'quarterly' 
-      ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY 
-      : planType === 'annually'
-        ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY
-        : PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY;
+  const plan = planType === 'monthly' 
+    ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY 
+    : PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY
 
   const shouldIgnoreError = (error: unknown) => {
     if (error instanceof Error) {
@@ -77,12 +74,10 @@ export function PayPalSubscriptionButton({
         forceReRender={[planType]}
         fundingSource="paypal"
         style={{ 
-          shape: 'pill',
-          color: 'black',
-          layout: 'horizontal',
-          label: 'subscribe',
-          height: 45,
-          tagline: false
+          layout: "vertical",
+          shape: "rect",
+          label: "subscribe",
+          height: 40
         }}
         disabled={isProcessing}
         createSubscription={async (_data: unknown, actions: CreateSubscriptionActions) => {

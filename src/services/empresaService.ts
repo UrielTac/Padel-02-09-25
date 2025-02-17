@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-type PlanType = 'Free' | 'Pro Mensual' | 'Pro Trimestral'
+type PlanType = Database['public']['Tables']['subscription_plans']['Row']['code']
 
 interface SubscriptionData {
   subscriptionId: string
@@ -43,20 +44,17 @@ export const empresaService = {
   },
 
   async updatePlanType(empresaId: string, planType: PlanType) {
-    if (!empresaId) {
-      throw new Error('empresaId es requerido')
-    }
-
     console.log('📍 Actualizando plan de empresa:', { empresaId, planType })
+    const supabase = createClientComponentClient<Database>()
     
     try {
       const updateData = {
         plan_type: planType,
         updated_at: new Date().toISOString()
       }
-
+      
       console.log('📍 Datos a actualizar:', updateData)
-
+      
       const { data, error } = await supabase
         .from('empresas')
         .update(updateData)
@@ -64,20 +62,12 @@ export const empresaService = {
         .select()
         .single()
 
-      if (error) {
-        console.error('❌ Error al actualizar el plan en Supabase:', error)
-        throw new Error(`Error al actualizar el plan: ${error.message}`)
-      }
-
-      if (!data) {
-        console.error('❌ No se encontró la empresa con ID:', empresaId)
-        throw new Error('No se encontró la empresa')
-      }
+      if (error) throw error
 
       console.log('✅ Plan actualizado exitosamente:', data)
       return data
     } catch (error) {
-      console.error('❌ Error en el servicio de actualización de plan:', error)
+      console.error('❌ Error al actualizar el plan:', error)
       throw error
     }
   },

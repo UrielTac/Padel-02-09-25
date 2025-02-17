@@ -60,6 +60,16 @@ export const queryKeys = {
     details: (participantId: string) => 
       ['participants', 'details', participantId] as const,
   },
+  bookingCount: {
+    all: ['bookingCount'] as const,
+    status: (empresaId: string, date: string) => 
+      [...queryKeys.bookingCount.all, 'status', { empresaId, date }] as const,
+  },
+  subscription: {
+    all: ['subscription'] as const,
+    info: (empresaId: string) => 
+      [...queryKeys.subscription.all, 'info', empresaId] as const,
+  }
 } as const
 
 export type QueryKeys = typeof queryKeys 

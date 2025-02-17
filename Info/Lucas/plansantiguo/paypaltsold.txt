@@ -7,7 +7,6 @@ interface PayPalConfig {
   SUBSCRIPTION_PLANS: {
     PRO_MONTHLY: SubscriptionPlan
     PRO_QUARTERLY: SubscriptionPlan
-    PRO_ANNUALLY: SubscriptionPlan
   }
   CLIENT_ID: string | undefined
   CURRENCY: string
@@ -18,9 +17,7 @@ if (!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID) {
   console.error('PayPal Client ID no está configurado en las variables de entorno');
 }
 
-if (!process.env.NEXT_PUBLIC_PAYPAL_MONTHLY_PLAN_ID || 
-    !process.env.NEXT_PUBLIC_PAYPAL_QUARTERLY_PLAN_ID ||
-    !process.env.NEXT_PUBLIC_PAYPAL_ANNUAL_PLAN_ID) {
+if (!process.env.NEXT_PUBLIC_PAYPAL_MONTHLY_PLAN_ID || !process.env.NEXT_PUBLIC_PAYPAL_QUARTERLY_PLAN_ID) {
   console.error('Los IDs de los planes de PayPal no están configurados en las variables de entorno');
 }
 
@@ -33,10 +30,6 @@ export const PAYPAL_CONFIG: PayPalConfig = {
     PRO_QUARTERLY: {
       plan_id: process.env.NEXT_PUBLIC_PAYPAL_QUARTERLY_PLAN_ID,
       price: 69.69
-    },
-    PRO_ANNUALLY: {
-      plan_id: 'P-1PF98802FS266405HM6X3NSA',
-      price: 192.66
     }
   },
   CLIENT_ID: process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID,

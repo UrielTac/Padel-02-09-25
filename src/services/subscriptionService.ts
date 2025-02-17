@@ -1,4 +1,5 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createSupabaseClient } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
 
 interface UpdatePayPalDetailsData {
@@ -6,6 +7,15 @@ interface UpdatePayPalDetailsData {
   subscriptionId: string
   subscriptionExpiresAt: Date
   paymentAmount: number
+  paypalData: {
+    orderID?: string
+    subscriptionID: string
+    facilitatorAccessToken?: string
+    paymentSource?: string
+    paymentStatus?: string
+    lastPaymentDate?: string
+    nextPaymentDate?: string
+  }
 }
 
 interface PayPalSubscriptionDetails {
@@ -19,6 +29,19 @@ interface PayPalSubscriptionDetails {
   next_billing_time: string
 }
 
+type SubscriptionPlan = Database['public']['Tables']['subscription_plans']['Row']
+type SubscriptionPlanInsert = Database['public']['Tables']['subscription_plans']['Insert']
+type SubscriptionPlanUpdate = Database['public']['Tables']['subscription_plans']['Update']
+
+export interface ServiceResponse<T> {
+  data?: T
+  error?: {
+    message: string
+    code: string
+    details?: string
+  }
+}
+
 const MAX_RETRIES = 3
 const RETRY_DELAY = 2000 // 2 segundos
 
@@ -28,34 +51,38 @@ export const subscriptionService = {
     const supabase = createClientComponentClient<Database>()
     
     try {
-      // Primero verificamos si ya existe una suscripción activa
-      const { data: existingSubscription } = await supabase
-        .from('subscriptions')
-        .select('*')
-        .eq('empresa_id', data.empresaId)
-        .eq('plan_status', 'active')
+      // Validar que la empresa existe
+      const { data: empresa, error: empresaError } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('id', data.empresaId)
         .single()
 
-      if (existingSubscription) {
-        console.log('📍 Desactivando suscripción anterior')
-        await supabase
-          .from('subscriptions')
-          .update({ plan_status: 'expired' })
-          .eq('id', existingSubscription.id)
+      if (empresaError || !empresa) {
+        throw new Error('Empresa no encontrada')
       }
 
-      // Creamos la nueva suscripción
-      const { data: newSubscription, error: insertError } = await supabase
+      // Procesamos las fechas de PayPal
+      const lastPaymentDate = data.paypalData.lastPaymentDate ? 
+        new Date(data.paypalData.lastPaymentDate) : 
+        new Date()
+
+      const nextPaymentDate = data.paypalData.nextPaymentDate ? 
+        new Date(data.paypalData.nextPaymentDate) : 
+        data.subscriptionExpiresAt
+
+      // Crear el registro de suscripción
+      const { data: subscription, error: subscriptionError } = await supabase
         .from('subscriptions')
         .insert({
           empresa_id: data.empresaId,
           subscription_id: data.subscriptionId,
           plan_status: 'active',
           subscription_expires_at: data.subscriptionExpiresAt.toISOString(),
-          last_payment_date: new Date().toISOString(),
-          next_payment_date: data.subscriptionExpiresAt.toISOString(),
-          payment_status: 'paid',
+          last_payment_date: lastPaymentDate.toISOString(),
+          next_payment_date: nextPaymentDate.toISOString(),
           payment_amount: data.paymentAmount,
+          payment_status: 'paid',
           currency: 'EUR',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
@@ -63,13 +90,12 @@ export const subscriptionService = {
         .select()
         .single()
 
-      if (insertError) {
-        console.error('❌ Error al crear la suscripción:', insertError)
-        throw new Error(`Error al crear la suscripción: ${insertError.message}`)
+      if (subscriptionError) {
+        throw new Error(`Error al crear suscripción: ${subscriptionError.message}`)
       }
 
-      console.log('✅ Suscripción creada exitosamente:', newSubscription)
-      return newSubscription
+      console.log('✅ Suscripción creada exitosamente:', subscription)
+      return subscription
     } catch (error) {
       console.error('❌ Error en el servicio de suscripción:', error)
       throw error
@@ -98,6 +124,142 @@ export const subscriptionService = {
     } catch (error) {
       console.error('❌ Error en el servicio de suscripción:', error)
       return null
+    }
+  },
+
+  async getPlans(): Promise<ServiceResponse<SubscriptionPlan[]>> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .order('price', { ascending: true })
+        .eq('is_active', true)
+
+      if (error) {
+        console.error('Error fetching plans:', error)
+        return {
+          error: {
+            message: 'Error al obtener los planes',
+            code: 'FETCH_ERROR',
+            details: error.message
+          }
+        }
+      }
+
+      return { data }
+    } catch (error: any) {
+      console.error('Unexpected error in getPlans:', error)
+      return {
+        error: {
+          message: 'Error inesperado al obtener los planes',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  async getPlanById(id: string): Promise<ServiceResponse<SubscriptionPlan>> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data, error } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error) {
+        console.error('Error fetching plan:', error)
+        return {
+          error: {
+            message: 'Error al obtener el plan',
+            code: 'FETCH_ERROR',
+            details: error.message
+          }
+        }
+      }
+
+      return { data }
+    } catch (error: any) {
+      console.error('Unexpected error in getPlanById:', error)
+      return {
+        error: {
+          message: 'Error inesperado al obtener el plan',
+          code: 'UNEXPECTED_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  async getCompanyPlan(empresaId: string): Promise<ServiceResponse<SubscriptionPlan>> {
+    try {
+      const supabase = createSupabaseClient()
+      const { data: empresa, error: empresaError } = await supabase
+        .from('empresas')
+        .select('plan_id')
+        .eq('id', empresaId)
+        .single()
+
+      if (empresaError) throw empresaError
+
+      if (!empresa?.plan_id) {
+        // Si no tiene plan asignado, obtener el plan FREE por defecto
+        const { data: freePlan, error: planError } = await supabase
+          .from('subscription_plans')
+          .select('*')
+          .eq('code', 'FREE')
+          .single()
+
+        if (planError) throw planError
+        return { data: freePlan }
+      }
+
+      const { data: plan, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('*')
+        .eq('id', empresa.plan_id)
+        .single()
+
+      if (planError) throw planError
+
+      return { data: plan }
+    } catch (error: any) {
+      console.error('Error in getCompanyPlan:', error)
+      return {
+        error: {
+          message: 'Error al obtener el plan de la empresa',
+          code: 'FETCH_ERROR',
+          details: error.message
+        }
+      }
+    }
+  },
+
+  async updateCompanyPlan(empresaId: string, planId: string): Promise<ServiceResponse<void>> {
+    try {
+      const supabase = createSupabaseClient()
+      const { error } = await supabase
+        .from('empresas')
+        .update({ 
+          plan_id: planId,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', empresaId)
+
+      if (error) throw error
+
+      return {}
+    } catch (error: any) {
+      console.error('Error in updateCompanyPlan:', error)
+      return {
+        error: {
+          message: 'Error al actualizar el plan de la empresa',
+          code: 'UPDATE_ERROR',
+          details: error.message
+        }
+      }
     }
   }
 } 

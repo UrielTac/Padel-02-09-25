@@ -22,8 +22,6 @@ import { empresaService } from "@/services/empresaService"
 import { useToast } from "@/components/ui/use-toast"
 import { subscriptionService } from "@/services/subscriptionService"
 import { PAYPAL_CONFIG } from '@/config/paypal'
-import { useAuth } from '@/contexts/AuthContext'
-import type { PlanType } from '@/types/supabase'
 
 interface PlanFeature {
   name: string
@@ -98,7 +96,6 @@ const plans: Plan[] = [
 
 export function Planes() {
   const { completeAndAdvance, formData } = useOnboarding()
-  const { user, updateUserMetadata } = useAuth()
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly'>('quarterly')
   const [showSuccessPayment, setShowSuccessPayment] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<'Free' | 'Pro'>()
@@ -113,28 +110,20 @@ export function Planes() {
 
   const handlePayPalSuccess = async (data: any) => {
     try {
-      if (!user) {
-        console.error('❌ No hay usuario autenticado')
+      const userId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID
+      if (!userId) {
+        console.error('❌ No se encontró el ID del usuario en las variables de entorno')
         toast({
           variant: "destructive",
           title: "Error al actualizar el plan",
-          description: "No se pudo identificar el usuario. Por favor, inicia sesión nuevamente."
-        })
-        return
-      }
-
-      const empresaId = user.metadata.empresa_id
-      if (!empresaId) {
-        console.error('❌ No se encontró el ID de la empresa en los metadatos del usuario')
-        toast({
-          variant: "destructive",
-          title: "Error al actualizar el plan",
-          description: "No se pudo identificar la empresa. Por favor, contacta con soporte."
+          description: "No se pudo identificar el usuario. Por favor, contacta con soporte."
         })
         return
       }
 
       console.log('📍 Datos recibidos de PayPal:', data)
+      
+      const empresa = await empresaService.getEmpresaByUserId(userId)
       
       // Calculamos la fecha de expiración
       const expiresAt = new Date()
@@ -144,37 +133,24 @@ export function Planes() {
         expiresAt.setMonth(expiresAt.getMonth() + 3)
       }
 
+      const planType = billingPeriod === 'monthly' ? 'Pro Mensual' : 'Pro Trimestral'
       const paymentAmount = billingPeriod === 'monthly' 
         ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price
         : PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price
 
-      // Crear la suscripción con todos los datos de PayPal
-      const subscription = await subscriptionService.updatePayPalDetails({
-        empresaId,
+      // Primero creamos la suscripción
+      await subscriptionService.updatePayPalDetails({
+        empresaId: empresa.id,
         subscriptionId: data.subscriptionID,
         subscriptionExpiresAt: expiresAt,
-        paymentAmount,
-        paypalData: {
-          ...data,
-          subscriptionID: data.subscriptionID,
-          lastPaymentDate: new Date().toISOString(),
-          nextPaymentDate: expiresAt.toISOString()
-        }
+        paymentAmount
       })
 
-      if (subscription) {
-        // Actualizar el plan de la empresa
-        await empresaService.updatePlanType(empresaId, 'PRO')
-        
-        // Usar el método del contexto de autenticación
-        await updateUserMetadata({
-          plan_type: 'PRO',
-          plan_updated_at: new Date().toISOString()
-        })
-
-        console.log('✅ Plan y suscripción actualizados exitosamente')
-        setShowSuccessPayment(true)
-      }
+      // Si la suscripción se creó exitosamente, actualizamos el plan
+      await empresaService.updatePlanType(empresa.id, planType)
+      
+      console.log('✅ Plan y suscripción actualizados exitosamente')
+      setShowSuccessPayment(true)
     } catch (error) {
       console.error('❌ Error al actualizar la suscripción:', error)
       toast({

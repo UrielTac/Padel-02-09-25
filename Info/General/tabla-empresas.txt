@@ -1,5 +1,4 @@
 -- Información básica de la tabla
-
 [
   {
     "table_schema": "public",
@@ -192,6 +191,18 @@
     "numeric_precision": null,
     "numeric_scale": null,
     "column_default": null
+  },
+  {
+    "table_schema": "public",
+    "table_name": "empresas",
+    "column_name": "plan_id",
+    "ordinal_position": 25,
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": null
   }
 ]
 
@@ -249,12 +260,16 @@
 
 [
   {
+    "foreign_key": "plan_id",
+    "referenced_table": "subscription_plans",
+    "referenced_column": "id"
+  },
+  {
     "foreign_key": "auth_user_id",
     "referenced_table": "users",
     "referenced_column": "id"
   }
 ]
-
 
 -- Listar las políticas asociadas con la tabla
 

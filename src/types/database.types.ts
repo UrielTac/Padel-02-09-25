@@ -125,4 +125,129 @@ export interface BookingCreationData {
     quantity: number
     pricePerUnit: number
   }>
+}
+
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      subscription_plans: {
+        Row: {
+          id: string
+          name: string
+          code: 'FREE' | 'PRO'
+          description: string | null
+          price: number
+          daily_booking_limit: number
+          reset_period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+          features: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          code: 'FREE' | 'PRO'
+          description?: string | null
+          price: number
+          daily_booking_limit: number
+          reset_period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+          features?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          code?: 'FREE' | 'PRO'
+          description?: string | null
+          price?: number
+          daily_booking_limit?: number
+          reset_period?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+          features?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      empresas: {
+        Row: {
+          id: string
+          name: string
+          business_name: string | null
+          email: string | null
+          phone: string | null
+          address: string | null
+          city: string | null
+          state: string | null
+          country: string | null
+          postal_code: string | null
+          tax_id: string | null
+          logo_url: string | null
+          website: string | null
+          plan_id: string | null
+          plan_updated_at: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          business_name?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          postal_code?: string | null
+          tax_id?: string | null
+          logo_url?: string | null
+          website?: string | null
+          plan_id?: string | null
+          plan_updated_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          business_name?: string | null
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          postal_code?: string | null
+          tax_id?: string | null
+          logo_url?: string | null
+          website?: string | null
+          plan_id?: string | null
+          plan_updated_at?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      plan_type: 'FREE' | 'PRO'
+      reset_period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    }
+  }
 } 

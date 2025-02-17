@@ -38,6 +38,9 @@ import { Zap } from "lucide-react"
 import { UpgradeModal } from "@/components/modals/upgrade-modal"
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
+import { motion } from 'framer-motion'
+import { BookingLimitStatus } from '@/components/booking/BookingLimitStatus'
+import { PromoCard } from "@/components/sidebar/PromoCard"
 
 // Función auxiliar para obtener las iniciales
 function getInitials(name: string | null | undefined): string {
@@ -332,39 +335,6 @@ function SidebarFooter() {
   )
 }
 
-function PromoCard() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-
-  return (
-    <>
-      <div className="px-3 mb-4">
-        <div 
-          onClick={() => setIsModalOpen(true)}
-          className="p-3.5 rounded-xl bg-gradient-to-br from-gray-50/80 to-gray-100/30 border border-gray-200/40 cursor-pointer hover:bg-gray-50/40 transition-colors"
-        >
-          <div className="flex items-start">
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Zap className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <div className="flex-1 ml-2.5">
-              <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-900">Upgrade</h4>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                Obtenga acceso Pro | Simple Link
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <UpgradeModal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-    </>
-  )
-}
-
 function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()
@@ -500,6 +470,51 @@ function SettingsView({
   )
 }
 
+function SidebarContent() {
+  const pathname = usePathname()
+  
+  return (
+    <>
+      <div className="pt-3">
+        <SidebarHeader />
+      </div>
+      <ScrollArea className="flex-1">
+        <nav className="flex flex-col gap-1 px-3 mt-6">
+          {menuItems.map((item) => (
+            <Link 
+              key={item.href} 
+              href={item.href}
+              className={cn(
+                "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
+                "border border-transparent",
+                "group",
+                isRouteActive(pathname, item.href)
+                  ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                  : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
+                item.exact ? "exact-match" : "partial-match"
+              )}
+            >
+              <item.icon 
+                className={cn(
+                  "w-3.5 h-3.5 transition-transform duration-200 ease-out",
+                  "group-hover:scale-110",
+                  item.title === "Links" && "-scale-x-100"
+                )} 
+              />
+              {item.title}
+              {isRouteActive(pathname, item.href) && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+              )}
+            </Link>
+          ))}
+        </nav>
+      </ScrollArea>
+      <PromoCard />
+      <SidebarFooter />
+    </>
+  )
+}
+
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -510,6 +525,8 @@ export function Sidebar({ className }: SidebarProps) {
   const [activeSettingsTab, setActiveSettingsTab] = useState("company")
   const [previousPath, setPreviousPath] = useState<string | null>(null)
   const handleSignOut = useSignOut()
+  const { user } = useAuth()
+  const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     setIsVisible(!shouldHideSidebar(pathname))

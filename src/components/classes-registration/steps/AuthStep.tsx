@@ -12,6 +12,9 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { StepHeader } from '../shared/StepSection'
 import { RegisterForm } from '../components/RegisterForm'
+import { vinculacionService } from '@/services/vinculacionService'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/types/supabase'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -56,6 +59,40 @@ export function AuthStep({ onLoginSuccess }: AuthStepProps) {
       const userRole = result.user.role
       if (!['client', 'admin', 'superadmin'].includes(userRole)) {
         throw new Error('No tienes permisos para acceder a esta sección')
+      }
+
+      // Obtener el slug del returnUrl
+      let slug = ''
+      if (returnUrl) {
+        const decodedUrl = decodeURIComponent(returnUrl)
+        const match = decodedUrl.match(/\/clases\/([^\/]+)/)
+        if (match && match[1]) {
+          slug = match[1]
+        }
+      }
+
+      // Si tenemos slug, obtener el empresa_id y crear la vinculación
+      if (slug) {
+        try {
+          const supabase = createClientComponentClient<Database>()
+          
+          // Obtener el empresa_id usando el slug
+          const { data: link, error: linkError } = await supabase
+            .from('company_links')
+            .select('empresa_id')
+            .eq('slug', slug)
+            .eq('is_active', true)
+            .single()
+
+          if (linkError) throw linkError
+          if (!link) throw new Error('No se encontró el link de la empresa')
+
+          // Crear la vinculación usando el empresa_id real
+          await vinculacionService.createVinculacion(result.user.id, link.empresa_id)
+        } catch (vinculacionError) {
+          console.error('Error al crear vinculación:', vinculacionError)
+          // No interrumpimos el flujo si falla la vinculación
+        }
       }
 
       toast.success('Inicio de sesión exitoso')

@@ -6,6 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+export type PlanType = 'FREE' | 'PRO'
+export type ResetPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+
 export interface Database {
   public: {
     Tables: {
@@ -27,6 +30,9 @@ export interface Database {
           plan_type: string | null
           onboarding: string | null
           country: string | null
+          zip_code: string | null
+          plan_id: string | null
+          plan_updated_at: string | null
         }
         Insert: {
           id?: string
@@ -45,6 +51,9 @@ export interface Database {
           plan_type?: string | null
           onboarding?: string | null
           country?: string | null
+          zip_code?: string | null
+          plan_id?: string | null
+          plan_updated_at?: string | null
         }
         Update: {
           id?: string
@@ -63,6 +72,9 @@ export interface Database {
           plan_type?: string | null
           onboarding?: string | null
           country?: string | null
+          zip_code?: string | null
+          plan_id?: string | null
+          plan_updated_at?: string | null
         }
       },
       courts: {
@@ -525,16 +537,64 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+      },
+      subscription_plans: {
+        Row: {
+          id: string
+          name: string
+          code: PlanType
+          description: string | null
+          price: number
+          daily_booking_limit: number
+          reset_period: ResetPeriod
+          features: Json | null
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          code: PlanType
+          description?: string | null
+          price: number
+          daily_booking_limit: number
+          reset_period: ResetPeriod
+          features?: Json | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          code?: PlanType
+          description?: string | null
+          price?: number
+          daily_booking_limit?: number
+          reset_period?: ResetPeriod
+          features?: Json | null
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_booking_count: {
+        Args: {
+          p_empresa_id: string
+          p_date: string
+        }
+        Returns: number
+      }
     }
     Enums: {
-      [_ in never]: never
+      plan_type: PlanType
+      reset_period: ResetPeriod
     }
   }
 } 

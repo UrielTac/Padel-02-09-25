@@ -10,6 +10,7 @@ import type { ClassRegistrationError } from '../types/error'
 import type { AuthView } from '../types/registration'
 import type { ReactNode } from 'react'
 import type { Database } from '@/types/supabase'
+import { vinculacionService } from '@/services/vinculacionService'
 
 // Definir el tipo AuthUser localmente basado en nuestro sistema
 interface AuthUser {
@@ -137,11 +138,48 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
   const { organization, isLoading: orgLoading } = useClientOrganizationContext()
   const [state, dispatch] = useReducer(registrationReducer, initialState)
   const [hasInitialized, setHasInitialized] = useState(false)
+  const [isCheckingVinculacion, setIsCheckingVinculacion] = useState(false)
+  const [hasCheckedVinculacion, setHasCheckedVinculacion] = useState(false)
+
+  // Verificar vinculación cuando el usuario está autenticado
+  useEffect(() => {
+    if (!user?.id || !organization?.id || hasCheckedVinculacion || isCheckingVinculacion) {
+      return
+    }
+
+    const userId = user.id
+    const realEmpresaId = organization.id
+
+    async function checkVinculacion() {
+      setIsCheckingVinculacion(true)
+      try {
+        // Intentar obtener la vinculación existente
+        const vinculacion = await vinculacionService.getVinculacion(userId, realEmpresaId)
+        
+        // Si no existe vinculación, crearla
+        if (!vinculacion) {
+          await vinculacionService.createVinculacion(userId, realEmpresaId)
+        }
+      } catch (error) {
+        console.error('Error al verificar/crear vinculación:', error)
+      } finally {
+        setIsCheckingVinculacion(false)
+        setHasCheckedVinculacion(true)
+      }
+    }
+
+    checkVinculacion()
+  }, [user?.id, organization?.id, hasCheckedVinculacion, isCheckingVinculacion])
+
+  // Resetear el estado de verificación cuando cambia el usuario o la empresa
+  useEffect(() => {
+    setHasCheckedVinculacion(false)
+  }, [user?.id, organization?.id])
 
   // Memoizamos el valor de isLoading
   const isLoading = useMemo(() => {
-    return isLoadingAuth || (orgLoading && !organization)
-  }, [isLoadingAuth, orgLoading, organization])
+    return isLoadingAuth || (orgLoading && !organization) || isCheckingVinculacion
+  }, [isLoadingAuth, orgLoading, organization, isCheckingVinculacion])
 
   // Modificamos el efecto de inicialización para no redireccionar automáticamente
   useEffect(() => {

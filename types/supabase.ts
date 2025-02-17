@@ -100,6 +100,8 @@ export interface Database {
           settings: Record<string, any>
           created_at: string
           updated_at: string
+          plan_type: 'FREE' | 'PRO'
+          plan_id: string | null
         }
         Insert: {
           id?: string
@@ -117,6 +119,8 @@ export interface Database {
           settings?: Record<string, any>
           created_at?: string
           updated_at?: string
+          plan_type?: 'FREE' | 'PRO'
+          plan_id?: string | null
         }
         Update: {
           id?: string
@@ -134,6 +138,8 @@ export interface Database {
           settings?: Record<string, any>
           created_at?: string
           updated_at?: string
+          plan_type?: 'FREE' | 'PRO'
+          plan_id?: string | null
         }
       }
       admin_profiles: {
