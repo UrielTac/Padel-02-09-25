@@ -315,70 +315,99 @@ export const bookingQueryService = {
     }
   },
 
-  async cancelBooking(bookingId: string, reason?: string): Promise<ServiceResponse<any>> {
+  async cancelBooking(
+    bookingId: string, 
+    reason?: string,
+    shouldCharge?: boolean
+  ): Promise<ServiceResponse<any>> {
     try {
-      console.log('🔄 Cancelando reserva:', {
-        bookingId,
-        reason,
-        timestamp: new Date().toISOString()
-      })
-
       const supabase = getSupabaseInstance()
-      
-      // Primero, obtenemos el estado actual de la reserva
-      const { data: currentBooking, error: fetchError } = await supabase
+
+      // Obtener la reserva actual para verificar si es elegible para cargo por no-show
+      const { data: booking, error: fetchError } = await supabase
         .from('bookings')
-        .select('payment_status, total_price, deposit_amount')
+        .select('*')
         .eq('id', bookingId)
         .single()
 
       if (fetchError) {
-        console.error('❌ Error al obtener la reserva:', fetchError)
         return {
           error: {
             message: 'Error al obtener la reserva',
-            code: 'DB_ERROR',
+            code: 'FETCH_ERROR',
             details: fetchError.message
           }
         }
       }
 
-      // Actualizamos el estado basado en el pago actual
-      const depositAmount = currentBooking?.deposit_amount || 0
-      const newStatus = depositAmount > 0 ? 'partial' : 'pending'
-      
-      const { data: booking, error: updateError } = await supabase
-        .from('bookings')
-        .update({
-          payment_status: newStatus,
-          cancellation_reason: reason || null,
-          cancelled_at: new Date().toISOString(),
-          is_cancelled: true // Campo adicional para tracking
-        })
-        .eq('id', bookingId)
-        .select()
-        .single()
-
-      if (updateError) {
-        console.error('❌ Error al cancelar reserva:', updateError)
+      if (!booking) {
         return {
           error: {
-            message: 'Error al cancelar la reserva',
-            code: 'DB_ERROR',
-            details: updateError.message
+            message: 'Reserva no encontrada',
+            code: 'BOOKING_NOT_FOUND'
           }
         }
       }
 
-      console.log('✅ Reserva cancelada exitosamente:', booking)
-      return { data: booking }
-    } catch (error: any) {
-      console.error('❌ Error general al cancelar reserva:', error)
+      // Verificar si se debe aplicar el cargo por no-show
+      if (shouldCharge && booking.payment_type === 'guarantee') {
+        const chargeAmount = booking.total_price * 0.3 // 30% del total
+
+        // Registrar el cargo por no-show
+        const { error: chargeError } = await supabase
+          .from('bookings_payments')
+          .insert({
+            booking_id: bookingId,
+            amount: chargeAmount,
+            type: 'no_show_charge',
+            status: 'pending',
+            notes: `Cargo por no-show: ${reason || 'No se presentó'}`
+          })
+
+        if (chargeError) {
+          return {
+            error: {
+              message: 'Error al registrar el cargo por no-show',
+              code: 'CHARGE_ERROR',
+              details: chargeError.message
+            }
+          }
+        }
+      }
+
+      // Actualizar el estado de la reserva a cancelada
+      const { error: cancelError } = await supabase
+        .from('bookings')
+        .update({
+          payment_status: 'cancelled',
+          cancellation_reason: reason,
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', bookingId)
+
+      if (cancelError) {
+        return {
+          error: {
+            message: 'Error al cancelar la reserva',
+            code: 'CANCEL_ERROR',
+            details: cancelError.message
+          }
+        }
+      }
+
+      return {
+        data: {
+          message: 'Reserva cancelada exitosamente',
+          charged: shouldCharge || false
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error en cancelBooking:', error)
       return {
         error: {
-          message: 'Error inesperado al cancelar la reserva',
-          code: 'UNEXPECTED_ERROR',
-          details: error.message
+          message: 'Error al procesar la cancelación',
+          code: 'PROCESS_ERROR',
+          details: (error as Error).message
         }
       }
     }

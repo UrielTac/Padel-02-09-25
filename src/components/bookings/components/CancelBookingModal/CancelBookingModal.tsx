@@ -4,22 +4,35 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { IconAlertCircle } from '@tabler/icons-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface CancelBookingModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (reason?: string) => void
+  onConfirm: (params: { reason?: string; shouldCharge?: boolean }) => void
+  hasGuarantee?: boolean
+  totalAmount?: number
 }
 
 export function CancelBookingModal({
   isOpen,
   onClose,
-  onConfirm
+  onConfirm,
+  hasGuarantee = false,
+  totalAmount = 0
 }: CancelBookingModalProps) {
   const [reason, setReason] = useState('')
+  const [shouldCharge, setShouldCharge] = useState(false)
 
-  const handleConfirm = (reason?: string) => {
-    onConfirm(reason)
+  // Calcular el monto del cargo (30%)
+  const chargeAmount = totalAmount * 0.3
+
+  const handleConfirm = () => {
+    onConfirm({
+      reason,
+      shouldCharge: hasGuarantee && shouldCharge
+    })
   }
 
   if (!isOpen) return null
@@ -63,34 +76,66 @@ export function CancelBookingModal({
               </div>
 
               {/* Content */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Motivo de la cancelación
-                </label>
-                <textarea
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="Escribe el motivo de la cancelación (opcional)"
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg",
-                    "border border-gray-200 bg-white",
-                    "focus:outline-none focus:border-gray-300",
-                    "transition-colors duration-200",
-                    "placeholder:text-gray-400",
-                    "text-sm",
-                    "h-24 resize-none"
-                  )}
-                />
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Motivo de la cancelación
+                  </label>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    placeholder="Escribe el motivo de la cancelación (opcional)"
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg",
+                      "border border-gray-200 bg-white",
+                      "focus:outline-none focus:border-gray-300",
+                      "transition-colors duration-200",
+                      "placeholder:text-gray-400",
+                      "text-sm",
+                      "h-24 resize-none"
+                    )}
+                  />
+                </div>
+
+                {/* Opción de cargo por no-show solo si hay garantía */}
+                {hasGuarantee && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="shouldCharge"
+                        checked={shouldCharge}
+                        onCheckedChange={(checked) => setShouldCharge(checked as boolean)}
+                      />
+                      <label 
+                        htmlFor="shouldCharge" 
+                        className="text-sm text-gray-700 cursor-pointer"
+                      >
+                        Aplicar cargo por no presentarse (30% del total)
+                      </label>
+                    </div>
+
+                    {shouldCharge && (
+                      <Alert variant="warning" className="bg-yellow-50/50">
+                        <AlertDescription>
+                          Se realizará un cargo de {new Intl.NumberFormat('es-ES', {
+                            style: 'currency',
+                            currency: 'EUR'
+                          }).format(chargeAmount)} a la tarjeta registrada como garantía.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Footer */}
               <div className="flex gap-3">
                 <Button
-                  onClick={() => handleConfirm(reason)}
+                  onClick={handleConfirm}
                   variant="outline"
                   className="flex-1 border-gray-200 hover:border-red-100 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
                 >
-                  Cancelar Reserva
+                  {shouldCharge ? 'Cancelar y Aplicar Cargo' : 'Cancelar Reserva'}
                 </Button>
                 <Button
                   onClick={onClose}

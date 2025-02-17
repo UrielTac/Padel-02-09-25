@@ -134,15 +134,307 @@ export interface Payment {
 3. [ ] Actualizar tipos en la base de datos
 
 ### Fase 3: No-Show [PENDIENTE]
-- [ ] Implementar endpoint de cargo
-  - [ ] Validar permisos
-  - [ ] Calcular monto basado en porcentaje configurado
-  - [ ] Crear Payment Intent
-  - [ ] Procesar cargo
-- [ ] Implementar notificaciones
-  - [ ] Email al cliente
-  - [ ] Notificación al club
-  - [ ] Registro en el sistema
+
+#### 3.1 Flujo Detallado de No-Show
+
+1. **Trigger del Proceso**
+   - Usuario hace clic en "Cancelar Reserva" en ViewBookingModal
+   - Se muestra modal de confirmación con opciones:
+     - Cancelar sin cargo
+     - Cancelar con cargo por no-show (30%)
+
+2. **Validaciones Previas**
+   - Verificar que la reserva tiene una garantía válida
+   - Comprobar que el método de pago sigue siendo válido
+   - Validar que el club tiene permisos para realizar el cargo
+   - Verificar que no se ha realizado un cargo previo
+
+3. **Proceso de Cargo**
+   ```typescript
+   interface NoShowChargeParams {
+     bookingId: string;
+     reason: string;
+     shouldCharge: boolean;
+   }
+
+   async function handleNoShow({
+     bookingId,
+     reason,
+     shouldCharge
+   }: NoShowChargeParams) {
+     // 1. Obtener datos necesarios
+     const [booking, guarantee] = await Promise.all([
+       getBookingDetails(bookingId),
+       getGuaranteePayment(bookingId)
+     ]);
+
+     // 2. Validaciones
+     if (shouldCharge) {
+       await validateChargeEligibility(booking, guarantee);
+     }
+
+     // 3. Proceso de cargo
+     if (shouldCharge) {
+       const chargeAmount = calculateNoShowCharge(booking.total_price);
+       
+       // Crear Payment Intent
+       const paymentIntent = await stripe.paymentIntents.create({
+         amount: Math.round(chargeAmount * 100),
+         currency: 'eur',
+         payment_method: guarantee.stripe_payment_method_id,
+         customer: guarantee.stripe_customer_id,
+         off_session: true,
+         confirm: true,
+         metadata: {
+           booking_id: bookingId,
+           charge_type: 'no_show',
+           original_guarantee_id: guarantee.id
+         }
+       }, {
+         stripeAccount: guarantee.stripe_account_id
+       });
+
+       // Registrar el cargo en la base de datos
+       await createNoShowPaymentRecord({
+         bookingId,
+         paymentIntent,
+         guarantee,
+         chargeAmount,
+         reason
+       });
+     }
+
+     // 4. Actualizar estado de la reserva
+     await updateBookingStatus(bookingId, {
+       cancelled: true,
+       cancellationReason: reason,
+       chargeApplied: shouldCharge
+     });
+
+     // 5. Enviar notificaciones
+     await sendNotifications({
+       booking,
+       chargeApplied: shouldCharge,
+       chargeAmount
+     });
+   }
+   ```
+
+4. **Manejo de Errores**
+   ```typescript
+   async function validateChargeEligibility(booking: Booking, guarantee: Payment) {
+     const errors: string[] = [];
+
+     // Validar estado de la reserva
+     if (booking.cancelled_at) {
+       errors.push('La reserva ya está cancelada');
+     }
+
+     // Validar garantía
+     if (!guarantee || guarantee.payment_type !== 'guarantee') {
+       errors.push('No existe una garantía válida para esta reserva');
+     }
+
+     // Validar método de pago
+     if (guarantee && !guarantee.stripe_payment_method_id) {
+       errors.push('No hay un método de pago válido asociado');
+     }
+
+     // Validar que no hay un cargo previo
+     const existingCharge = await getExistingNoShowCharge(booking.id);
+     if (existingCharge) {
+       errors.push('Ya existe un cargo por no-show para esta reserva');
+     }
+
+     if (errors.length > 0) {
+       throw new ValidationError(errors.join('. '));
+     }
+   }
+   ```
+
+5. **Notificaciones y Registro**
+   ```typescript
+   async function sendNotifications({
+     booking,
+     chargeApplied,
+     chargeAmount
+   }: NotificationParams) {
+     // Email al cliente
+     await sendCustomerEmail({
+       type: chargeApplied ? 'no_show_charge' : 'cancellation',
+       booking,
+       chargeAmount
+     });
+
+     // Notificación al club
+     await sendClubNotification({
+       type: 'booking_cancelled',
+       booking,
+       chargeApplied,
+       chargeAmount
+     });
+
+     // Registro en el sistema
+     await logBookingEvent({
+       type: chargeApplied ? 'no_show_charge' : 'cancellation',
+       bookingId: booking.id,
+       metadata: {
+         chargeApplied,
+         chargeAmount
+       }
+     });
+   }
+   ```
+
+#### 3.2 Modificaciones en la UI
+
+1. **CancelBookingModal.tsx**
+   - Agregar opción para seleccionar tipo de cancelación
+   - Mostrar información sobre el cargo por no-show
+   - Incluir confirmación adicional para cargo
+
+2. **ViewBookingModal.tsx**
+   - Actualizar lógica de cancelación
+   - Integrar nuevo flujo de no-show
+   - Mostrar estado de cargo en caso de cancelación
+
+3. **Componentes Nuevos**
+   ```typescript
+   interface NoShowConfirmationProps {
+     booking: Booking;
+     onConfirm: (params: NoShowChargeParams) => Promise<void>;
+     onCancel: () => void;
+   }
+
+   function NoShowConfirmationModal({
+     booking,
+     onConfirm,
+     onCancel
+   }: NoShowConfirmationProps) {
+     const [reason, setReason] = useState('');
+     const [shouldCharge, setShouldCharge] = useState(false);
+     const chargeAmount = useMemo(() => 
+       calculateNoShowCharge(booking.total_price),
+       [booking.total_price]
+     );
+
+     return (
+       <Modal>
+         <ModalHeader>
+           Confirmar Cancelación
+         </ModalHeader>
+         <ModalBody>
+           <div className="space-y-4">
+             <div>
+               <Label>Razón de cancelación</Label>
+               <Textarea
+                 value={reason}
+                 onChange={(e) => setReason(e.target.value)}
+                 placeholder="Ingrese la razón de la cancelación"
+               />
+             </div>
+             
+             <div className="flex items-center gap-2">
+               <Checkbox
+                 checked={shouldCharge}
+                 onCheckedChange={setShouldCharge}
+               />
+               <Label>
+                 Aplicar cargo por no-show ({formatPrice(chargeAmount)})
+               </Label>
+             </div>
+
+             {shouldCharge && (
+               <Alert variant="warning">
+                 <AlertTitle>Importante</AlertTitle>
+                 <AlertDescription>
+                   Se realizará un cargo del 30% del valor total de la reserva
+                   ({formatPrice(chargeAmount)}) a la tarjeta registrada.
+                 </AlertDescription>
+               </Alert>
+             )}
+           </div>
+         </ModalBody>
+         <ModalFooter>
+           <Button variant="ghost" onClick={onCancel}>
+             Cancelar
+           </Button>
+           <Button 
+             variant="destructive"
+             onClick={() => onConfirm({
+               bookingId: booking.id,
+               reason,
+               shouldCharge
+             })}
+           >
+             Confirmar Cancelación
+           </Button>
+         </ModalFooter>
+       </Modal>
+     );
+   }
+   ```
+
+#### 3.3 Endpoints Necesarios
+
+1. **Validación de Cargo**
+   ```typescript
+   // POST /api/bookings/[id]/validate-no-show
+   async function validateNoShowCharge(
+     req: NextApiRequest,
+     res: NextApiResponse
+   ) {
+     const { id } = req.query;
+     
+     try {
+       const validation = await validateChargeEligibility(id as string);
+       res.status(200).json(validation);
+     } catch (error) {
+       handleApiError(error, res);
+     }
+   }
+   ```
+
+2. **Proceso de Cargo**
+   ```typescript
+   // POST /api/bookings/[id]/charge-no-show
+   async function processNoShowCharge(
+     req: NextApiRequest,
+     res: NextApiResponse
+   ) {
+     const { id } = req.query;
+     const { reason, shouldCharge } = req.body;
+     
+     try {
+       const result = await handleNoShow({
+         bookingId: id as string,
+         reason,
+         shouldCharge
+       });
+       
+       res.status(200).json(result);
+     } catch (error) {
+       handleApiError(error, res);
+     }
+   }
+   ```
+
+#### 3.4 Pruebas y Validación
+
+1. **Casos de Prueba**
+   - Cancelación sin cargo
+   - Cancelación con cargo exitoso
+   - Cancelación con cargo fallido
+   - Intentos de cargo duplicado
+   - Cancelación sin garantía válida
+   - Errores de Stripe
+   - Timeouts y reintentos
+
+2. **Monitoreo**
+   - Logging de todos los intentos de cargo
+   - Métricas de éxito/fallo
+   - Alertas para cargos fallidos
+   - Dashboard de cancelaciones
 
 ### Fase 4: Testing
 - [ ] Pruebas de integración
