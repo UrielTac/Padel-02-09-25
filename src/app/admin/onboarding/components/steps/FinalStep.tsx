@@ -20,6 +20,7 @@ export function FinalStep() {
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
     const duration = 2500 // Duración total por mensaje
@@ -142,7 +143,9 @@ export function FinalStep() {
                   ¡Todo listo para comenzar!
                 </h2>
                 <p className="text-sm text-gray-500">
-                  Este será el link de reservación para tus clientes
+                  {isRedirecting 
+                    ? 'Redirigiendo al inicio de sesión...'
+                    : 'Serás redirigido al inicio de sesión en unos momentos.'}
                 </p>
               </div>
 

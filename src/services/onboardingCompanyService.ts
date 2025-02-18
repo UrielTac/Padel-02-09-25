@@ -34,17 +34,34 @@ class OnboardingCompanyService {
         return { data: existingCompany, error: null }
       }
 
-      // 2. Si no existe, crear una nueva con valores por defecto
+      // 2. Obtener el plan FREE por defecto
+      const { data: freePlan, error: planError } = await supabase
+        .from('subscription_plans')
+        .select('id')
+        .eq('code', 'FREE')
+        .single()
+
+      if (planError) {
+        console.error('Error al obtener plan FREE:', planError)
+        throw planError
+      }
+
+      // 3. Crear nueva empresa con los valores correctos
       console.log('📝 Creando nueva empresa para el usuario')
       
+      const now = new Date().toISOString()
       const { data: newCompany, error: createError } = await supabase
         .from('empresas')
         .insert({
           name: 'Nueva Empresa',
           auth_user_id: userId,
           is_active: true,
-          plan_type: 'Free',
-          onboarding: 'Empresa'
+          plan_type: 'FREE',
+          plan_id: freePlan.id,
+          plan_updated_at: now,
+          onboarding: 'Empresa',
+          created_at: now,
+          updated_at: now
         })
         .select()
         .single()
@@ -86,7 +103,7 @@ class OnboardingCompanyService {
         throw new Error('El formato del email no es válido')
       }
 
-      // Actualizar empresa
+      // Actualizar empresa preservando campos del plan
       const { data: updatedCompany, error: updateError } = await supabase
         .from('empresas')
         .update({
@@ -95,7 +112,9 @@ class OnboardingCompanyService {
           email: data.email.trim(),
           phone: data.phone.trim(),
           country: data.country.trim(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          // No actualizamos plan_type, plan_id, ni plan_updated_at aquí
+          // ya que esos campos se manejan en otro flujo
         })
         .eq('auth_user_id', userId)
         .select()

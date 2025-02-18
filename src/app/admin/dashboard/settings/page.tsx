@@ -4,6 +4,7 @@ import { CompanySettings } from "@/components/settings/CompanySettings"
 import { BranchSettings } from "@/components/settings/BranchSettings"
 import { BillingSettings } from "@/components/settings/BillingSettings"
 import { MembersSettings } from "@/components/settings/MembersSettings"
+import { UserSettings } from "@/components/settings/UserSettings"
 import { useAuth } from "@/contexts/AuthContext"
 import { useBranchContext } from '@/contexts/BranchContext'
 import { useSearchParams } from 'next/navigation'
@@ -12,8 +13,9 @@ const SETTINGS_COMPONENTS = {
   company: CompanySettings,
   branches: BranchSettings,
   integrations: BillingSettings,
-  members: MembersSettings
-}
+  members: MembersSettings,
+  user: UserSettings
+} as const
 
 export default function SettingsPage() {
   const { isLoading: isLoadingAuth } = useAuth()

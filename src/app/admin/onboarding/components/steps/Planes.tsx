@@ -24,6 +24,7 @@ import { subscriptionService } from "@/services/subscriptionService"
 import { PAYPAL_CONFIG } from '@/config/paypal'
 import { useAuth } from '@/contexts/AuthContext'
 import type { PlanType } from '@/types/supabase'
+import { onboardingCompanyService } from "@/services/onboardingCompanyService"
 
 interface PlanFeature {
   name: string
@@ -123,18 +124,28 @@ export function Planes() {
         return
       }
 
-      const empresaId = user.metadata.empresa_id
+      // Primero intentamos obtener el empresa_id de los metadatos
+      let empresaId = user.user_metadata?.empresa_id || user.metadata?.empresa_id
+
+      // Si no está en los metadatos, intentamos obtenerlo de la base de datos
       if (!empresaId) {
-        console.error('❌ No se encontró el ID de la empresa en los metadatos del usuario')
-        toast({
-          variant: "destructive",
-          title: "Error al actualizar el plan",
-          description: "No se pudo identificar la empresa. Por favor, contacta con soporte."
-        })
-        return
+        console.log('📍 Buscando empresa_id en la base de datos...')
+        const { data: empresa, error } = await onboardingCompanyService.getOrCreateCompany(user.id)
+        
+        if (error) {
+          console.error('❌ Error al obtener empresa:', error)
+          throw new Error('No se pudo obtener la información de la empresa')
+        }
+
+        if (!empresa?.id) {
+          throw new Error('No se encontró el ID de la empresa')
+        }
+
+        empresaId = empresa.id
+        console.log('✅ empresa_id obtenido de la base de datos:', empresaId)
       }
 
-      console.log('📍 Datos recibidos de PayPal:', data)
+      console.log('📍 Procesando suscripción con empresa_id:', empresaId)
       
       // Calculamos la fecha de expiración
       const expiresAt = new Date()
@@ -166,21 +177,22 @@ export function Planes() {
         // Actualizar el plan de la empresa
         await empresaService.updatePlanType(empresaId, 'PRO')
         
-        // Usar el método del contexto de autenticación
+        // Actualizar metadatos del usuario
         await updateUserMetadata({
           plan_type: 'PRO',
-          plan_updated_at: new Date().toISOString()
+          plan_updated_at: new Date().toISOString(),
+          empresa_id: empresaId // Asegurarnos de que el empresa_id esté en los metadatos
         })
 
         console.log('✅ Plan y suscripción actualizados exitosamente')
         setShowSuccessPayment(true)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error al actualizar la suscripción:', error)
       toast({
         variant: "destructive",
         title: "Error al actualizar el plan",
-        description: "Hubo un problema al actualizar tu plan. Por favor, contacta con soporte."
+        description: error.message || "Hubo un problema al actualizar tu plan. Por favor, contacta con soporte."
       })
     }
   }

@@ -17,47 +17,64 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
   const supabase = createSupabaseClient()
   
   try {
+    // Consulta optimizada usando join implícito
     const { data: empresa, error: empresaError } = await supabase
       .from('empresas')
-      .select('plan_id, plan_updated_at, plan_type')
+      .select(`
+        plan_type,
+        plan_id,
+        plan_updated_at,
+        subscription_plans!inner (
+          daily_booking_limit,
+          code
+        )
+      `)
       .eq('id', empresaId)
       .single()
 
     if (empresaError) {
+      console.error('❌ Error al obtener información de empresa:', empresaError)
       throw new Error(`Empresa no encontrada: ${empresaError.message}`)
     }
 
-    // Si es PRO, retornar inmediatamente sin consultar más datos
-    if (empresa?.plan_type === 'PRO') {
+    // Asegurar que tenemos los datos necesarios
+    if (!empresa || !empresa.plan_updated_at) {
+      throw new Error('Datos de empresa incompletos')
+    }
+
+    // Usar plan_type de la empresa como fuente de verdad
+    const isPro = empresa.plan_type === 'PRO'
+
+    // Para planes PRO, retornar límite infinito
+    if (isPro) {
       return {
         isPro: true,
         limit: Number.MAX_SAFE_INTEGER,
-        planUpdatedAt: new Date().toISOString()
+        planUpdatedAt: empresa.plan_updated_at
       }
     }
 
-    // Solo consultar el plan si no es PRO
-    const { data: plan, error: planError } = await supabase
-      .from('subscription_plans')
-      .select('code, daily_booking_limit')
-      .eq('id', empresa?.plan_id || '')
-      .single()
+    // Para planes FREE, usar la configuración de subscription_plans
+    const planConfig = Array.isArray(empresa.subscription_plans) 
+      ? empresa.subscription_plans[0] 
+      : empresa.subscription_plans
 
-    if (planError) {
-      return {
-        isPro: false,
-        limit: 90,
-        planUpdatedAt: empresa?.plan_updated_at || new Date().toISOString()
-      }
-    }
+    console.log('📍 Plan Info:', {
+      empresaId,
+      planType: empresa.plan_type,
+      planId: empresa.plan_id,
+      planUpdatedAt: empresa.plan_updated_at,
+      subscriptionPlan: empresa.subscription_plans
+    })
 
     return {
-      isPro: plan.code === 'PRO',
-      limit: plan.daily_booking_limit,
-      planUpdatedAt: empresa.plan_updated_at || new Date().toISOString()
+      isPro: false,
+      limit: planConfig?.daily_booking_limit ?? 90, // Valor por defecto si no se encuentra el plan
+      planUpdatedAt: empresa.plan_updated_at
     }
   } catch (error: any) {
     console.error('❌ Error al obtener información del plan:', error)
+    // Valores por defecto en caso de error
     return {
       isPro: false,
       limit: 90,

@@ -18,8 +18,8 @@ interface BillingOption {
   id: BillingPeriod
   title: string
   price: number
+  monthlyPrice?: number
   period: string
-  description?: string
   savings?: string
 }
 
@@ -44,24 +44,23 @@ export function PaymentForm({
       id: "monthly",
       title: "Pago mensual",
       price: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price,
-      period: "/mes",
-      description: "Ideal para empezar"
+      period: "/mes"
     },
     {
       id: "quarterly",
       title: "Pago trimestral",
       price: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price,
+      monthlyPrice: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price / 3,
       period: "/mes",
-      savings: "Ahorra 10%",
-      description: "Mayor flexibilidad"
+      savings: "Ahorra 10%"
     },
     {
       id: "annually",
       title: "Pago anual",
-      price: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY.price / 12, // Convertir a precio mensual
+      price: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY.price,
+      monthlyPrice: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY.price / 12,
       period: "/mes",
-      savings: "Ahorra 35%",
-      description: "Mejor valor"
+      savings: "Ahorra 35%"
     }
   ]
 
@@ -195,29 +194,55 @@ export function PaymentForm({
                           {option.title}
                         </span>
                         {option.savings && (
-                          <span className="px-2 py-0.5 rounded-full bg-emerald-50/50 text-emerald-700 text-[11px] font-normal">
+                          <span className="text-emerald-600 text-[11px] font-medium">
                             {option.savings}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-base font-medium text-zinc-900">
-                          €{option.price.toFixed(2)}
-                        </span>
-                        <span className="text-xs text-zinc-500 font-light">
-                          {option.period}
-                        </span>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-base font-medium text-zinc-900">
+                            €{(option.monthlyPrice || option.price).toFixed(2)}
+                          </span>
+                          <span className="text-xs text-zinc-500 font-light">
+                            {option.period}
+                          </span>
+                        </div>
+                        {option.monthlyPrice && (
+                          <p className="text-xs text-zinc-500 text-left">
+                            Total: €{option.price.toFixed(2)}
+                            {option.id === 'quarterly' ? ' / trimestre' : ' / año'}
+                          </p>
+                        )}
                       </div>
-                      {option.description && (
-                        <p className="text-xs text-zinc-500">
-                          {option.description}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </button>
               ))}
             </div>
+
+            {/* Mensaje de recomendación para plan anual */}
+            {selectedBilling === "annually" && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className={cn(
+                  "mt-3 p-3 rounded-lg",
+                  "bg-gradient-to-br from-emerald-50/50 to-emerald-50/30",
+                  "border border-emerald-100/50"
+                )}
+              >
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium text-emerald-800">
+                    Mejor elección
+                  </p>
+                  <p className="text-xs leading-relaxed text-emerald-600">
+                    El plan anual te ofrece el mejor valor, con un ahorro significativo del 35% y la tranquilidad de tener todas las funcionalidades PRO aseguradas por un año completo.
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {/* PayPal Button Section */}

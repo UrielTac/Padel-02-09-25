@@ -118,26 +118,31 @@ const menuItems = [
 
 const settingsMenuItems = [
   {
-    title: "Empresa",
+    label: "Empresa",
     value: "company",
     icon: Building2
   },
   {
-    title: "Sedes",
+    label: "Sucursales",
     value: "branches",
-    icon: FileSpreadsheet
-  },
-  {
-    title: "Integraciones",
-    value: "integrations",
     icon: Network
   },
   {
-    title: "Miembros",
+    label: "Integraciones",
+    value: "integrations",
+    icon: LinkIcon
+  },
+  {
+    label: "Miembros",
     value: "members",
     icon: Users2
+  },
+  {
+    label: "Usuario",
+    value: "user",
+    icon: Users
   }
-]
+] as const
 
 // Extraer la lógica de cierre de sesión a un hook personalizado
 function useSignOut() {
@@ -210,7 +215,6 @@ function SidebarHeader() {
               <h3 className="text-[15px] font-medium truncate">
                 {isLoading ? 'Cargando...' : isError ? 'Error al cargar sucursales' : truncateText(currentBranch?.name || 'Sin sucursal')}
               </h3>
-              <p className="text-sm text-gray-500 truncate">Plan gratuito</p>
             </div>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
           </div>
@@ -458,7 +462,7 @@ function SettingsView({
                   "group-hover:scale-110"
                 )} 
               />
-              {item.title}
+              {item.label}
               {activeTab === item.value && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
               )}

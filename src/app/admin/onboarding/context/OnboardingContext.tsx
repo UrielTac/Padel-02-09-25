@@ -71,7 +71,7 @@ const OnboardingContext = createContext<OnboardingContextType | undefined>(undef
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
   const [currentStep, setCurrentStep] = useState(0)
   const [completedSteps, setCompletedSteps] = useState<boolean[]>([false, false, false, false])
   const [formData, setFormData] = useState({})
@@ -263,6 +263,29 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const completeAndAdvance = async (step: number) => {
     try {
       await completeStep(step)
+      
+      // Si es el último paso (Planes)
+      if (step === steps.length - 1) {
+        // 1. Actualizar el estado de onboarding a "Completo"
+        if (user?.metadata?.empresa_id) {
+          await onboardingService.updateOnboardingStep(
+            user.metadata.empresa_id, 
+            'Completo'
+          )
+        }
+
+        // 2. Mostrar mensaje de éxito
+        toast.success('Configuración completada. Por favor, inicia sesión nuevamente.')
+        
+        // 3. Pequeño delay para asegurar que los datos se guardaron
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // 4. Cerrar sesión y redirigir
+        await signOut()
+        router.push('/admin/login')
+        return
+      }
+      
       setCurrentStep(step + 1)
     } catch (error) {
       console.error('Error al completar y avanzar:', error)
