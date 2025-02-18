@@ -81,8 +81,9 @@ export interface DatabaseError {
   details?: string
 }
 
-export type PaymentStatusEnum = 'pending' | 'partial' | 'completed'
+export type PaymentStatusEnum = 'pending' | 'partial' | 'completed' | 'cancelled'
 export type PaymentMethodEnum = 'cash' | 'stripe' | 'transfer'
+export type PaymentTypeEnum = 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
 
 export interface Member {
   id: string
@@ -250,4 +251,15 @@ export interface Database {
       reset_period: 'DAILY' | 'WEEKLY' | 'MONTHLY'
     }
   }
+}
+
+export interface Payment {
+  id: string
+  booking_id: string
+  amount: number
+  type: PaymentTypeEnum
+  status: PaymentStatusEnum
+  notes?: string
+  created_at: string
+  updated_at: string
 } 

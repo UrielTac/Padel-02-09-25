@@ -15,6 +15,7 @@ interface RegisterPaymentParams {
 interface CancelBookingParams {
   bookingId: string
   reason?: string
+  shouldCharge?: boolean
 }
 
 interface UseBookingsProps {

@@ -141,9 +141,12 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
-          payment_status: 'pending' | 'partial' | 'completed'
+          payment_status: 'pending' | 'partial' | 'completed' | 'cancelled'
           payment_method: 'cash' | 'stripe' | 'transfer' | null
+          payment_type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
           deposit_amount: number | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
           created_at: string
           updated_at: string
         }
@@ -165,9 +168,12 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
-          payment_status: 'pending' | 'partial' | 'completed'
+          payment_status: 'pending' | 'partial' | 'completed' | 'cancelled'
           payment_method?: 'cash' | 'stripe' | 'transfer'
+          payment_type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
           deposit_amount?: number
+          cancellation_reason?: string
+          cancelled_at?: string
           created_at?: string
           updated_at?: string
         }
@@ -188,9 +194,42 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
-          payment_status?: 'pending' | 'partial' | 'completed'
+          payment_status?: 'pending' | 'partial' | 'completed' | 'cancelled'
           payment_method?: 'cash' | 'stripe' | 'transfer'
+          payment_type?: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
           deposit_amount?: number
+          cancellation_reason?: string
+          cancelled_at?: string
+          updated_at?: string
+        }
+      },
+      bookings_payments: {
+        Row: {
+          id: string
+          booking_id: string
+          amount: number
+          type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
+          status: 'pending' | 'completed' | 'failed' | 'refunded'
+          notes: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          booking_id: string
+          amount: number
+          type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
+          status: 'pending' | 'completed' | 'failed' | 'refunded'
+          notes?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string
+          amount?: number
+          type?: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
+          status?: 'pending' | 'completed' | 'failed' | 'refunded'
+          notes?: string
           updated_at?: string
         }
       },

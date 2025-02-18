@@ -111,14 +111,50 @@
   {
     "table_schema": "public",
     "table_name": "payments",
-    "column_name": "payment_type",
-    "ordinal_position": 22,
-    "data_type": "USER-DEFINED",
+    "column_name": "stripe_payment_method_id",
+    "ordinal_position": 23,
+    "data_type": "text",
     "is_nullable": "YES",
     "character_maximum_length": null,
     "numeric_precision": null,
     "numeric_scale": null,
-    "column_default": "'booking'::payment_type"
+    "column_default": null
+  },
+  {
+    "table_schema": "public",
+    "table_name": "payments",
+    "column_name": "stripe_account_id",
+    "ordinal_position": 24,
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": null
+  },
+  {
+    "table_schema": "public",
+    "table_name": "payments",
+    "column_name": "parent_payment_id",
+    "ordinal_position": 25,
+    "data_type": "uuid",
+    "is_nullable": "YES",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": null
+  },
+  {
+    "table_schema": "public",
+    "table_name": "payments",
+    "column_name": "charge_reason",
+    "ordinal_position": 26,
+    "data_type": "text",
+    "is_nullable": "YES",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": null
   }
 ]
 
@@ -131,6 +167,14 @@
   {
     "indexname": "idx_payments_booking_id",
     "indexdef": "CREATE INDEX idx_payments_booking_id ON public.payments USING btree (booking_id)"
+  },
+  {
+    "indexname": "idx_payments_stripe_account",
+    "indexdef": "CREATE INDEX idx_payments_stripe_account ON public.payments USING btree (stripe_account_id)"
+  },
+  {
+    "indexname": "idx_payments_parent_payment",
+    "indexdef": "CREATE INDEX idx_payments_parent_payment ON public.payments USING btree (parent_payment_id)"
   }
 ]
 
@@ -138,6 +182,10 @@
 [
   {
     "constraint_name": "payments_booking_id_fkey",
+    "constraint_type": "FOREIGN KEY"
+  },
+  {
+    "constraint_name": "payments_parent_payment_id_fkey",
     "constraint_type": "FOREIGN KEY"
   },
   {
@@ -161,31 +209,17 @@
 -- Relaciones (Llaves foráneas)
 [
   {
+    "foreign_key": "parent_payment_id",
+    "referenced_table": "payments",
+    "referenced_column": "id"
+  },
+  {
     "foreign_key": "booking_id",
     "referenced_table": "bookings",
     "referenced_column": "id"
   }
 ]
 
--- Funciones o triggers relacionados con la tabla payments
-[
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_106265",
-    "trigger_type": 5,
-    "arguments": {
-      "type": "Buffer",
-      "data": []
-    }
-  },
-  {
-    "trigger_name": "RI_ConstraintTrigger_c_106266",
-    "trigger_type": 17,
-    "arguments": {
-      "type": "Buffer",
-      "data": []
-    }
-  }
-]
 
 -- Detalles de los triggers relacionados con la tabla 'payments'
 [
@@ -200,6 +234,48 @@
   },
   {
     "trigger_name": "RI_ConstraintTrigger_c_106266",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "DELETE"
+    ],
+    "table_name": "payments",
+    "table_schema": "public",
+    "function_name": "RI_FKey_check_upd",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_215241",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "INSERT"
+    ],
+    "table_name": "payments",
+    "table_schema": "public",
+    "function_name": "RI_FKey_noaction_del",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_del\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_del$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_a_215242",
+    "trigger_timing": "AFTER",
+    "trigger_events": [
+      "DELETE"
+    ],
+    "table_name": "payments",
+    "table_schema": "public",
+    "function_name": "RI_FKey_noaction_upd",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_noaction_upd\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_noaction_upd$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_215243",
+    "trigger_timing": "AFTER",
+    "trigger_events": [],
+    "table_name": "payments",
+    "table_schema": "public",
+    "function_name": "RI_FKey_check_ins",
+    "function_definition": "CREATE OR REPLACE FUNCTION pg_catalog.\"RI_FKey_check_ins\"()\n RETURNS trigger\n LANGUAGE internal\n PARALLEL SAFE STRICT\nAS $function$RI_FKey_check_ins$function$\n"
+  },
+  {
+    "trigger_name": "RI_ConstraintTrigger_c_215244",
     "trigger_timing": "AFTER",
     "trigger_events": [
       "DELETE"
