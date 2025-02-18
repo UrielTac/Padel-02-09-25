@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { IconCircleCheck } from '@tabler/icons-react'
 import { createPortal } from "react-dom"
 import { bookingQueryService } from '@/services/bookingQueryService'
+import { useOrganization } from '@/contexts/OrganizationContext'
 
 interface ViewBookingModalProps {
   isOpen: boolean
@@ -326,6 +327,7 @@ export function ViewBookingModal({
   onCancelSuccess
 }: ViewBookingModalProps) {
   const { currentBranch } = useBranchContext()
+  const { organization, stripeConnection } = useOrganization()
   const { data: courts = [] } = useCourts({ branchId: currentBranch?.id })
   const queryClient = useQueryClient()
   const [showCancelModal, setShowCancelModal] = useState(false)
@@ -370,75 +372,6 @@ export function ViewBookingModal({
     gcTime: 1000 * 60 * 5,
     refetchOnWindowFocus: false
   })
-
-  // Efecto para logging de datos actuales
-  useEffect(() => {
-    if (currentBooking) {
-      console.log('💾 Estado actual de la reserva:', {
-        id: currentBooking.id,
-        paymentType: currentBooking.paymentType,
-        isGuarantee: currentBooking.paymentType === 'guarantee',
-        timestamp: new Date().toISOString()
-      })
-    }
-  }, [currentBooking])
-
-  const handlePayment = async (amount: number, method: string) => {
-    if (!currentBooking) return
-
-    try {
-      await registerPayment({
-        bookingId: currentBooking.id,
-        depositAmount: amount,
-        paymentMethod: method,
-        notes: `Pago restante de reserva ${currentBooking.id}`
-      })
-
-      // Invalidar y refrescar las queries relacionadas
-      await queryClient.invalidateQueries({ queryKey: ['booking', currentBooking.id] })
-      await queryClient.invalidateQueries({ queryKey: ['bookings'] })
-
-      // Actualizar el estado local
-      const updatedData = await bookingQueryService.getBookingById(currentBooking.id)
-      setSelectedBooking(updatedData)
-    } catch (error) {
-      console.error('Error al procesar el pago:', error)
-      toast({
-        description: 'Error al procesar el pago',
-        variant: 'destructive'
-      })
-    }
-  }
-
-  const handleCancelBooking = async ({ reason, shouldCharge }: { reason?: string; shouldCharge?: boolean }) => {
-    if (!currentBooking) return
-
-    try {
-      await cancelBooking({
-        bookingId: currentBooking.id,
-        reason,
-        shouldCharge
-      })
-
-      // Cerrar los modales
-      setShowCancelModal(false)
-      onClose()
-
-      // Actualizar la UI
-      queryClient.invalidateQueries({ queryKey: ['bookings'] })
-
-      // Notificar el éxito
-      onCancelSuccess()
-    } catch (error) {
-      console.error('Error al cancelar la reserva:', error)
-      toast({
-        description: 'Error al cancelar la reserva',
-        variant: 'destructive'
-      })
-    }
-  }
-
-  const handleCancelSuccess = () => {}
 
   // Procesar datos solo cuando sea necesario
   const processedData = useMemo<ProcessedData | null>(() => {
@@ -513,6 +446,100 @@ export function ViewBookingModal({
       rentalsTotal
     }
   }, [currentBooking, courts])
+
+  // Validar elegibilidad para cargo
+  const canChargeNoShow = useMemo(() => {
+    if (!currentBooking || !stripeConnection) return false;
+
+    return (
+      currentBooking.paymentType === 'guarantee' &&
+      stripeConnection.charges_enabled &&
+      stripeConnection.account_status === 'active'
+    );
+  }, [currentBooking, stripeConnection]);
+
+  // Efectos de logging
+  useEffect(() => {
+    if (currentBooking) {
+      console.log('💾 Estado actual de la reserva:', {
+        id: currentBooking.id,
+        paymentType: currentBooking.paymentType,
+        isGuarantee: currentBooking.paymentType === 'guarantee',
+        timestamp: new Date().toISOString()
+      })
+    }
+  }, [currentBooking]);
+
+  useEffect(() => {
+    if (showCancelModal && currentBooking && processedData) {
+      console.log('🔍 Estado de cancelación:', {
+        paymentType: currentBooking.paymentType,
+        canChargeNoShow,
+        stripeConnection: {
+          enabled: stripeConnection?.charges_enabled,
+          status: stripeConnection?.account_status
+        },
+        totalAmount: processedData.totalAmount
+      });
+    }
+  }, [showCancelModal, currentBooking, canChargeNoShow, stripeConnection, processedData]);
+
+  const handlePayment = async (amount: number, method: string) => {
+    if (!currentBooking) return
+
+    try {
+      await registerPayment({
+        bookingId: currentBooking.id,
+        depositAmount: amount,
+        paymentMethod: method,
+        notes: `Pago restante de reserva ${currentBooking.id}`
+      })
+
+      // Invalidar y refrescar las queries relacionadas
+      await queryClient.invalidateQueries({ queryKey: ['booking', currentBooking.id] })
+      await queryClient.invalidateQueries({ queryKey: ['bookings'] })
+
+      // Actualizar el estado local
+      const updatedData = await bookingQueryService.getBookingById(currentBooking.id)
+      setSelectedBooking(updatedData)
+    } catch (error) {
+      console.error('Error al procesar el pago:', error)
+      toast({
+        description: 'Error al procesar el pago',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleCancelBooking = async ({ reason, shouldCharge }: { reason?: string; shouldCharge?: boolean }) => {
+    if (!currentBooking) return
+
+    try {
+      await cancelBooking({
+        bookingId: currentBooking.id,
+        reason,
+        shouldCharge
+      })
+
+      // Cerrar los modales
+      setShowCancelModal(false)
+      onClose()
+
+      // Actualizar la UI
+      queryClient.invalidateQueries({ queryKey: ['bookings'] })
+
+      // Notificar el éxito
+      onCancelSuccess()
+    } catch (error) {
+      console.error('Error al cancelar la reserva:', error)
+      toast({
+        description: 'Error al cancelar la reserva',
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleCancelSuccess = () => {}
 
   // Mejorar la lógica de renderizado
   if (!isOpen) return null
@@ -774,7 +801,7 @@ export function ViewBookingModal({
           isOpen={showCancelModal}
           onClose={() => setShowCancelModal(false)}
           onConfirm={handleCancelBooking}
-          hasGuarantee={processedData?.paymentType === 'guarantee'}
+          hasGuarantee={Boolean(currentBooking?.paymentType === 'guarantee')}
           totalAmount={processedData?.totalAmount ?? 0}
         />
       </>,

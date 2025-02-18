@@ -4,6 +4,7 @@ export interface NoShowChargeRequest {
   amount: number;
   stripeAccountId: string;
   reason?: string;
+  empresaId: string;
 }
 
 export interface NoShowChargeResponse {

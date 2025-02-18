@@ -9,7 +9,7 @@ export type Json =
 export type PlanType = 'FREE' | 'PRO'
 export type ResetPeriod = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       empresas: {
@@ -141,12 +141,15 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
+          status: string
+          payment_type: string
           payment_status: 'pending' | 'partial' | 'completed' | 'cancelled'
           payment_method: 'cash' | 'stripe' | 'transfer' | null
-          payment_type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
           deposit_amount: number | null
-          cancellation_reason: string | null
           cancelled_at: string | null
+          cancellation_reason: string | null
+          empresa_id: string
+          user_id: string
           created_at: string
           updated_at: string
         }
@@ -157,8 +160,8 @@ export interface Database {
           start_time: string
           end_time: string
           title: string
-          description?: string
-          total_price: number
+          description?: string | null
+          total_price?: number
           rental_items?: {
             item_id: string
             quantity: number
@@ -168,22 +171,26 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
-          payment_status: 'pending' | 'partial' | 'completed' | 'cancelled'
-          payment_method?: 'cash' | 'stripe' | 'transfer'
-          payment_type: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
-          deposit_amount?: number
-          cancellation_reason?: string
-          cancelled_at?: string
+          status?: string
+          payment_type?: string
+          payment_status?: 'pending' | 'partial' | 'completed' | 'cancelled'
+          payment_method?: 'cash' | 'stripe' | 'transfer' | null
+          deposit_amount?: number | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          empresa_id: string
+          user_id: string
           created_at?: string
           updated_at?: string
         }
         Update: {
+          id?: string
           court_id?: string
           date?: string
           start_time?: string
           end_time?: string
           title?: string
-          description?: string
+          description?: string | null
           total_price?: number
           rental_items?: {
             item_id: string
@@ -194,12 +201,16 @@ export interface Database {
             member_id: string
             role: 'player' | 'guest'
           }[]
+          status?: string
+          payment_type?: string
           payment_status?: 'pending' | 'partial' | 'completed' | 'cancelled'
-          payment_method?: 'cash' | 'stripe' | 'transfer'
-          payment_type?: 'booking' | 'deposit' | 'remaining' | 'guarantee' | 'no_show_charge'
-          deposit_amount?: number
-          cancellation_reason?: string
-          cancelled_at?: string
+          payment_method?: 'cash' | 'stripe' | 'transfer' | null
+          deposit_amount?: number | null
+          cancelled_at?: string | null
+          cancellation_reason?: string | null
+          empresa_id?: string
+          user_id?: string
+          created_at?: string
           updated_at?: string
         }
       },
@@ -617,11 +628,114 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+      },
+      stripe_connections: {
+        Row: {
+          id: string
+          empresa_id: string
+          stripe_account_id: string
+          stripe_account_email: string | null
+          account_status: 'pending' | 'active' | 'restricted' | 'disabled'
+          charges_enabled: boolean
+          payouts_enabled: boolean
+          requirements: Json | null
+          created_at: string
+          updated_at: string
+          last_webhook_received_at: string | null
+        }
+        Insert: {
+          id?: string
+          empresa_id: string
+          stripe_account_id: string
+          stripe_account_email?: string | null
+          account_status?: 'pending' | 'active' | 'restricted' | 'disabled'
+          charges_enabled?: boolean
+          payouts_enabled?: boolean
+          requirements?: Json | null
+          created_at?: string
+          updated_at?: string
+          last_webhook_received_at?: string | null
+        }
+        Update: {
+          id?: string
+          empresa_id?: string
+          stripe_account_id?: string
+          stripe_account_email?: string | null
+          account_status?: 'pending' | 'active' | 'restricted' | 'disabled'
+          charges_enabled?: boolean
+          payouts_enabled?: boolean
+          requirements?: Json | null
+          created_at?: string
+          updated_at?: string
+          last_webhook_received_at?: string | null
+        }
+      },
+      stripe_customers: {
+        Row: {
+          id: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_account_id: string
+          status: 'active' | 'inactive'
+          metadata: Json | null
+          created_at: string
+          updated_at: string
+          last_used: string | null
+          payment_methods_count: number
+          last_payment_error: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          stripe_customer_id: string
+          stripe_account_id: string
+          status?: 'active' | 'inactive'
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+          last_used?: string | null
+          payment_methods_count?: number
+          last_payment_error?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          stripe_customer_id?: string
+          stripe_account_id?: string
+          status?: 'active' | 'inactive'
+          metadata?: Json | null
+          created_at?: string
+          updated_at?: string
+          last_used?: string | null
+          payment_methods_count?: number
+          last_payment_error?: string | null
+        }
+      },
+      error_logs: {
+        Row: {
+          id: string
+          type: string
+          error_message: string
+          metadata: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          type: string
+          error_message: string
+          metadata: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          type?: string
+          error_message?: string
+          metadata?: Json
+          created_at?: string
+        }
       }
     }
-    Views: {
-      [_ in never]: never
-    }
+    Views: Record<string, never>
     Functions: {
       get_booking_count: {
         Args: {
@@ -629,6 +743,24 @@ export interface Database {
           p_date: string
         }
         Returns: number
+      }
+      begin_no_show_charge_transaction: {
+        Args: {
+          p_booking_id: string
+        }
+        Returns: void
+      }
+      commit_no_show_charge_transaction: {
+        Args: {
+          p_booking_id: string
+        }
+        Returns: void
+      }
+      rollback_no_show_charge_transaction: {
+        Args: {
+          p_booking_id: string
+        }
+        Returns: void
       }
     }
     Enums: {
