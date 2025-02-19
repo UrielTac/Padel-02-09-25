@@ -7,11 +7,37 @@ import type { Database } from '@/types/supabase'
 
 type Organization = Database['public']['Tables']['empresas']['Row']
 
+// Definir el tipo para el estado de la cuenta Stripe
+type StripeAccountStatus = 'pending' | 'active' | 'restricted' | 'disabled';
+
+interface StripeConnectionInfo {
+  stripe_account_id: string;
+  charges_enabled: boolean;
+  account_status: StripeAccountStatus;
+}
+
+// Definir el tipo para la tabla stripe_connections
+interface StripeConnectionRow {
+  id: string;
+  empresa_id: string;
+  stripe_account_id: string;
+  stripe_account_email: string | null;
+  account_status: StripeAccountStatus;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  requirements: any | null;
+  created_at: string;
+  updated_at: string;
+  last_webhook_received_at: string | null;
+}
+
 interface OrganizationContextType {
-  organization: Organization | null
-  isLoading: boolean
-  error: Error | null
-  setOrganization: (org: Organization) => void
+  organization: Organization | null;
+  stripeConnection: StripeConnectionInfo | null;
+  isLoading: boolean;
+  error: Error | null;
+  setOrganization: (org: Organization) => void;
+  loadStripeConnection: () => Promise<StripeConnectionInfo | null>;
 }
 
 interface UserMetadata {
@@ -56,88 +82,116 @@ export const OrganizationContext = createContext<OrganizationContextType | undef
 
 export function OrganizationProvider({ children }: { children: React.ReactNode }) {
   const [organization, setOrganization] = useState<Organization | null>(null)
+  const [stripeConnection, setStripeConnection] = useState<StripeConnectionInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const { user, isLoading: authLoading } = useAuth()
   const supabase = createSupabaseClient()
 
-  useEffect(() => {
-    let isMounted = true;
+  // Cargar solo la organización inicialmente
+  const loadOrganization = async () => {
+    try {
+      if (authLoading || !user) {
+        setIsLoading(false);
+        setError(new Error('No hay usuario autenticado'));
+        return;
+      }
 
-    const loadOrganization = async () => {
-      try {
-        // Si aún está cargando la autenticación, esperar
-        if (authLoading) return;
-
-        // Si no hay usuario, no cargar organización
-        if (!user) {
-          if (isMounted) {
-            setIsLoading(false);
-            setError(new Error('No hay usuario autenticado'));
-          }
-          return;
-        }
-
-        // Verificar si necesitamos recargar la organización
-        if (!shouldCheckOrganization()) {
-          const cachedOrg = organization
-          if (cachedOrg) {
-            console.log('⏭️ Usando organización en caché')
-            return
-          }
-        }
-
-        // Intentar obtener empresa_id del caché
-        const empresaId = getEmpresaIdFromCache();
-        
-        if (!empresaId) {
-          if (isMounted) {
-            setError(new Error('No se encontró la empresa'));
-            setIsLoading(false);
-          }
-          return;
-        }
-
-        const { data, error: dbError } = await supabase
-          .from('empresas')
-          .select('*')
-          .eq('id', empresaId)
-          .single()
-
-        if (dbError) throw dbError;
-
-        if (!data) {
-          throw new Error('No se encontró la empresa');
-        }
-
-        if (isMounted) {
-          setOrganization(data);
-          setError(null);
-          setIsLoading(false);
-          updateLastOrganizationCheck();
-        }
-      } catch (error) {
-        console.error('❌ Error al cargar organización:', error);
-        if (isMounted) {
-          setError(error as Error);
-          setOrganization(null);
-          setIsLoading(false);
+      if (!shouldCheckOrganization()) {
+        const cachedOrg = organization
+        if (cachedOrg) {
+          console.log('⏭️ Usando organización en caché')
+          return
         }
       }
+
+      const empresaId = getEmpresaIdFromCache();
+      
+      if (!empresaId) {
+        setError(new Error('No se encontró la empresa'));
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: org, error: orgError } = await supabase
+        .from('empresas')
+        .select('*')
+        .eq('id', empresaId)
+        .single();
+
+      if (orgError) throw orgError;
+      if (!org) throw new Error('No se encontró la empresa');
+
+      setOrganization(org);
+      setError(null);
+      setIsLoading(false);
+      updateLastOrganizationCheck();
+    } catch (error) {
+      console.error('❌ Error al cargar organización:', error);
+      setError(error as Error);
+      setOrganization(null);
+      setStripeConnection(null);
+      setIsLoading(false);
+    }
+  }
+
+  // Función para cargar conexión Stripe bajo demanda
+  const loadStripeConnection = async () => {
+    if (!organization?.id) {
+      console.log('❌ No hay organización activa');
+      return null;
     }
 
-    void loadOrganization();
+    try {
+      console.log('🔄 Cargando conexión Stripe para:', organization.id);
+      
+      // Actualizar el tipo de Database para incluir stripe_connections
+      const supabaseTyped = supabase as any;
+      
+      const { data, error } = await supabaseTyped
+        .from('stripe_connections')
+        .select('stripe_account_id, charges_enabled, account_status')
+        .eq('empresa_id', organization.id)
+        .single();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [user, authLoading, supabase, organization]);
+      if (error) {
+        console.error('❌ Error al cargar conexión Stripe:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.log('⚠️ No se encontró conexión Stripe');
+        return null;
+      }
+
+      const connection: StripeConnectionInfo = {
+        stripe_account_id: data.stripe_account_id,
+        charges_enabled: data.charges_enabled || false,
+        account_status: data.account_status || 'pending'
+      };
+
+      console.log('✅ Conexión Stripe cargada:', connection);
+      setStripeConnection(connection);
+      return connection;
+
+    } catch (error) {
+      console.error('❌ Error al cargar conexión Stripe:', error);
+      setStripeConnection(null);
+      return null;
+    }
+  }
+
+  useEffect(() => {
+    void loadOrganization();
+  }, [user, authLoading]);
 
   const value = {
     organization,
+    stripeConnection,
     isLoading,
     error,
-    setOrganization
+    setOrganization,
+    loadStripeConnection
   };
 
   return (
