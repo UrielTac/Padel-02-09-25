@@ -1,5 +1,5 @@
 import { createRedisClient } from '@/lib/redis'
-import { subscriptionService } from './subscriptionService'
+import { bookingCounters, getNextResetDate, getCurrentPeriodStart } from '@/lib/redis'
 import { createSupabaseClient } from '@/lib/supabase'
 
 const initRedis = createRedisClient()
@@ -19,373 +19,182 @@ interface CompanyPlanInfo {
   planUpdatedAt: string
 }
 
-async function getCompanyPlanInfo(empresaId: string): Promise<CompanyPlanInfo> {
-  const supabase = createSupabaseClient()
-  
-  try {
-    const { data: empresa, error: empresaError } = await supabase
-      .from('empresas')
-      .select('plan_id, plan_updated_at')
-      .eq('id', empresaId)
-      .single()
-
-    if (empresaError) throw empresaError
-
-    if (!empresa?.plan_id) {
-      return {
-        isPro: false,
-        limit: 90,
-        planUpdatedAt: new Date().toISOString()
-      }
-    }
-
-    const { data: plan, error: planError } = await supabase
-      .from('subscription_plans')
-      .select('code, daily_booking_limit')
-      .eq('id', empresa.plan_id)
-      .single()
-
-    if (planError) throw planError
-
-    return {
-      isPro: plan.code === 'PRO',
-      limit: plan.daily_booking_limit,
-      planUpdatedAt: empresa.plan_updated_at
-    }
-  } catch (error) {
-    console.error('❌ Error obteniendo información del plan:', error)
-    return {
-      isPro: false,
-      limit: 90,
-      planUpdatedAt: new Date().toISOString()
-    }
-  }
-}
-
-function getNextResetDate(planUpdatedAt: string): Date {
-  const updateDate = new Date(planUpdatedAt)
-  const today = new Date()
-  
-  // Crear fecha de próximo reset manteniendo el día del plan_updated_at
-  const nextReset = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    updateDate.getDate(),
-    23,
-    59,
-    59,
-    999
-  )
-  
-  // Si la fecha calculada ya pasó, avanzar al próximo mes
-  if (nextReset <= today) {
-    nextReset.setMonth(nextReset.getMonth() + 1)
-  }
-  
-  return nextReset
-}
-
-function getCurrentPeriodStart(planUpdatedAt: string): Date {
-  const updateDate = new Date(planUpdatedAt)
-  const today = new Date()
-  
-  // Crear fecha de inicio del período actual
-  return new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    updateDate.getDate(),
-    0,
-    0,
-    0,
-    0
-  )
-}
-
-export const bookingCountService = {
-  /**
-   * Verifica si una empresa tiene plan PRO
-   */
-  async isPlanPro(empresaId: string): Promise<boolean> {
-    const { isPro } = await getCompanyPlanInfo(empresaId)
-    return isPro
-  },
-
-  /**
-   * Genera la clave Redis para el conteo de reservas de una empresa
-   */
-  getBookingCountKey(empresaId: string, date: string): string {
-    return `booking_count:${empresaId}:current`
-  },
-
-  /**
-   * Obtiene el conteo actual de reservas para una empresa en una fecha específica
-   */
-  async initializeCount(empresaId: string, date: string): Promise<number> {
-    console.log('📍 Initializing booking count from database:', { empresaId, date })
+class BookingCountService {
+  private async getCompanyPlanInfo(empresaId: string): Promise<CompanyPlanInfo> {
+    const supabase = createSupabaseClient()
     
     try {
-      // Verificar si es plan PRO primero
-      const planInfo = await getCompanyPlanInfo(empresaId)
-      if (planInfo.isPro) {
-        console.log('ℹ️ Plan PRO detected, skipping count initialization')
-        return 0
+      const { data: empresa, error: empresaError } = await supabase
+        .from('empresas')
+        .select(`
+          plan_type,
+          plan_id,
+          plan_updated_at,
+          subscription_plans!inner (
+            daily_booking_limit,
+            code
+          )
+        `)
+        .eq('id', empresaId)
+        .single()
+
+      if (empresaError) {
+        console.error('❌ Error al obtener información de empresa:', empresaError)
+        throw new Error(`Empresa no encontrada: ${empresaError.message}`)
       }
 
-      const [redis, supabase] = await Promise.all([
-        initRedis,
-        createSupabaseClient()
-      ])
-
-      // Obtener fechas del período actual
-      const periodStart = getCurrentPeriodStart(planInfo.planUpdatedAt)
-      const nextReset = getNextResetDate(planInfo.planUpdatedAt)
-
-      // Obtener conteo de la base de datos para el período actual
-      const { count, error: countError } = await supabase
-        .from('bookings')
-        .select('*', { count: 'exact', head: true })
-        .eq('empresa_id', empresaId)
-        .gte('date', periodStart.toISOString().split('T')[0])
-        .lt('date', nextReset.toISOString().split('T')[0])
-        .is('cancelled_at', null)
-
-      if (countError) {
-        throw new Error(`Error counting bookings: ${countError.message}`)
+      if (!empresa || !empresa.plan_updated_at) {
+        throw new Error('Datos de empresa incompletos')
       }
 
-      const bookingCount = count || 0
-      console.log('✅ Database count:', { count: bookingCount })
+      const isPro = empresa.plan_type === 'PRO'
 
-      // Actualizar Redis de forma atómica
-      const key = this.getBookingCountKey(empresaId, date)
-      const multi = redis.multi()
-      multi.set(key, bookingCount.toString())
-      
-      // Calcular tiempo hasta el próximo reset
-      const secondsUntilReset = Math.floor((nextReset.getTime() - Date.now()) / 1000)
-      multi.expire(key, secondsUntilReset)
-      
-      const results = await multi.exec()
-      if (!results) {
-        throw new Error('Failed to update Redis')
+      // Acceder al primer elemento del array de subscription_plans
+      const subscriptionPlan = Array.isArray(empresa.subscription_plans) 
+        ? empresa.subscription_plans[0] 
+        : null
+
+      return {
+        isPro,
+        limit: isPro ? Number.MAX_SAFE_INTEGER : subscriptionPlan?.daily_booking_limit ?? 90,
+        planUpdatedAt: empresa.plan_updated_at
       }
-
-      console.log('✅ Redis synchronized:', { key, value: bookingCount })
-      return bookingCount
-
-    } catch (error: any) {
-      console.error('❌ Error initializing count:', error)
+    } catch (error) {
+      console.error('❌ Error al obtener información del plan:', error)
       throw error
     }
-  },
+  }
 
-  /**
-   * Obtiene el estado actual del conteo de reservas para una empresa
-   */
   async getBookingCountStatus(empresaId: string, date: string): Promise<BookingCountResponse> {
-    console.log('📍 Getting booking count status:', { empresaId, date })
-    
     try {
-      // Obtener información del plan
-      const planInfo = await getCompanyPlanInfo(empresaId)
-      
+      // 1. Obtener información del plan
+      const planInfo = await this.getCompanyPlanInfo(empresaId)
+
+      // Si es PRO, retornar respuesta simplificada
       if (planInfo.isPro) {
-        console.log('ℹ️ Plan PRO detected, returning unlimited status')
         return {
           currentCount: 0,
           limit: Number.MAX_SAFE_INTEGER,
           remainingBookings: Number.MAX_SAFE_INTEGER,
           resetTime: new Date().toISOString(),
-          isPro: true
+          isPro: true,
+          nextResetDate: new Date().toISOString()
         }
       }
 
-      // Calcular próximo reset basado en plan_updated_at
-      const nextResetDate = getNextResetDate(planInfo.planUpdatedAt)
-      
-      // Si es FREE, obtener conteo actual
-      const currentCount = await this.getCurrentCount(empresaId, date)
-      const remainingBookings = Math.max(0, planInfo.limit - currentCount)
+      // 2. Para planes FREE, obtener el conteo actual
+      const periodStart = getCurrentPeriodStart(planInfo.planUpdatedAt)
+      const nextReset = getNextResetDate(planInfo.planUpdatedAt)
 
-      console.log('✅ Booking count status:', { 
-        currentCount, 
-        limit: planInfo.limit, 
-        remainingBookings,
-        nextReset: nextResetDate
-      })
+      // 3. Obtener conteo de la base de datos
+      const supabase = createSupabaseClient()
+      const { data: bookings, error: countError } = await supabase
+        .from('bookings')
+        .select('id')
+        .eq('empresa_id', empresaId)
+        .gte('date', periodStart.toISOString().split('T')[0])
+        .lt('date', nextReset.toISOString().split('T')[0])
+
+      if (countError) {
+        throw new Error(`Error al contar reservas: ${countError.message}`)
+      }
+
+      const dbCount = bookings?.length || 0
+
+      // 4. Obtener conteo de Redis
+      let currentCount = await bookingCounters.get(empresaId, date, planInfo.planUpdatedAt)
+
+      // 5. Verificar discrepancia y sincronizar si es necesario
+      if (dbCount !== currentCount) {
+        console.log('⚠️ Discrepancia detectada:', { 
+          redis: currentCount, 
+          db: dbCount,
+          action: 'Sincronizando con base de datos'
+        })
+        
+        currentCount = dbCount
+
+        // Actualizar Redis con el valor correcto
+        await bookingCounters.reset(empresaId, date, planInfo.planUpdatedAt)
+        if (dbCount > 0) {
+          for (let i = 0; i < dbCount; i++) {
+            await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+          }
+        }
+        await bookingCounters.setExpiration(empresaId, date, planInfo.planUpdatedAt)
+      }
 
       return {
         currentCount,
         limit: planInfo.limit,
-        remainingBookings,
-        resetTime: nextResetDate.toISOString(),
+        remainingBookings: Math.max(0, planInfo.limit - currentCount),
+        resetTime: nextReset.toISOString(),
         isPro: false,
-        nextResetDate: nextResetDate.toISOString()
+        nextResetDate: nextReset.toISOString()
       }
-    } catch (error: any) {
-      console.error('❌ Error getting booking status:', error)
+    } catch (error) {
+      console.error('❌ Error al obtener estado de reservas:', error)
       throw error
     }
-  },
+  }
 
-  async syncWithDatabase(empresaId: string, date: string): Promise<void> {
-    console.log('🔄 Syncing with database:', { empresaId, date })
-    await this.initializeCount(empresaId, date)
-  },
-
-  /**
-   * Obtiene el conteo actual de reservas para una empresa en una fecha específica
-   */
-  async getCurrentCount(empresaId: string, date: string): Promise<number> {
-    console.log('📍 Getting booking count:', { empresaId, date })
-    
-    try {
-      // Verificar plan PRO primero
-      const isPro = await this.isPlanPro(empresaId)
-      if (isPro) {
-        console.log('ℹ️ Plan PRO detected, skipping count')
-        return 0
-      }
-
-      const redis = await initRedis
-      const key = this.getBookingCountKey(empresaId, date)
-      const count = await redis.get(key)
-      
-      if (count === null) {
-        console.log('🔄 Count not found in Redis, initializing from database')
-        return await this.initializeCount(empresaId, date)
-      }
-
-      const numericCount = Number(count)
-      console.log('✅ Got booking count:', { key, count: numericCount })
-      return numericCount
-    } catch (error: any) {
-      console.error('❌ Error getting booking count:', error)
-      throw new Error(`Failed to get booking count: ${error.message}`)
-    }
-  },
-
-  /**
-   * Incrementa el conteo de reservas para una empresa
-   */
   async incrementCount(empresaId: string, date: string): Promise<number> {
-    console.log('📍 Incrementing booking count:', { empresaId, date })
-    
     try {
-      // Verificar plan PRO primero
-      const isPro = await this.isPlanPro(empresaId)
-      if (isPro) {
-        console.log('ℹ️ Plan PRO detected, skipping increment')
-        return 0
-      }
-
-      const redis = await initRedis
-      const key = this.getBookingCountKey(empresaId, date)
+      const planInfo = await this.getCompanyPlanInfo(empresaId)
       
-      const multi = redis.multi()
-      multi.incr(key)
-      multi.expire(key, 24 * 60 * 60)
+      if (planInfo.isPro) return 0
+
+      const currentCount = await bookingCounters.get(empresaId, date, planInfo.planUpdatedAt)
       
-      const results = await multi.exec()
-      if (!results || results.length === 0) {
-        throw new Error('Multi execution failed')
-      }
-      
-      const newCount = Number(results[0])
-      console.log('✅ Booking count incremented:', { key, newCount })
-      return newCount
-    } catch (error: any) {
-      console.error('❌ Error incrementing count:', error)
-      throw new Error(`Failed to increment booking count: ${error.message}`)
-    }
-  },
-
-  /**
-   * Decrementa el conteo de reservas para una empresa
-   */
-  async decrementCount(empresaId: string, date: string): Promise<number> {
-    console.log('📍 Decrementing booking count:', { empresaId, date })
-    
-    try {
-      // Verificar plan PRO primero
-      const isPro = await this.isPlanPro(empresaId)
-      if (isPro) {
-        console.log('ℹ️ Plan PRO detected, skipping decrement')
-        return 0
+      if (currentCount >= planInfo.limit) {
+        throw new Error('Se ha alcanzado el límite de reservas del período')
       }
 
-      const redis = await initRedis
-      const key = this.getBookingCountKey(empresaId, date)
-      const currentCount = await this.getCurrentCount(empresaId, date)
-      
-      if (currentCount <= 0) {
-        console.log('ℹ️ Count already at 0, skipping decrement')
-        return 0
-      }
-      
-      const newCount = await redis.decr(key)
-      console.log('✅ Booking count decremented:', { key, newCount })
-      return newCount
-    } catch (error: any) {
-      console.error('❌ Error decrementing count:', error)
-      throw new Error(`Failed to decrement booking count: ${error.message}`)
-    }
-  },
-
-  /**
-   * Establece el tiempo de expiración para el contador
-   */
-  async setExpiration(empresaId: string, date: string, expirationHours: number = 24): Promise<void> {
-    const key = this.getBookingCountKey(empresaId, date)
-    const redis = await initRedis
-    await redis.expire(key, expirationHours * 60 * 60) // Convertir horas a segundos
-  },
-
-  /**
-   * Verifica si una empresa puede realizar más reservas
-   */
-  async canMakeBooking(empresaId: string, date: string): Promise<boolean> {
-    console.log('📍 Checking if can make booking:', { empresaId, date })
-    
-    try {
-      // Verificar plan PRO primero
-      const isPro = await this.isPlanPro(empresaId)
-      if (isPro) {
-        console.log('ℹ️ Plan PRO detected, booking allowed')
-        return true
-      }
-
-      const status = await this.getBookingCountStatus(empresaId, date)
-      const canBook = status.remainingBookings > 0
-      console.log('✅ Can make booking:', { canBook, remainingBookings: status.remainingBookings })
-      return canBook
-    } catch (error: any) {
-      console.error('❌ Error checking booking availability:', error)
-      throw new Error(`Failed to check booking availability: ${error.message}`)
-    }
-  },
-
-  /**
-   * Resetea el contador de reservas para una empresa
-   */
-  async resetCount(empresaId: string, date: string): Promise<void> {
-    console.log('📍 Resetting booking count:', { empresaId, date })
-    
-    try {
-      // Verificar plan PRO primero
-      const isPro = await this.isPlanPro(empresaId)
-      if (isPro) {
-        console.log('ℹ️ Plan PRO detected, skipping reset')
-        return
-      }
-
-      const key = this.getBookingCountKey(empresaId, date)
-      const redis = await initRedis
-      await redis.del(key)
-      console.log('✅ Booking count reset successfully')
-    } catch (error: any) {
-      console.error('❌ Error resetting count:', error)
-      throw new Error(`Failed to reset booking count: ${error.message}`)
+      return await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+    } catch (error) {
+      console.error('❌ Error al incrementar contador:', error)
+      throw error
     }
   }
-} 
+
+  async decrementCount(empresaId: string, date: string): Promise<number> {
+    try {
+      const planInfo = await this.getCompanyPlanInfo(empresaId)
+      
+      if (planInfo.isPro) return 0
+
+      const currentCount = await bookingCounters.get(empresaId, date, planInfo.planUpdatedAt)
+      
+      if (currentCount > 0) {
+        await bookingCounters.reset(empresaId, date, planInfo.planUpdatedAt)
+        const newCount = currentCount - 1
+        if (newCount > 0) {
+          for (let i = 0; i < newCount; i++) {
+            await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+          }
+        }
+        return newCount
+      }
+      
+      return 0
+    } catch (error) {
+      console.error('❌ Error al decrementar contador:', error)
+      throw error
+    }
+  }
+
+  async resetCount(empresaId: string, date: string): Promise<void> {
+    try {
+      const planInfo = await this.getCompanyPlanInfo(empresaId)
+      
+      if (!planInfo.isPro) {
+        await bookingCounters.reset(empresaId, date, planInfo.planUpdatedAt)
+      }
+    } catch (error) {
+      console.error('❌ Error al resetear contador:', error)
+      throw error
+    }
+  }
+}
+
+export const bookingCountService = new BookingCountService() 

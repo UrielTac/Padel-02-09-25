@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { bookingCountService } from '@/services/bookingCountService'
-import { bookingCounters } from '@/lib/redis'
+import { bookingCounters, getNextResetDate, getCurrentPeriodStart } from '@/lib/redis'
 import { createSupabaseClient } from '@/lib/supabase'
 import { z } from 'zod'
 
@@ -17,14 +16,13 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
   const supabase = createSupabaseClient()
   
   try {
-    // Consulta optimizada usando join implícito
     const { data: empresa, error: empresaError } = await supabase
       .from('empresas')
       .select(`
         plan_type,
         plan_id,
         plan_updated_at,
-        subscription_plans!inner (
+        subscription_plans (
           daily_booking_limit,
           code
         )
@@ -37,125 +35,43 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
       throw new Error(`Empresa no encontrada: ${empresaError.message}`)
     }
 
-    // Asegurar que tenemos los datos necesarios
-    if (!empresa || !empresa.plan_updated_at) {
-      throw new Error('Datos de empresa incompletos')
+    if (!empresa) {
+      throw new Error('Empresa no encontrada')
     }
 
     // Usar plan_type de la empresa como fuente de verdad
     const isPro = empresa.plan_type === 'PRO'
 
-    // Para planes PRO, retornar límite infinito
-    if (isPro) {
-      return {
-        isPro: true,
-        limit: Number.MAX_SAFE_INTEGER,
-        planUpdatedAt: empresa.plan_updated_at
+    // Obtener el plan de suscripción
+    let limit = 100 // Valor por defecto para plan FREE
+    
+    if (empresa.subscription_plans && Array.isArray(empresa.subscription_plans)) {
+      const subscriptionPlan = empresa.subscription_plans[0]
+      if (subscriptionPlan?.daily_booking_limit) {
+        limit = subscriptionPlan.daily_booking_limit
       }
     }
 
-    // Para planes FREE, usar la configuración de subscription_plans
-    const planConfig = Array.isArray(empresa.subscription_plans) 
-      ? empresa.subscription_plans[0] 
-      : empresa.subscription_plans
+    // Asegurarnos de que tenemos una fecha de actualización del plan
+    const planUpdatedAt = empresa.plan_updated_at || new Date().toISOString()
 
     console.log('📍 Plan Info:', {
       empresaId,
       planType: empresa.plan_type,
       planId: empresa.plan_id,
-      planUpdatedAt: empresa.plan_updated_at,
-      subscriptionPlan: empresa.subscription_plans
+      planUpdatedAt,
+      limit: isPro ? 'unlimited' : limit
     })
 
     return {
-      isPro: false,
-      limit: planConfig?.daily_booking_limit ?? 90, // Valor por defecto si no se encuentra el plan
-      planUpdatedAt: empresa.plan_updated_at
+      isPro,
+      limit: isPro ? Number.MAX_SAFE_INTEGER : limit,
+      planUpdatedAt
     }
   } catch (error: any) {
     console.error('❌ Error al obtener información del plan:', error)
-    // Valores por defecto en caso de error
-    return {
-      isPro: false,
-      limit: 90,
-      planUpdatedAt: new Date().toISOString()
-    }
+    throw error
   }
-}
-
-function getNextResetDate(planUpdatedAt: string): Date {
-  const updateDate = new Date(planUpdatedAt)
-  const today = new Date()
-  
-  // Obtener el día del mes del plan
-  const resetDay = updateDate.getDate()
-  
-  // Crear fecha de reset en el mes actual
-  const resetDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    resetDay,
-    23,
-    59,
-    59,
-    999
-  )
-  
-  // Si hoy es después o igual al día de reset, avanzar al próximo mes
-  if (today.getDate() >= resetDay) {
-    resetDate.setMonth(resetDate.getMonth() + 1)
-  }
-  
-  // Manejar el cambio de año si es necesario
-  if (resetDate.getMonth() === 0 && today.getMonth() === 11) {
-    resetDate.setFullYear(resetDate.getFullYear() + 1)
-  }
-  
-  console.log('📅 Calculated reset date:', {
-    planUpdatedAt,
-    today: today.toISOString(),
-    resetDate: resetDate.toISOString(),
-    dayOfMonth: resetDay,
-    currentDay: today.getDate(),
-    shouldAdvanceMonth: today.getDate() >= resetDay
-  })
-  
-  return resetDate
-}
-
-function getCurrentPeriodStart(planUpdatedAt: string): Date {
-  const updateDate = new Date(planUpdatedAt)
-  const today = new Date()
-  
-  // Obtener el día del mes del plan
-  const resetDay = updateDate.getDate()
-  
-  // Crear fecha de inicio en el mes actual
-  const startDate = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    resetDay,
-    0,
-    0,
-    0,
-    0
-  )
-  
-  // Si hoy es antes del día de reset, retroceder un mes
-  if (today.getDate() < resetDay) {
-    startDate.setMonth(startDate.getMonth() - 1)
-  }
-  
-  console.log('📅 Calculated period start:', {
-    planUpdatedAt,
-    today: today.toISOString(),
-    startDate: startDate.toISOString(),
-    dayOfMonth: resetDay,
-    currentDay: today.getDate(),
-    shouldGoBackMonth: today.getDate() < resetDay
-  })
-  
-  return startDate
 }
 
 export async function GET(request: Request) {
@@ -183,7 +99,7 @@ export async function GET(request: Request) {
     // 1. Obtener información del plan
     const planInfo = await getCompanyPlanInfo(empresaId)
 
-    // Si es PRO, retornar respuesta simplificada sin cálculos adicionales
+    // Si es PRO, retornar respuesta simplificada
     if (planInfo.isPro) {
       return NextResponse.json({
         currentCount: 0,
@@ -195,33 +111,46 @@ export async function GET(request: Request) {
       })
     }
 
-    // 2. Para planes FREE, continuar con la lógica existente
-    let currentCount = await bookingCounters.get(empresaId, date, planInfo.planUpdatedAt)
-    let needsSync = false
-
-    // Calcular fechas solo para planes FREE
+    // 2. Para planes FREE, obtener el conteo actual
     const periodStart = getCurrentPeriodStart(planInfo.planUpdatedAt)
     const nextReset = getNextResetDate(planInfo.planUpdatedAt)
 
-    // 3. Verificar si necesitamos sincronizar con la base de datos
+    // 3. Obtener conteo de la base de datos
     const supabase = createSupabaseClient()
-    const { count: dbCount, error: countError } = await supabase
+    const { data: bookings, error: countError } = await supabase
       .from('bookings')
-      .select('*', { count: 'exact', head: true })
+      .select('id')
       .eq('empresa_id', empresaId)
       .gte('date', periodStart.toISOString().split('T')[0])
       .lt('date', nextReset.toISOString().split('T')[0])
-      .is('cancelled_at', null)
 
-    if (!countError && dbCount !== currentCount) {
-      console.log('⚠️ Count mismatch detected:', { redis: currentCount, db: dbCount })
-      needsSync = true
-      currentCount = dbCount || 0
-      // Actualizar Redis
+    if (countError) {
+      throw new Error(`Error al contar reservas: ${countError.message}`)
+    }
+
+    const dbCount = bookings?.length || 0
+
+    // 4. Obtener conteo de Redis
+    let currentCount = await bookingCounters.get(empresaId, date, planInfo.planUpdatedAt)
+
+    // 5. Verificar discrepancia y sincronizar si es necesario
+    if (dbCount !== currentCount) {
+      console.log('⚠️ Discrepancia detectada:', { 
+        redis: currentCount, 
+        db: dbCount,
+        action: 'Sincronizando con base de datos'
+      })
+      
+      currentCount = dbCount
+
+      // Actualizar Redis con el valor correcto
       await bookingCounters.reset(empresaId, date, planInfo.planUpdatedAt)
-      if (currentCount > 0) {
-        await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+      if (dbCount > 0) {
+        for (let i = 0; i < dbCount; i++) {
+          await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+        }
       }
+      await bookingCounters.setExpiration(empresaId, date, planInfo.planUpdatedAt)
     }
 
     return NextResponse.json({
@@ -229,7 +158,6 @@ export async function GET(request: Request) {
       limit: planInfo.limit,
       remainingBookings: Math.max(0, planInfo.limit - currentCount),
       resetTime: nextReset.toISOString(),
-      needsSync,
       isPro: false,
       nextResetDate: nextReset.toISOString()
     })
@@ -295,7 +223,9 @@ export async function POST(request: NextRequest) {
           await bookingCounters.reset(empresaId, date, planInfo.planUpdatedAt)
           const newCount = currentCount - 1
           if (newCount > 0) {
-            result = await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+            for (let i = 0; i < newCount; i++) {
+              result = await bookingCounters.increment(empresaId, date, planInfo.planUpdatedAt)
+            }
           }
         }
         break
