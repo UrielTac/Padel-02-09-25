@@ -1,12 +1,22 @@
-import type { Database } from './supabase'
+import { PaymentMethodEnum, PaymentStatusEnum } from './bookings'
 
-export type PaymentMethod = Database['public']['Tables']['payment_methods']['Row']
-export type Payment = Database['public']['Tables']['payments']['Row']
+export interface Payment {
+  id: string;
+  booking_id: string;
+  deposit_amount: number;
+  total_price: number;
+  payment_method: PaymentMethodEnum;
+  payment_status: PaymentStatusEnum;
+  stripe_payment_method_id?: string;
+  stripe_account_id?: string;
+  charge_reason?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
 
-export interface CreatePaymentData {
-  booking_id: string
-  amount: number
-  payment_method: string
-  status: 'pending' | 'completed' | 'failed'
-  notes?: string
+export interface PaymentInsert extends Omit<Payment, 'id' | 'created_at' | 'updated_at'> {
+  id?: string;
+  created_at?: string;
+  updated_at?: string;
 } 

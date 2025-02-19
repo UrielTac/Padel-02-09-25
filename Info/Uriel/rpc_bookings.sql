@@ -47,7 +47,8 @@ CREATE OR REPLACE FUNCTION public.create_booking_v2(
     p_description text DEFAULT NULL,
     p_participants jsonb DEFAULT '[]',
     p_rental_items jsonb DEFAULT '[]',
-    p_empresa_id uuid DEFAULT NULL
+    p_empresa_id uuid DEFAULT NULL,
+    p_stripe_payment_method_id text DEFAULT NULL
 )
 RETURNS uuid
 LANGUAGE plpgsql
@@ -67,7 +68,8 @@ BEGIN
             'court_price', p_court_price,
             'rental_items_price', p_rental_items_price,
             'payment_type', p_payment_type,
-            'empresa_id', p_empresa_id
+            'empresa_id', p_empresa_id,
+            'stripe_payment_method_id', p_stripe_payment_method_id
         ),
         'Iniciando creación de reserva'
     );
@@ -103,6 +105,28 @@ BEGIN
         p_empresa_id
     )
     RETURNING id INTO v_booking_id;
+
+    -- Insertar el pago inicial con el stripe_payment_method_id
+    INSERT INTO public.payments (
+        booking_id,
+        deposit_amount,
+        total_price,
+        payment_method,
+        payment_status,
+        notes,
+        stripe_payment_method_id
+    ) VALUES (
+        v_booking_id,
+        COALESCE(p_deposit_amount, 0),
+        p_court_price + p_rental_items_price,
+        p_payment_method,
+        p_payment_status,
+        'Pago inicial generado automáticamente',
+        CASE 
+            WHEN p_payment_type = 'guarantee' THEN p_stripe_payment_method_id
+            ELSE NULL
+        END
+    );
 
     -- Insertar participantes con la nueva columna user_id
     FOR v_participant IN SELECT * FROM jsonb_array_elements(p_participants)
@@ -144,7 +168,8 @@ EXCEPTION WHEN OTHERS THEN
             'error_detail', SQLERRM,
             'error_hint', SQLSTATE,
             'court_id', p_court_id,
-            'payment_type', p_payment_type
+            'payment_type', p_payment_type,
+            'stripe_payment_method_id', p_stripe_payment_method_id
         ),
         'Error en create_booking_v2: ' || SQLERRM
     );
@@ -157,7 +182,7 @@ $function$;
 GRANT EXECUTE ON FUNCTION public.create_booking_v2(
     uuid, date, time without time zone, time without time zone,
     numeric, numeric, payment_method_enum, booking_payment_status,
-    payment_type, numeric, text, text, jsonb, jsonb, uuid
+    payment_type, numeric, text, text, jsonb, jsonb, uuid, text
 ) TO authenticated;
 
 -- 6. Verificar la instalación
@@ -180,8 +205,8 @@ BEGIN
         JOIN pg_namespace n ON p.pronamespace = n.oid
         WHERE p.proname = 'create_booking_v2'
         AND n.nspname = 'public'
-        AND pg_get_function_arguments(p.oid) LIKE '%empresa_id uuid%'
+        AND pg_get_function_identity_arguments(p.oid) LIKE '%stripe_payment_method_id text%'
     ) THEN
-        RAISE EXCEPTION 'La función create_booking_v2 no tiene el parámetro empresa_id';
+        RAISE EXCEPTION 'La función create_booking_v2 no tiene el parámetro stripe_payment_method_id';
     END IF;
 END $$;

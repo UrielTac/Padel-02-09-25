@@ -39,6 +39,7 @@ interface BookingDB {
   courts?: CourtDB | null
   booking_participants?: ParticipantDB[]
   booking_rentals?: RentalItemDB[]
+  payments?: PaymentDB[]
 }
 
 interface CourtDB {
@@ -54,6 +55,13 @@ interface ParticipantDB {
   usuarios?: {
     nombre: string | null
   } | null
+}
+
+interface PaymentDB {
+  id: string
+  payment_method: PaymentMethodEnum
+  payment_status: PaymentStatusEnum
+  stripe_payment_method_id?: string
 }
 
 // Crear una instancia de Supabase memoizada
@@ -140,8 +148,7 @@ export const bookingQueryService = {
           description,
           courts (
             id,
-            name,
-            branch_id
+            name
           ),
           booking_participants (
             id,

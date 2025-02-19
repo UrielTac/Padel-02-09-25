@@ -8,6 +8,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { toast } from '@/components/ui/use-toast'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { supabase } from '@/lib/supabase'
+import { paymentService } from '@/services/paymentService'
 
 interface CancelBookingModalProps {
   isOpen: boolean
@@ -15,6 +17,10 @@ interface CancelBookingModalProps {
   onConfirm: (params: { reason?: string; shouldCharge?: boolean }) => void
   hasGuarantee?: boolean
   totalAmount?: number
+  booking: {
+    id: string
+    stripe_payment_method_id?: string
+  }
 }
 
 export function CancelBookingModal({
@@ -22,75 +28,117 @@ export function CancelBookingModal({
   onClose,
   onConfirm,
   hasGuarantee = false,
-  totalAmount = 0
+  totalAmount = 0,
+  booking
 }: CancelBookingModalProps) {
-  const { organization, loadStripeConnection } = useOrganization();
+  const { organization, stripeConnection, loadStripeConnection } = useOrganization();
   const [reason, setReason] = useState('')
   const [shouldCharge, setShouldCharge] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [stripeEnabled, setStripeEnabled] = useState(false)
   const [isLoadingStripe, setIsLoadingStripe] = useState(false)
   const [loadAttempted, setLoadAttempted] = useState(false)
+  const [stripePaymentMethodId, setStripePaymentMethodId] = useState<string | null>(null)
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null)
+  const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null)
 
-  // Log para debugging
+  // Log inicial de props
   useEffect(() => {
     if (isOpen) {
-      console.log('🎯 CancelBookingModal Props:', {
+      console.log('🔍 CancelBookingModal - Props iniciales:', {
+        booking_id: booking?.id,
         hasGuarantee,
         totalAmount,
-        shouldCharge,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }, [isOpen, booking, hasGuarantee, totalAmount]);
+
+  // Cargar datos de Stripe cuando se abre el modal y hay garantía
+  useEffect(() => {
+    if (isOpen && hasGuarantee && !loadAttempted) {
+      const loadStripeData = async () => {
+        console.log('🔄 Iniciando carga de datos Stripe:', {
+          booking_id: booking?.id,
+          timestamp: new Date().toISOString()
+        });
+
+        setIsLoadingStripe(true);
+        setLoadAttempted(true);
+        setStripeEnabled(false); // Reset inicial
+
+        try {
+          // 1. Cargar conexión Stripe
+          const connection = await loadStripeConnection();
+          console.log('✅ Conexión Stripe cargada:', connection);
+
+          if (!connection || !connection.charges_enabled || connection.account_status !== 'active') {
+            console.log('⚠️ Conexión Stripe no válida:', {
+              hasConnection: Boolean(connection),
+              charges_enabled: connection?.charges_enabled,
+              status: connection?.account_status
+            });
+            setStripeEnabled(false);
+            setShouldCharge(false);
+            return;
+          }
+
+          // 2. Si Stripe está habilitado, obtener datos de pago
+          if (booking?.id) {
+            const stripeData = await paymentService.getStripePaymentData(booking.id);
+            console.log('💳 Datos de pago obtenidos:', {
+              hasPaymentMethod: Boolean(stripeData?.paymentMethodId),
+              hasAccountId: Boolean(stripeData?.accountId),
+              hasCustomerId: Boolean(stripeData?.customerId),
+              timestamp: new Date().toISOString()
+            });
+
+            if (stripeData?.paymentMethodId && stripeData?.accountId && stripeData?.customerId) {
+              setStripePaymentMethodId(stripeData.paymentMethodId);
+              setStripeAccountId(stripeData.accountId);
+              setStripeCustomerId(stripeData.customerId);
+              setStripeEnabled(true);
+            } else {
+              console.log('⚠️ Datos de Stripe incompletos:', {
+                hasPaymentMethod: Boolean(stripeData?.paymentMethodId),
+                hasAccountId: Boolean(stripeData?.accountId),
+                hasCustomerId: Boolean(stripeData?.customerId)
+              });
+              setStripeEnabled(false);
+              setShouldCharge(false);
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error al cargar datos Stripe:', error);
+          setStripeEnabled(false);
+          setShouldCharge(false);
+        } finally {
+          setIsLoadingStripe(false);
+        }
+      };
+
+      loadStripeData();
+    }
+  }, [isOpen, hasGuarantee, loadAttempted, loadStripeConnection, booking?.id]);
+
+  // Establecer cargo por defecto solo cuando se complete la carga
+  useEffect(() => {
+    if (isOpen && hasGuarantee && !isLoadingStripe && stripeEnabled) {
+      console.log('🔄 Estableciendo cargo por defecto:', {
         stripeEnabled,
         isLoadingStripe
       });
+      setShouldCharge(true);
+    } else {
+      setShouldCharge(false);
     }
-  }, [isOpen, hasGuarantee, totalAmount, shouldCharge, stripeEnabled, isLoadingStripe]);
+  }, [isOpen, hasGuarantee, isLoadingStripe, stripeEnabled]);
 
   // Calcular el monto del cargo (30%)
   const chargeAmount = totalAmount * 0.3
 
   // Validar si se puede aplicar cargo
   const canApplyCharge = hasGuarantee && stripeEnabled && chargeAmount > 0
-
-  // Establecer cargo por defecto si es garantía
-  useEffect(() => {
-    if (isOpen && hasGuarantee) {
-      console.log('🔄 Estableciendo cargo por defecto');
-      setShouldCharge(true);
-    } else {
-      setShouldCharge(false);
-    }
-  }, [isOpen, hasGuarantee]);
-
-  // Cargar información de Stripe cuando se abre el modal y hay garantía
-  useEffect(() => {
-    if (isOpen && hasGuarantee && !loadAttempted) {
-      setIsLoadingStripe(true);
-      setLoadAttempted(true);
-      
-      loadStripeConnection()
-        .then(connection => {
-          console.log('✅ Conexión Stripe cargada:', connection);
-          const isEnabled = Boolean(
-            connection?.charges_enabled && 
-            connection?.account_status === 'active'
-          );
-          setStripeEnabled(isEnabled);
-          
-          // Si Stripe no está habilitado, desactivar el cargo
-          if (!isEnabled) {
-            setShouldCharge(false);
-          }
-        })
-        .catch((error) => {
-          console.error('❌ Error al cargar Stripe:', error);
-          setStripeEnabled(false);
-          setShouldCharge(false);
-        })
-        .finally(() => {
-          setIsLoadingStripe(false);
-        });
-    }
-  }, [isOpen, hasGuarantee, loadAttempted, loadStripeConnection]);
 
   // Mostrar estado de carga mientras se verifica Stripe
   const showLoadingState = isLoadingStripe && hasGuarantee;
@@ -103,33 +151,76 @@ export function CancelBookingModal({
     return "Cancelación con Garantía";
   }, [hasGuarantee, isLoadingStripe, stripeEnabled]);
 
-  const handleConfirm = async () => {
-    if (shouldCharge && !canApplyCharge) {
-      toast({
-        title: "Error",
-        description: "No se puede aplicar el cargo en este momento",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleCancelBooking = async () => {
+    if (!booking?.id) return;
 
     setIsProcessing(true);
     try {
-      await onConfirm({
-        reason,
-        shouldCharge: canApplyCharge && shouldCharge
+      // 1. Si hay cargo, procesarlo primero
+      if (shouldCharge && stripeEnabled) {
+        console.log('💳 Procesando cargo por no-show:', {
+          bookingId: booking.id,
+          amount: totalAmount * 0.3,
+          timestamp: new Date().toISOString()
+        });
+
+        const response = await fetch('/api/stripe/charge-no-show', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bookingId: booking.id,
+            amount: totalAmount * 0.3,
+            reason,
+            stripeAccountId,
+            stripePaymentMethodId,
+            empresaId: organization?.id
+          })
+        });
+
+        const result = await response.json();
+
+        if (!result.success) {
+          console.error('❌ Error al procesar cargo:', result.error);
+          toast({
+            title: "Error al procesar el cargo",
+            description: result.error.message || "No se pudo procesar el cargo",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        console.log('✅ Cargo procesado exitosamente:', result);
+      }
+
+      // 2. Cancelar la reserva
+      const { data, error } = await supabase.rpc('cancel_booking_v1', {
+        p_booking_id: booking.id,
+        p_reason: reason,
+        p_should_charge: false // El cargo ya se procesó si era necesario
       });
+
+      if (error) throw error;
+
+      toast({
+        title: "Reserva cancelada",
+        description: shouldCharge 
+          ? "La reserva ha sido cancelada y se ha procesado el cargo"
+          : "La reserva ha sido cancelada exitosamente"
+      });
+
+      onConfirm?.({ reason, shouldCharge });
+      onClose();
     } catch (error) {
-      console.error('Error al procesar la cancelación:', error);
+      console.error('❌ Error al cancelar reserva:', error);
       toast({
         title: "Error",
-        description: "Hubo un error al procesar la cancelación",
+        description: "No se pudo procesar la cancelación",
         variant: "destructive"
       });
     } finally {
       setIsProcessing(false);
     }
-  }
+  };
 
   // Reset estado al cerrar
   useEffect(() => {
@@ -271,7 +362,7 @@ export function CancelBookingModal({
               {/* Footer */}
               <div className="flex gap-3">
                 <Button
-                  onClick={handleConfirm}
+                  onClick={handleCancelBooking}
                   variant="outline"
                   disabled={isProcessing}
                   className={cn(

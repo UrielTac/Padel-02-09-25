@@ -1,0 +1,1398 @@
+[
+  {
+    "type": "log",
+    "message": [
+      "Log capturing started. Use save() in the console to download logs."
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Cambio en estado de autenticación:",
+      {
+        "event": "INITIAL_SESSION",
+        "timestamp": "2025-02-19T15:37:08.199Z",
+        "storageKey": "sb-padel-auth-token"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🚀 Iniciando carga de datos..."
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💾 Empresa ID guardado en caché:",
+      "99f78081-24fa-4892-aae2-823816e7d132"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Empresa cargada:",
+      "99f78081-24fa-4892-aae2-823816e7d132"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Sedes cargadas:",
+      3
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Sede actual:",
+      "Sede 2"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📍 Fetching booking count:",
+      {
+        "empresaId": "c3adb550-4eb3-4570-afaa-30810730cee9",
+        "date": "2025-02-19"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Fetching courts:",
+      {
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "onlyActive": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 BookingQueryService - Consultando reservas para fecha:",
+      {
+        "date": "2025-02-19",
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "timestamp": "2025-02-19T15:37:08.588Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 BookingQueryService - Consultando reservas para fecha:",
+      {
+        "date": "2025-02-20",
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "timestamp": "2025-02-19T15:37:08.590Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Consultando horarios para:",
+      {
+        "sede": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "dia": "wednesday"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "a",
+        "available_durations": [],
+        "duration_pricing": {},
+        "custom_pricing": {}
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "Lucas Gay",
+        "available_durations": [
+          60,
+          90
+        ],
+        "duration_pricing": {
+          "60": 50,
+          "90": 60
+        },
+        "custom_pricing": {
+          "3": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 10
+              },
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 20
+              }
+            ]
+          },
+          "6": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 0
+              }
+            ]
+          },
+          "7": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 0
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "Pista 1",
+        "available_durations": [
+          60,
+          90,
+          120,
+          150,
+          180
+        ],
+        "duration_pricing": {
+          "60": 45,
+          "90": 50,
+          "120": 55,
+          "150": 60,
+          "180": 70
+        },
+        "custom_pricing": {
+          "5": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "15:00",
+                "percentage": 20
+              }
+            ]
+          },
+          "6": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": -5
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "Pista 2",
+        "available_durations": [
+          60,
+          90
+        ],
+        "duration_pricing": {
+          "60": 40,
+          "90": 50
+        },
+        "custom_pricing": {
+          "5": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 10
+              }
+            ]
+          },
+          "6": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 15
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "Pista 3",
+        "available_durations": [
+          60,
+          90,
+          120
+        ],
+        "duration_pricing": {
+          "60": 45,
+          "90": 50,
+          "120": 55
+        },
+        "custom_pricing": {
+          "5": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 0
+              }
+            ]
+          },
+          "6": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 0
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos procesados de la cancha:",
+      {
+        "name": "Pista 5",
+        "available_durations": [
+          60,
+          90
+        ],
+        "duration_pricing": {
+          "60": 30,
+          "90": 90
+        },
+        "custom_pricing": {
+          "5": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "12:00",
+                "startTime": "09:00",
+                "percentage": 0
+              },
+              {
+                "endTime": "23:00",
+                "startTime": "15:00",
+                "percentage": 15
+              }
+            ]
+          },
+          "6": {
+            "isSelected": true,
+            "timeRanges": [
+              {
+                "endTime": "22:00",
+                "startTime": "09:00",
+                "percentage": 20
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Courts loaded:",
+      {
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "onlyActive": true,
+        "total": 6,
+        "filtered": 4
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Datos transformados:",
+      {
+        "total": 4,
+        "sample": {
+          "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+          "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+          "court": "Pista 5",
+          "date": "2025-02-19",
+          "startTime": "09:00:00",
+          "endTime": "10:30:00",
+          "totalAmount": 235,
+          "depositAmount": 0,
+          "courtPrice": 90,
+          "rentalItemsPrice": 145,
+          "paymentStatus": "pending",
+          "paymentMethod": "stripe",
+          "paymentType": "guarantee",
+          "title": "",
+          "description": "",
+          "participants": [
+            {
+              "id": "154a9ea2-96fc-4629-b901-4c9fa7b9249c",
+              "memberId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+              "role": "player",
+              "firstName": "uriel",
+              "lastName": "tac"
+            }
+          ],
+          "rentedItems": [
+            {
+              "id": "5088e195-5053-4160-8997-4786ba61b873",
+              "name": "Artículo 4",
+              "quantity": 10,
+              "pricePerUnit": 14.5
+            }
+          ]
+        },
+        "payment_types": [
+          {
+            "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "7be7e19d-85dd-4270-9e23-f1611f8f976d",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "79823018-123c-4921-bdb9-86652a3afdec",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "f8bea26e-b46f-4c5c-a60c-d636232f2abb",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Iniciando carga de artículos para sede:",
+      "eb8139e9-261f-4912-bc32-9aa1d455ab15"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "👉 Verificando existencia de la sede:",
+      "eb8139e9-261f-4912-bc32-9aa1d455ab15"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 BookingQueryService - Consultando reservas para fecha:",
+      {
+        "date": "2025-02-19",
+        "branchId": "eb8139e9-261f-4912-bc32-9aa1d455ab15",
+        "timestamp": "2025-02-19T15:37:08.767Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📅 Horarios de la sede:",
+      {
+        "friday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "05:00",
+              "closeTime": "23:00"
+            }
+          ]
+        },
+        "monday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "09:00",
+              "closeTime": "12:00"
+            },
+            {
+              "openTime": "15:00",
+              "closeTime": "22:00"
+            }
+          ]
+        },
+        "sunday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "08:00",
+              "closeTime": "19:00"
+            }
+          ]
+        },
+        "tuesday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "08:00",
+              "closeTime": "22:00"
+            }
+          ]
+        },
+        "saturday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "08:00",
+              "closeTime": "19:00"
+            }
+          ]
+        },
+        "thursday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "08:00",
+              "closeTime": "20:00"
+            }
+          ]
+        },
+        "wednesday": {
+          "isOpen": true,
+          "timeRanges": [
+            {
+              "openTime": "08:00",
+              "closeTime": "12:00"
+            },
+            {
+              "openTime": "15:00",
+              "closeTime": "22:00"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Datos transformados:",
+      {
+        "total": 0,
+        "payment_types": []
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Sede verificada:",
+      "Sede 2"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "👉 Obteniendo artículos de la sede"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Datos transformados:",
+      {
+        "total": 4,
+        "sample": {
+          "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+          "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+          "court": "Pista 5",
+          "date": "2025-02-19",
+          "startTime": "09:00:00",
+          "endTime": "10:30:00",
+          "totalAmount": 235,
+          "depositAmount": 0,
+          "courtPrice": 90,
+          "rentalItemsPrice": 145,
+          "paymentStatus": "pending",
+          "paymentMethod": "stripe",
+          "paymentType": "guarantee",
+          "title": "",
+          "description": "",
+          "participants": [
+            {
+              "id": "154a9ea2-96fc-4629-b901-4c9fa7b9249c",
+              "memberId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+              "role": "player",
+              "firstName": "uriel",
+              "lastName": "tac"
+            }
+          ],
+          "rentedItems": [
+            {
+              "id": "5088e195-5053-4160-8997-4786ba61b873",
+              "name": "Artículo 4",
+              "quantity": 10,
+              "pricePerUnit": 14.5
+            }
+          ]
+        },
+        "payment_types": [
+          {
+            "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "7be7e19d-85dd-4270-9e23-f1611f8f976d",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "79823018-123c-4921-bdb9-86652a3afdec",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          },
+          {
+            "id": "f8bea26e-b46f-4c5c-a60c-d636232f2abb",
+            "paymentType": "guarantee",
+            "paymentStatus": "pending"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ 5 artículos encontrados"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 1",
+        "duration": 60,
+        "price": 10
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 1",
+        "duration": 90,
+        "price": 16
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando duration_pricing para item:",
+      {
+        "itemName": "Artículo 1",
+        "originalPricing": {
+          "60": 10,
+          "90": 16
+        },
+        "processedPricing": {
+          "60": 10,
+          "90": 16
+        },
+        "availableDurations": [
+          "60",
+          "90"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 2",
+        "duration": 60,
+        "price": 12
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 2",
+        "duration": 90,
+        "price": 17
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando duration_pricing para item:",
+      {
+        "itemName": "Artículo 2",
+        "originalPricing": {
+          "60": 12,
+          "90": 17
+        },
+        "processedPricing": {
+          "60": 12,
+          "90": 17
+        },
+        "availableDurations": [
+          "60",
+          "90"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 3",
+        "duration": 30,
+        "price": 10
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 3",
+        "duration": 60,
+        "price": 12
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 3",
+        "duration": 90,
+        "price": 15
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando duration_pricing para item:",
+      {
+        "itemName": "Artículo 3",
+        "originalPricing": {
+          "30": 10,
+          "60": 12,
+          "90": 15
+        },
+        "processedPricing": {
+          "30": 10,
+          "60": 12,
+          "90": 15
+        },
+        "availableDurations": [
+          "30",
+          "60",
+          "90"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 4",
+        "duration": 30,
+        "price": 12
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 4",
+        "duration": 60,
+        "price": 10
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 4",
+        "duration": 90,
+        "price": 14.5
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando duration_pricing para item:",
+      {
+        "itemName": "Artículo 4",
+        "originalPricing": {
+          "30": 12,
+          "60": 10,
+          "90": 14.5
+        },
+        "processedPricing": {
+          "30": 12,
+          "60": 10,
+          "90": 14.5
+        },
+        "availableDurations": [
+          "30",
+          "60",
+          "90"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 5",
+        "duration": 60,
+        "price": 10
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando precio por duración:",
+      {
+        "itemName": "Artículo 5",
+        "duration": 90,
+        "price": 14
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Procesando duration_pricing para item:",
+      {
+        "itemName": "Artículo 5",
+        "originalPricing": {
+          "60": 10,
+          "90": 14
+        },
+        "processedPricing": {
+          "60": 10,
+          "90": 14
+        },
+        "availableDurations": [
+          "60",
+          "90"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Datos transformados correctamente"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Booking count response:",
+      {
+        "currentCount": 5,
+        "limit": 25,
+        "remainingBookings": 20,
+        "resetTime": "2025-03-16T23:59:59.999Z",
+        "needsSync": true,
+        "isPro": false,
+        "nextResetDate": "2025-03-16T23:59:59.999Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Datos sin procesar:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "isValid": false,
+        "rawType": "undefined",
+        "timestamp": "2025-02-19T15:37:10.694Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Validación de paymentType:",
+      {
+        "type": "undefined",
+        "isValid": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Datos sin procesar:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "isValid": false,
+        "rawType": "undefined",
+        "timestamp": "2025-02-19T15:37:10.695Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Validación de paymentType:",
+      {
+        "type": "undefined",
+        "isValid": false
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s",
+      "",
+      "\n    at AnimatePresence (webpack-internal:///(app-pages-browser)/./node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs:72:28)\n    at ViewBookingModal (webpack-internal:///(app-pages-browser)/./src/components/bookings/components/ViewBookingModal/ViewBookingModal.tsx:458:11)\n    at div\n    at BookingsTable (webpack-internal:///(app-pages-browser)/./src/components/bookings/BookingsTable.tsx:70:94)\n    at Suspense\n    at div\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:26:13)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:175:13)\n    at _c4 (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:125:11)\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:44:13)\n    at div\n    at div\n    at div\n    at main\n    at div\n    at BookingsPage (webpack-internal:///(app-pages-browser)/./src/app/admin/dashboard/bookings/page.tsx:111:110)\n    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at div\n    at main\n    at div\n    at DashboardLayout (Server)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at RentalProvider (webpack-internal:///(app-pages-browser)/./src/contexts/RentalContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AppInitializer (webpack-internal:///(app-pages-browser)/./src/components/AppInitializer.tsx:20:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at eval (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:24:15)\n    at BailoutToCSR (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/lazy-dynamic/dynamic-bailout-to-csr.js:13:11)\n    at Suspense\n    at LoadableComponent\n    at AdminLayout (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:65:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at FormItemsProvider (webpack-internal:///(app-pages-browser)/./src/contexts/FormItemsContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)\n    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:57:11)\n    at DateProvider (webpack-internal:///(app-pages-browser)/./src/contexts/DateContext.tsx:14:11)\n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)\n    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)\n    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)\n    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)\n    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)\n    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "booking",
+        "isGuarantee": false,
+        "shouldShowGuarantee": false,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "booking"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "booking",
+        "isGuarantee": false,
+        "shouldShowGuarantee": false,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "booking"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💰 PaymentDetails Props:",
+      {
+        "timestamp": "2025-02-19T15:37:10.720Z",
+        "props": {
+          "total": 235,
+          "deposit": 0,
+          "paymentMethod": "stripe",
+          "status": "pending",
+          "paymentType": "booking"
+        },
+        "validation": {
+          "isGuarantee": false,
+          "hasPaymentType": true,
+          "paymentTypeValue": "booking",
+          "paymentTypeType": "string",
+          "rawPaymentType": "\"booking\"",
+          "isValidType": true
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Consultando reserva:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "timestamp": "2025-02-19T15:37:10.727Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 BookingQueryService - Consultando reserva:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "timestamp": "2025-02-19T15:37:10.727Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💾 Estado actual de la reserva:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "isGuarantee": false,
+        "timestamp": "2025-02-19T15:37:10.729Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💰 PaymentDetails Props:",
+      {
+        "timestamp": "2025-02-19T15:37:10.730Z",
+        "props": {
+          "total": 235,
+          "deposit": 0,
+          "paymentMethod": "stripe",
+          "status": "pending",
+          "paymentType": "booking"
+        },
+        "validation": {
+          "isGuarantee": false,
+          "hasPaymentType": true,
+          "paymentTypeValue": "booking",
+          "paymentTypeType": "string",
+          "rawPaymentType": "\"booking\"",
+          "isValidType": true
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Datos transformados:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "paymentType": "guarantee",
+        "isGuarantee": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Datos recibidos:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "rawType": "string",
+        "timestamp": "2025-02-19T15:37:10.839Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Datos sin procesar:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "paymentType": "guarantee",
+        "isValid": true,
+        "rawType": "string",
+        "timestamp": "2025-02-19T15:37:10.841Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Validación de paymentType:",
+      {
+        "original": "guarantee",
+        "type": "string",
+        "isValid": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Datos sin procesar:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "paymentType": "guarantee",
+        "isValid": true,
+        "rawType": "string",
+        "timestamp": "2025-02-19T15:37:10.842Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Validación de paymentType:",
+      {
+        "original": "guarantee",
+        "type": "string",
+        "isValid": true
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s",
+      "",
+      "\n    at AnimatePresence (webpack-internal:///(app-pages-browser)/./node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs:72:28)\n    at ViewBookingModal (webpack-internal:///(app-pages-browser)/./src/components/bookings/components/ViewBookingModal/ViewBookingModal.tsx:458:11)\n    at div\n    at BookingsTable (webpack-internal:///(app-pages-browser)/./src/components/bookings/BookingsTable.tsx:70:94)\n    at Suspense\n    at div\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:26:13)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:175:13)\n    at _c4 (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:125:11)\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:44:13)\n    at div\n    at div\n    at div\n    at main\n    at div\n    at BookingsPage (webpack-internal:///(app-pages-browser)/./src/app/admin/dashboard/bookings/page.tsx:111:110)\n    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at div\n    at main\n    at div\n    at DashboardLayout (Server)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at RentalProvider (webpack-internal:///(app-pages-browser)/./src/contexts/RentalContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AppInitializer (webpack-internal:///(app-pages-browser)/./src/components/AppInitializer.tsx:20:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at eval (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:24:15)\n    at BailoutToCSR (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/lazy-dynamic/dynamic-bailout-to-csr.js:13:11)\n    at Suspense\n    at LoadableComponent\n    at AdminLayout (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:65:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at FormItemsProvider (webpack-internal:///(app-pages-browser)/./src/contexts/FormItemsContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)\n    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:57:11)\n    at DateProvider (webpack-internal:///(app-pages-browser)/./src/contexts/DateContext.tsx:14:11)\n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)\n    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)\n    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)\n    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)\n    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)\n    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💰 PaymentDetails Props:",
+      {
+        "timestamp": "2025-02-19T15:37:10.850Z",
+        "props": {
+          "total": 235,
+          "deposit": 0,
+          "paymentMethod": "stripe",
+          "status": "pending",
+          "paymentType": "guarantee"
+        },
+        "validation": {
+          "isGuarantee": true,
+          "hasPaymentType": true,
+          "paymentTypeValue": "guarantee",
+          "paymentTypeType": "string",
+          "rawPaymentType": "\"guarantee\"",
+          "isValidType": true
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💾 Estado actual de la reserva:",
+      {
+        "id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "timestamp": "2025-02-19T15:37:10.851Z"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s",
+      "",
+      "\n    at AnimatePresence (webpack-internal:///(app-pages-browser)/./node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs:72:28)\n    at ViewBookingModal (webpack-internal:///(app-pages-browser)/./src/components/bookings/components/ViewBookingModal/ViewBookingModal.tsx:458:11)\n    at div\n    at BookingsTable (webpack-internal:///(app-pages-browser)/./src/components/bookings/BookingsTable.tsx:70:94)\n    at Suspense\n    at div\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:26:13)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:175:13)\n    at _c4 (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:125:11)\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:44:13)\n    at div\n    at div\n    at div\n    at main\n    at div\n    at BookingsPage (webpack-internal:///(app-pages-browser)/./src/app/admin/dashboard/bookings/page.tsx:111:110)\n    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at div\n    at main\n    at div\n    at DashboardLayout (Server)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at RentalProvider (webpack-internal:///(app-pages-browser)/./src/contexts/RentalContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AppInitializer (webpack-internal:///(app-pages-browser)/./src/components/AppInitializer.tsx:20:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at eval (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:24:15)\n    at BailoutToCSR (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/lazy-dynamic/dynamic-bailout-to-csr.js:13:11)\n    at Suspense\n    at LoadableComponent\n    at AdminLayout (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:65:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at FormItemsProvider (webpack-internal:///(app-pages-browser)/./src/contexts/FormItemsContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)\n    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:57:11)\n    at DateProvider (webpack-internal:///(app-pages-browser)/./src/contexts/DateContext.tsx:14:11)\n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)\n    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)\n    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)\n    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)\n    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)\n    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 CancelBookingModal - Props iniciales:",
+      {
+        "booking_id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "hasGuarantee": true,
+        "totalAmount": 235,
+        "timestamp": "2025-02-19T15:37:12.276Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Iniciando carga de datos Stripe:",
+      {
+        "booking_id": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "timestamp": "2025-02-19T15:37:12.277Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Cargando conexión Stripe para:",
+      "99f78081-24fa-4892-aae2-823816e7d132"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Estado de cancelación:",
+      {
+        "paymentType": "guarantee",
+        "canChargeNoShow": false,
+        "stripeConnection": {},
+        "totalAmount": 235
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Conexión Stripe cargada:",
+      {
+        "stripe_account_id": "acct_1QddDLC4oQv4vCtF",
+        "charges_enabled": true,
+        "account_status": "active"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Conexión Stripe cargada:",
+      {
+        "stripe_account_id": "acct_1QddDLC4oQv4vCtF",
+        "charges_enabled": true,
+        "account_status": "active"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      "Warning: Encountered two children with the same key, `%s`. Keys should be unique so that components maintain their identity across updates. Non-unique keys may cause children to be duplicated and/or omitted — the behavior is unsupported and could change in a future version.%s",
+      "",
+      "\n    at AnimatePresence (webpack-internal:///(app-pages-browser)/./node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs:72:28)\n    at ViewBookingModal (webpack-internal:///(app-pages-browser)/./src/components/bookings/components/ViewBookingModal/ViewBookingModal.tsx:458:11)\n    at div\n    at BookingsTable (webpack-internal:///(app-pages-browser)/./src/components/bookings/BookingsTable.tsx:70:94)\n    at Suspense\n    at div\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Presence (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-presence/dist/index.mjs:26:13)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:175:13)\n    at _c4 (webpack-internal:///(app-pages-browser)/./src/components/ui/tabs.tsx:125:11)\n    at div\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-primitive/dist/index.mjs:36:13)\n    at Provider (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-context/dist/index.mjs:34:15)\n    at eval (webpack-internal:///(app-pages-browser)/./node_modules/@radix-ui/react-tabs/dist/index.mjs:44:13)\n    at div\n    at div\n    at div\n    at main\n    at div\n    at BookingsPage (webpack-internal:///(app-pages-browser)/./src/app/admin/dashboard/bookings/page.tsx:111:110)\n    at ClientPageRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/client-page.js:14:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at div\n    at main\n    at div\n    at DashboardLayout (Server)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at RentalProvider (webpack-internal:///(app-pages-browser)/./src/contexts/RentalContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AppInitializer (webpack-internal:///(app-pages-browser)/./src/components/AppInitializer.tsx:20:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at eval (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:24:15)\n    at BailoutToCSR (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/shared/lib/lazy-dynamic/dynamic-bailout-to-csr.js:13:11)\n    at Suspense\n    at LoadableComponent\n    at AdminLayout (webpack-internal:///(app-pages-browser)/./src/app/admin/layout.tsx:65:11)\n    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)\n    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)\n    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)\n    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)\n    at FormItemsProvider (webpack-internal:///(app-pages-browser)/./src/contexts/FormItemsContext.tsx:14:11)\n    at BranchProvider (webpack-internal:///(app-pages-browser)/./src/contexts/BranchContext.tsx:37:11)\n    at OrganizationProvider (webpack-internal:///(app-pages-browser)/./src/contexts/OrganizationContext.tsx:47:11)\n    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/contexts/AuthContext.tsx:46:11)\n    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)\n    at Providers (webpack-internal:///(app-pages-browser)/./src/app/providers.tsx:57:11)\n    at DateProvider (webpack-internal:///(app-pages-browser)/./src/contexts/DateContext.tsx:14:11)\n    at body\n    at html\n    at RootLayout (Server)\n    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)\n    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)\n    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)\n    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)\n    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)\n    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)\n    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)\n    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)\n    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)\n    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)\n    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)\n    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)\n    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🎯 Renderizando PaymentDetails:",
+      {
+        "paymentType": "guarantee",
+        "isGuarantee": true,
+        "shouldShowGuarantee": true,
+        "validation": {
+          "isValid": true,
+          "type": "string",
+          "value": "guarantee"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 Estado de cancelación:",
+      {
+        "paymentType": "guarantee",
+        "canChargeNoShow": true,
+        "stripeConnection": {
+          "enabled": true,
+          "status": "active"
+        },
+        "totalAmount": 235
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔍 [ag0f2o95m79iorakir36z7xv] Iniciando búsqueda de datos Stripe:",
+      {
+        "bookingId": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+        "timestamp": "2025-02-19T15:37:12.409Z"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      "❌ [ag0f2o95m79iorakir36z7xv] Error al obtener booking:",
+      {
+        "error": {
+          "code": "42703",
+          "details": null,
+          "hint": null,
+          "message": "column bookings.user_id does not exist"
+        },
+        "bookingId": "e1678cee-3502-4ac8-b7cc-5b8e1e8fd4ef",
+        "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "💳 Datos de pago obtenidos:",
+      {
+        "hasPaymentMethod": false,
+        "hasAccountId": false,
+        "hasCustomerId": false,
+        "timestamp": "2025-02-19T15:37:12.506Z"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "⚠️ Datos de Stripe incompletos:",
+      {
+        "hasPaymentMethod": false,
+        "hasAccountId": false,
+        "hasCustomerId": false
+      }
+    ]
+  }
+]

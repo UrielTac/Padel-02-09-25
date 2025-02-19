@@ -5,7 +5,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createSupabaseClient } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
 
-type Organization = Database['public']['Tables']['empresas']['Row']
+type Organization = {
+  id: string;
+  name: string;
+  business_name: string | null;
+  auth_user_id: string;
+}
 
 // Definir el tipo para el estado de la cuenta Stripe
 type StripeAccountStatus = 'pending' | 'active' | 'restricted' | 'disabled';
@@ -32,12 +37,25 @@ interface StripeConnectionRow {
 }
 
 interface OrganizationContextType {
-  organization: Organization | null;
-  stripeConnection: StripeConnectionInfo | null;
+  organization: {
+    id: string;
+    name: string;
+    business_name: string | null;
+    auth_user_id: string;
+  } | null;
+  stripeConnection: {
+    stripe_account_id: string;
+    charges_enabled: boolean;
+    account_status: string;
+  } | null;
   isLoading: boolean;
   error: Error | null;
   setOrganization: (org: Organization) => void;
-  loadStripeConnection: () => Promise<StripeConnectionInfo | null>;
+  loadStripeConnection: () => Promise<{
+    stripe_account_id: string;
+    charges_enabled: boolean;
+    account_status: string;
+  } | null>;
 }
 
 interface UserMetadata {
@@ -115,7 +133,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
       const { data: org, error: orgError } = await supabase
         .from('empresas')
-        .select('*')
+        .select('id, name, business_name, auth_user_id')
         .eq('id', empresaId)
         .single();
 

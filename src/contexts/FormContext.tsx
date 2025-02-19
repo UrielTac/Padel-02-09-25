@@ -19,9 +19,21 @@ interface ShiftState {
   price?: number;
 }
 
-interface PaymentState {
-  method: PaymentMethodEnum | null;
+export interface PaymentState {
   type: PaymentTypeEnum | null;
+  method: PaymentMethodEnum | null;
+  selectedPaymentMethod?: {
+    id: string;
+    brand: string;
+    last4: string;
+    expMonth: number;
+    expYear: number;
+  };
+  config?: {
+    paymentMethodId?: string;
+    brand?: string;
+    last4?: string;
+  };
 }
 
 interface FormState {
@@ -82,17 +94,37 @@ function formReducer(state: FormState, action: FormAction): FormState {
       };
     
     case 'SET_PAYMENT':
-      console.log('FormContext: Actualizando estado de pago:', action.payload);
+      console.log('FormContext: Estado antes de actualización:', {
+        current: state.payment,
+        incoming: action.payload,
+        hasSelectedMethod: !!action.payload.selectedPaymentMethod
+      });
       
       const paymentType = action.payload.type as PaymentTypeEnum;
       const paymentMapping = paymentType ? PAYMENT_TYPE_MAPPINGS[paymentType] : null;
       
+      // Mantener el método de pago seleccionado si es una garantía
       const newPaymentState = {
-        method: paymentMapping?.defaultMethod || action.payload.method,
-        type: action.payload.type
+        method: paymentType === 'guarantee' ? 'stripe' : (paymentMapping?.defaultMethod || action.payload.method),
+        type: action.payload.type,
+        selectedPaymentMethod: paymentType === 'guarantee' 
+          ? (action.payload.selectedPaymentMethod || action.payload.config?.paymentMethodId 
+              ? {
+                  id: action.payload.selectedPaymentMethod?.id || action.payload.config?.paymentMethodId,
+                  brand: action.payload.selectedPaymentMethod?.brand || action.payload.config?.brand,
+                  last4: action.payload.selectedPaymentMethod?.last4 || action.payload.config?.last4,
+                  expMonth: action.payload.selectedPaymentMethod?.expMonth || 0,
+                  expYear: action.payload.selectedPaymentMethod?.expYear || 0
+                }
+              : undefined)
+          : undefined
       };
 
-      console.log('FormContext: Nuevo estado de pago:', newPaymentState);
+      console.log('FormContext: Estado después de transformación:', {
+        newState: newPaymentState,
+        hasSelectedMethod: !!newPaymentState.selectedPaymentMethod,
+        selectedMethod: newPaymentState.selectedPaymentMethod
+      });
 
       return {
         ...state,

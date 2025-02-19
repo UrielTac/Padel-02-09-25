@@ -185,7 +185,8 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
           pricePerUnit: rental.pricePerUnit,
           totalPrice: rental.totalPrice
         })),
-        empresa_id: state.empresa_id
+        empresa_id: state.empresa_id,
+        stripe_payment_method_id: paymentType === 'guarantee' ? state.payment.selectedPaymentMethod?.id : undefined
       };
 
       console.log('Datos de reserva preparados:', {

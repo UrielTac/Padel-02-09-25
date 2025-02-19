@@ -95,6 +95,7 @@ export interface BookingCreationData {
     pricePerUnit: number;
     totalPrice: number;
   }>;
+  stripe_payment_method_id?: string;
 }
 
 export interface BookingParticipant {
@@ -221,34 +222,34 @@ export interface Participant {
 }
 
 export interface SelectedBooking {
-  id: string
-  courtId: string
-  court: string
-  date: string
-  startTime: string
-  endTime: string
-  totalAmount: number
-  depositAmount: number
-  courtPrice: number
-  rentalItemsPrice: number
-  paymentStatus: PaymentStatusEnum
-  paymentMethod: PaymentMethodEnum
-  paymentType: PaymentTypeEnum
-  title?: string
-  description?: string
+  id: string;
+  courtId: string;
+  court: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  totalAmount: number;
+  depositAmount: number;
+  courtPrice: number;
+  rentalItemsPrice: number;
+  paymentStatus: PaymentStatusEnum;
+  paymentMethod: PaymentMethodEnum;
+  paymentType: PaymentTypeEnum;
+  title: string;
+  description: string;
   participants: Array<{
-    id: string
-    memberId: string
-    firstName?: string
-    lastName?: string
-    role: string
-  }>
-  rentedItems?: Array<{
-    id: string
-    name: string
-    quantity: number
-    pricePerUnit: number
-  }>
+    id: string;
+    memberId: string;
+    role: string;
+    firstName: string;
+    lastName: string;
+  }>;
+  rentedItems: Array<{
+    id: string;
+    name: string;
+    quantity: number;
+    pricePerUnit: number;
+  }>;
 }
 
 export interface TimeSelection {

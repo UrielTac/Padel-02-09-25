@@ -1,9 +1,11 @@
 import { SupabaseClient } from '@supabase/supabase-js';
 import Stripe from 'stripe';
 import { createId } from '@paralleldrive/cuid2';
-import type { NoShowChargeRequest } from '@/types/api';
+import type { NoShowChargeRequest, PaymentResult } from '@/types/api';
 import { ValidationService } from './ValidationService';
+import { stripeDataService } from './server/stripe-data.service';
 import { Database } from '@/types/supabase';
+import type { Payment, PaymentInsert } from '@/types/payments';
 
 interface PaymentServiceError {
   code: string;
@@ -11,125 +13,85 @@ interface PaymentServiceError {
   details?: any;
 }
 
-interface PaymentResult {
-  success: boolean;
-  paymentIntentId?: string;
-  chargeStatus?: string;
-  error?: PaymentServiceError;
-}
-
 export class StripePaymentService {
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly MAX_CHARGE_AMOUNT = 10000; // 100€ en céntimos
-  private readonly validationService: ValidationService;
 
   constructor(
     private stripe: Stripe,
-    private supabase: SupabaseClient<Database>
-  ) {
-    this.validationService = new ValidationService(this.supabase);
-  }
+    private supabase: SupabaseClient<Database>,
+    private validationService: ValidationService
+  ) {}
 
   async chargeNoShow({
     bookingId,
     amount,
     reason,
     stripeAccountId,
-    empresaId
+    empresaId,
+    stripePaymentMethodId
   }: NoShowChargeRequest): Promise<PaymentResult> {
     const requestId = createId();
     console.log(`🔄 [${requestId}] Iniciando proceso de cargo por no-show:`, {
       bookingId,
-      amount
+      amount,
+      empresaId
     });
 
     try {
-      // Validar monto máximo
-      if (amount > this.MAX_CHARGE_AMOUNT) {
-        throw {
-          code: 'INVALID_AMOUNT',
-          message: `El monto máximo permitido es ${this.MAX_CHARGE_AMOUNT/100}€`
-        };
+      // 1. Obtener datos de Stripe usando el servicio correcto
+      const stripeData = await stripeDataService.getStripePaymentData(bookingId);
+      if (!stripeData?.customerId) {
+        throw new Error('No se encontró el customer_id de Stripe');
       }
 
-      // Validar todos los requisitos
-      const validationResult = await this.validationService.validateNoShowCharge(
-        empresaId,
-        bookingId,
-        amount
-      );
-
-      if (!validationResult.isValid) {
-        throw {
-          code: validationResult.errors[0].code,
-          message: validationResult.errors[0].message,
-          details: validationResult.context
-        };
-      }
-
-      const { booking, stripe_connection, stripe_customer } = validationResult.data!;
-
-      // Iniciar transacción
-      const { error: txError } = await this.supabase.rpc('begin_no_show_charge_transaction', {
-        p_booking_id: bookingId
+      // 2. Procesar el cargo con todos los datos necesarios
+      const paymentIntent = await this.processCharge({
+        amount,
+        stripeAccountId,
+        customerId: stripeData.customerId,
+        paymentMethodId: stripePaymentMethodId,
+        metadata: {
+          booking_id: bookingId,
+          charge_type: 'no_show',
+          reason: reason || 'No show charge'
+        }
       });
 
-      if (txError) throw txError;
+      // 3. Registrar el pago
+      const payment = await this.registerPayment({
+        bookingId,
+        amount,
+        totalPrice: amount,
+        paymentMethodId: stripePaymentMethodId,
+        accountId: stripeAccountId,
+        reason: reason || 'Cargo por no-show',
+        notes: `Cargo por no-show procesado: ${paymentIntent.id}`
+      });
 
-      try {
-        // Procesar cargo con reintentos
-        const paymentIntent = await this.retryOperation(
-          () => this.processCharge({
-            amount,
-            customerId: stripe_customer.stripe_customer_id,
-            stripeAccountId: stripe_connection.stripe_account_id,
-            metadata: {
-              booking_id: bookingId,
-              charge_type: 'no_show',
-              reason: reason || 'No show charge'
-            }
-          })
-        );
+      // 4. Actualizar la reserva
+      const { error: bookingError } = await this.supabase
+        .from('bookings')
+        .update({
+          payment_status: 'completed',
+          cancelled_at: new Date().toISOString(),
+          cancellation_reason: reason
+        })
+        .eq('id', bookingId);
 
-        // Registrar el cargo
-        await this.recordPayment({
-          bookingId,
-          amount,
-          paymentIntentId: paymentIntent.id,
-          reason,
-          status: paymentIntent.status
-        });
+      if (bookingError) throw bookingError;
 
-        // Actualizar estado de reserva
-        await this.updateBookingStatus(bookingId, {
-          status: 'cancelled',
-          reason,
-          chargeApplied: true
-        });
+      console.log(`✅ [${requestId}] Cargo procesado exitosamente:`, {
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        payment_id: payment.id
+      });
 
-        // Confirmar transacción
-        await this.supabase.rpc('commit_no_show_charge_transaction', {
-          p_booking_id: bookingId
-        });
-
-        console.log(`✅ [${requestId}] Cargo procesado exitosamente:`, {
-          paymentIntentId: paymentIntent.id,
-          status: paymentIntent.status
-        });
-
-        return {
-          success: true,
-          paymentIntentId: paymentIntent.id,
-          chargeStatus: paymentIntent.status
-        };
-
-      } catch (error) {
-        // Rollback en caso de error
-        await this.supabase.rpc('rollback_no_show_charge_transaction', {
-          p_booking_id: bookingId
-        });
-        throw error;
-      }
+      return {
+        success: true,
+        paymentIntentId: paymentIntent.id,
+        chargeStatus: paymentIntent.status
+      };
 
     } catch (error: any) {
       console.error(`❌ [${requestId}] Error en chargeNoShow:`, error);
@@ -156,26 +118,77 @@ export class StripePaymentService {
     amount,
     customerId,
     stripeAccountId,
-    metadata
+    metadata,
+    paymentMethodId
   }: {
     amount: number;
     customerId: string;
     stripeAccountId: string;
     metadata: Record<string, any>;
+    paymentMethodId?: string;
   }) {
+    const requestId = createId();
+    console.log(`🔄 [${requestId}] Iniciando procesamiento de cargo:`, {
+      customerId,
+      amount,
+      hasPaymentMethod: Boolean(paymentMethodId)
+    });
+
     try {
-      return await this.stripe.paymentIntents.create({
+      // Crear PaymentIntent con customer_id
+      const paymentIntent = await this.stripe.paymentIntents.create({
         amount: Math.round(amount * 100),
         currency: 'eur',
         customer: customerId,
+        payment_method: paymentMethodId,
         off_session: true,
         confirm: true,
-        metadata,
-        payment_method_types: ['card']
+        payment_method_types: ['card'],
+        metadata: {
+          ...metadata,
+          request_id: requestId,
+          charge_type: 'no_show'
+        },
+        confirmation_method: 'automatic',
+        capture_method: 'automatic'
       }, {
-        stripeAccount: stripeAccountId
+        stripeAccount: stripeAccountId,
+        idempotencyKey: `noshow_${metadata.booking_id}_${Date.now()}`
       });
+
+      console.log(`✅ [${requestId}] PaymentIntent creado:`, {
+        id: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount
+      });
+
+      return paymentIntent;
     } catch (error: any) {
+      console.error(`❌ [${requestId}] Error al procesar cargo:`, error);
+
+      // Manejar errores específicos
+      if (error.code === 'authentication_required') {
+        throw {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'La tarjeta requiere autenticación',
+          details: {
+            payment_intent_id: error.payment_intent?.id,
+            type: error.type
+          }
+        };
+      }
+
+      if (error.code === 'card_declined') {
+        throw {
+          code: 'CARD_DECLINED',
+          message: 'La tarjeta fue rechazada',
+          details: {
+            decline_code: error.decline_code,
+            type: error.type
+          }
+        };
+      }
+
       throw {
         code: 'STRIPE_ERROR',
         message: 'Error al procesar el cargo',
@@ -309,5 +322,32 @@ export class StripePaymentService {
     } catch (logError) {
       console.error('Error al registrar error:', logError);
     }
+  }
+
+  private async registerPayment(data: {
+    bookingId: string;
+    amount: number;
+    totalPrice: number;
+    paymentMethodId: string;
+    accountId: string;
+    reason: string;
+    notes: string;
+  }): Promise<Database['public']['Tables']['bookings_payments']['Row']> {
+    const paymentData: Database['public']['Tables']['bookings_payments']['Insert'] = {
+      booking_id: data.bookingId,
+      amount: data.amount,
+      type: 'no_show_charge',
+      status: 'completed',
+      notes: data.notes
+    };
+
+    const { data: payment, error } = await this.supabase
+      .from('bookings_payments')
+      .insert(paymentData)
+      .select('*')
+      .single();
+
+    if (error) throw error;
+    return payment;
   }
 } 

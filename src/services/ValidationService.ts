@@ -13,6 +13,7 @@ export type ValidationErrorCode =
   | 'STRIPE_CUSTOMER_INACTIVE'
   | 'NO_PAYMENT_METHOD'
   | 'INSUFFICIENT_PERMISSIONS'
+  | 'PAYMENT_METHOD_REQUIRED'
 
 export interface ValidationError {
   code: ValidationErrorCode
@@ -50,6 +51,18 @@ export interface NoShowChargeValidationContext {
   stripe_connection: StripeAccountValidationContext['stripe_connection']
   stripe_customer: StripeCustomerValidationContext['stripe_customer']
   amount: number
+  payment_method_id: string
+}
+
+interface CancellationValidationResult {
+  isValid: boolean;
+  errors: ValidationError[];
+  data?: {
+    booking: any;
+    stripe_payment_method_id?: string;
+    stripe_account_id?: string;
+    charge_amount?: number;
+  };
 }
 
 export class ValidationService {
@@ -58,85 +71,84 @@ export class ValidationService {
   ) {}
 
   async validateNoShowCharge(
-    empresa_id: string,
-    booking_id: string,
+    empresaId: string,
+    bookingId: string,
     amount: number
-  ): Promise<ValidationResult<NoShowChargeValidationContext>> {
+  ): Promise<ValidationResult> {
     const requestId = createId();
     console.log(`🔄 [${requestId}] Iniciando validación de cargo no-show:`, {
-      empresa_id,
-      booking_id,
+      empresaId,
+      bookingId,
       amount
     });
 
-    const errors: ValidationError[] = []
-    const context: Partial<NoShowChargeValidationContext> = {}
+    try {
+      // 1. Validar la reserva
+      console.log(`📋 [${requestId}] Validando reserva...`);
+      const bookingResult = await this.validateBooking(bookingId, empresaId);
+      
+      console.log(`✅ [${requestId}] Resultado validación reserva:`, {
+        isValid: bookingResult.isValid,
+        hasPaymentMethod: bookingResult.data?.payment_method_id ? 'Sí' : 'No',
+        errors: bookingResult.errors
+      });
 
-    // 1. Validar la reserva
-    console.log(`📋 [${requestId}] Validando reserva...`);
-    const bookingResult = await this.validateBooking(booking_id, empresa_id)
-    if (!bookingResult.isValid) {
-      console.warn(`⚠️ [${requestId}] Validación de reserva fallida:`, bookingResult.errors);
+      if (!bookingResult.isValid) {
+        return bookingResult;
+      }
+
+      // 2. Validar la cuenta de Stripe
+      console.log(`💳 [${requestId}] Validando cuenta Stripe...`);
+      const stripeAccountResult = await this.validateStripeAccount(empresaId);
+      
+      console.log(`✅ [${requestId}] Resultado validación Stripe:`, {
+        isValid: stripeAccountResult.isValid,
+        accountStatus: stripeAccountResult.data?.account_status,
+        errors: stripeAccountResult.errors
+      });
+
+      if (!stripeAccountResult.isValid) {
+        return stripeAccountResult;
+      }
+
+      // 3. Validar el cliente de Stripe
+      console.log(`👤 [${requestId}] Validando cliente Stripe...`);
+      const stripeCustomerResult = await this.validateStripeCustomer(
+        bookingResult.data.user_id,
+        stripeAccountResult.data.stripe_account_id
+      );
+
+      console.log(`✅ [${requestId}] Resultado validación cliente:`, {
+        isValid: stripeCustomerResult.isValid,
+        customerId: stripeCustomerResult.data?.stripe_customer_id,
+        errors: stripeCustomerResult.errors
+      });
+
+      if (!stripeCustomerResult.isValid) {
+        return stripeCustomerResult;
+      }
+
+      // 4. Retornar resultado final
+      return {
+        isValid: true,
+        errors: [],
+        data: {
+          booking: bookingResult.data,
+          stripe_connection: stripeAccountResult.data,
+          stripe_customer: stripeCustomerResult.data,
+          payment_method_id: bookingResult.data.payment_method_id
+        }
+      };
+    } catch (error: any) {
+      console.error(`❌ [${requestId}] Error en validateNoShowCharge:`, error);
       return {
         isValid: false,
-        errors: bookingResult.errors,
-        context: bookingResult.context
-      }
-    }
-    context.booking = bookingResult.data!
-    console.log(`✅ [${requestId}] Reserva validada correctamente`);
-
-    // 2. Validar la cuenta de Stripe
-    console.log(`💳 [${requestId}] Validando cuenta Stripe...`);
-    const stripeAccountResult = await this.validateStripeAccount(empresa_id)
-    if (!stripeAccountResult.isValid) {
-      console.warn(`⚠️ [${requestId}] Validación de cuenta Stripe fallida:`, stripeAccountResult.errors);
-      return {
-        isValid: false,
-        errors: stripeAccountResult.errors,
-        context: { ...context, ...stripeAccountResult.context }
-      }
-    }
-    context.stripe_connection = stripeAccountResult.data!
-    console.log(`✅ [${requestId}] Cuenta Stripe validada correctamente`);
-
-    // 3. Validar el cliente de Stripe
-    console.log(`👤 [${requestId}] Validando cliente Stripe...`);
-    const stripeCustomerResult = await this.validateStripeCustomer(
-      context.booking.user_id,
-      context.stripe_connection.stripe_account_id
-    )
-    if (!stripeCustomerResult.isValid) {
-      console.warn(`⚠️ [${requestId}] Validación de cliente Stripe fallida:`, stripeCustomerResult.errors);
-      return {
-        isValid: false,
-        errors: stripeCustomerResult.errors,
-        context: { ...context, ...stripeCustomerResult.context }
-      }
-    }
-    context.stripe_customer = stripeCustomerResult.data!
-    console.log(`✅ [${requestId}] Cliente Stripe validado correctamente`);
-
-    // 4. Validar el monto
-    console.log(`💰 [${requestId}] Validando monto...`);
-    const amountResult = this.validateAmount(amount, context.booking.total_price)
-    if (!amountResult.isValid) {
-      console.warn(`⚠️ [${requestId}] Validación de monto fallida:`, amountResult.errors);
-      return {
-        isValid: false,
-        errors: [...errors, ...amountResult.errors],
-        context
-      }
-    }
-    context.amount = amount
-    console.log(`✅ [${requestId}] Monto validado correctamente`);
-
-    console.log(`🎉 [${requestId}] Todas las validaciones completadas con éxito`);
-    return {
-      isValid: true,
-      errors: [],
-      data: context as NoShowChargeValidationContext,
-      context
+        errors: [{
+          code: 'VALIDATION_ERROR',
+          message: error.message
+        }],
+        context: error
+      };
     }
   }
 
@@ -144,21 +156,61 @@ export class ValidationService {
     booking_id: string,
     empresa_id: string
   ): Promise<ValidationResult<Database['public']['Tables']['bookings']['Row']>> {
-    const { data: booking, error } = await this.supabase
+    const requestId = createId();
+    console.log(`🔍 [${requestId}] Validando reserva:`, { booking_id, empresa_id });
+
+    // Primero obtener el pago asociado
+    const { data: payments, error: paymentsError } = await this.supabase
+      .from('payments')
+      .select('*')
+      .eq('booking_id', booking_id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    console.log(`💳 [${requestId}] Datos del pago:`, {
+      success: !paymentsError,
+      hasPayments: payments && payments.length > 0,
+      paymentMethod: payments?.[0]?.payment_method,
+      stripePaymentMethodId: payments?.[0]?.stripe_payment_method_id
+    });
+
+    if (paymentsError) {
+      console.error(`❌ [${requestId}] Error al obtener pagos:`, paymentsError);
+      return {
+        isValid: false,
+        errors: [{
+          code: 'PAYMENT_METHOD_REQUIRED',
+          message: 'Error al obtener información del pago'
+        }]
+      };
+    }
+
+    if (!payments || payments.length === 0 || !payments[0].stripe_payment_method_id) {
+      return {
+        isValid: false,
+        errors: [{
+          code: 'PAYMENT_METHOD_REQUIRED',
+          message: 'No se encontró un método de pago válido para esta reserva'
+        }]
+      };
+    }
+
+    // Ahora obtener la reserva
+    const { data: booking, error: bookingError } = await this.supabase
       .from('bookings')
       .select('*')
       .eq('id', booking_id)
       .eq('empresa_id', empresa_id)
-      .single()
+      .single();
 
-    if (error || !booking) {
+    if (bookingError || !booking) {
       return {
         isValid: false,
         errors: [{
           code: 'BOOKING_NOT_FOUND',
           message: 'La reserva no existe o no tienes permisos para acceder a ella'
         }]
-      }
+      };
     }
 
     if (booking.cancelled_at === null) {
@@ -167,17 +219,18 @@ export class ValidationService {
         errors: [{
           code: 'BOOKING_NOT_CANCELLED',
           message: 'La reserva debe estar cancelada para poder realizar un cargo por no presentarse'
-        }],
-        context: { booking }
-      }
+        }]
+      };
     }
 
     return {
       isValid: true,
       errors: [],
-      data: booking,
-      context: { booking }
-    }
+      data: {
+        ...booking,
+        payment_method_id: payments[0].stripe_payment_method_id
+      }
+    };
   }
 
   private async validateStripeAccount(
@@ -300,6 +353,103 @@ export class ValidationService {
       isValid: true,
       errors: [],
       data: amount
+    }
+  }
+
+  async validateCancellation(
+    bookingId: string,
+    shouldCharge: boolean,
+    amount?: number
+  ): Promise<CancellationValidationResult> {
+    const requestId = createId();
+    console.log(`🔍 [${requestId}] Validando cancelación:`, {
+      bookingId,
+      shouldCharge,
+      amount
+    });
+
+    try {
+      // Obtener la reserva con sus datos de pago
+      const { data: booking, error } = await this.supabase
+        .from('bookings')
+        .select(`
+          *,
+          payments (
+            stripe_payment_method_id,
+            stripe_account_id
+          )
+        `)
+        .eq('id', bookingId)
+        .single();
+
+      if (error || !booking) {
+        return {
+          isValid: false,
+          errors: [{
+            code: 'BOOKING_NOT_FOUND',
+            message: 'Reserva no encontrada'
+          }]
+        };
+      }
+
+      if (booking.cancelled_at) {
+        return {
+          isValid: false,
+          errors: [{
+            code: 'BOOKING_ALREADY_CANCELLED',
+            message: 'La reserva ya está cancelada'
+          }]
+        };
+      }
+
+      if (shouldCharge) {
+        const payment = booking.payments?.[0];
+        if (!payment?.stripe_payment_method_id) {
+          return {
+            isValid: false,
+            errors: [{
+              code: 'PAYMENT_METHOD_REQUIRED',
+              message: 'No hay método de pago registrado para esta reserva'
+            }]
+          };
+        }
+
+        if (!amount || amount <= 0) {
+          return {
+            isValid: false,
+            errors: [{
+              code: 'INVALID_AMOUNT',
+              message: 'El monto del cargo debe ser mayor a 0'
+            }]
+          };
+        }
+
+        return {
+          isValid: true,
+          data: {
+            booking,
+            stripe_payment_method_id: payment.stripe_payment_method_id,
+            stripe_account_id: payment.stripe_account_id,
+            charge_amount: amount
+          }
+        };
+      }
+
+      return {
+        isValid: true,
+        data: {
+          booking
+        }
+      };
+    } catch (error) {
+      console.error(`❌ [${requestId}] Error en validateCancellation:`, error);
+      return {
+        isValid: false,
+        errors: [{
+          code: 'VALIDATION_ERROR',
+          message: 'Error al validar la cancelación'
+        }]
+      };
     }
   }
 } 

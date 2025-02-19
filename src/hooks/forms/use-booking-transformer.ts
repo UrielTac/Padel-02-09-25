@@ -96,6 +96,26 @@ export function useBookingTransformer() {
     const paymentType = state.payment.type as PaymentTypeEnum;
     const paymentMapping = PAYMENT_TYPE_MAPPINGS[paymentType];
 
+    // Obtener el payment_method_id si es una reserva de tipo garantía
+    console.log('Estado de pago en transformación:', {
+      paymentState: state.payment,
+      hasSelectedMethod: !!state.payment.selectedPaymentMethod,
+      selectedMethod: state.payment.selectedPaymentMethod
+    });
+
+    const stripePaymentMethodId = state.payment.type === 'guarantee' && state.payment.selectedPaymentMethod
+      ? state.payment.selectedPaymentMethod.id
+      : undefined;
+
+    // Log detallado para debugging del método de pago
+    console.log('Método de pago seleccionado:', {
+      paymentType: state.payment.type,
+      isGuarantee: state.payment.type === 'guarantee',
+      selectedPaymentMethod: state.payment.selectedPaymentMethod,
+      stripePaymentMethodId,
+      paymentState: state.payment
+    });
+
     // Transformar rentals al formato esperado por la RPC
     const transformedRentals = rentals.map(rental => {
       // Asegurar que todos los campos necesarios estén presentes
@@ -153,14 +173,17 @@ export function useBookingTransformer() {
       }],
 
       // Datos de empresa
-      empresa_id: state.empresa_id || undefined
+      empresa_id: state.empresa_id || undefined,
+
+      stripe_payment_method_id: stripePaymentMethodId
     };
 
     // Log detallado de la estructura final
     console.log('Estructura final de la reserva:', {
       ...bookingData,
       rentalsFinales: bookingData.rentalItems,
-      rentalsLength: bookingData.rentalItems?.length || 0
+      rentalsLength: bookingData.rentalItems?.length || 0,
+      paymentMethod: stripePaymentMethodId
     });
 
     return bookingData;

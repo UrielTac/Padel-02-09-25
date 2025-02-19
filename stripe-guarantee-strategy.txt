@@ -5,7 +5,7 @@
 ### Componentes Implementados
 1. **API Base** ✅
    - `/api/stripe/charge-no-show/route.ts` - Implementado
-   - `StripePaymentService` - Implementado
+   - `StripePaymentService` - Implementado y actualizado para usar payment_method_id específico
    - Tipos y interfaces en `api.ts` - Implementados
 
 2. **UI** ✅
@@ -17,12 +17,56 @@
    - Tabla `stripe_connections` - Configurada
    - Tabla `stripe_customers` - Configurada
    - Tabla `bookings` con soporte para garantías - Configurada
+   - Tabla `payments` con stripe_payment_method_id - Configurada
    - Funciones de transacción para no-show - Implementadas
 
 4. **Servicios** ✅
-   - `StripePaymentService` - Implementado
+   - `StripePaymentService` - Actualizado para usar payment_method_id específico
    - `StripeCustomerService` - Implementado
    - `StripeSetupIntentService` - Implementado
+   - `ValidationService` - Actualizado para validar payment_method_id
+
+## Manejo de Métodos de Pago [NUEVO] ⚡
+
+### 1. Flujo de Datos Actualizado
+```mermaid
+graph TD
+    A[Reserva] -->|create| B[Payment Record]
+    B -->|store| C[stripe_payment_method_id]
+    D[CancelBookingModal] -->|trigger| E[NoShowCharge]
+    E -->|validate| F[ValidationService]
+    F -->|retrieve| C
+    E -->|process| G[StripePaymentService]
+    G -->|use| C
+```
+
+### 2. Validaciones Implementadas
+1. **A nivel de Reserva**
+   - Verificación de existencia de payment_method_id
+   - Validación de estado del método de pago
+   - Comprobación de permisos de cargo
+
+2. **A nivel de Proceso**
+   - Uso específico del método de pago guardado
+   - Manejo de errores específicos de tarjeta
+   - Registro de resultados del cargo
+
+### 3. Próximos Pasos [🎯]
+
+1. **Testing Específico** [ALTA]
+   - [ ] Pruebas de cargos con métodos de pago específicos
+   - [ ] Validación de errores de tarjeta
+   - [ ] Verificación de logs y trazabilidad
+
+2. **Mejoras UI** [MEDIA]
+   - [ ] Mostrar información del método de pago en el modal
+   - [ ] Mejorar mensajes de error específicos
+   - [ ] Añadir indicadores de estado del proceso
+
+3. **Documentación** [MEDIA]
+   - [ ] Actualizar diagramas de flujo
+   - [ ] Documentar nuevos códigos de error
+   - [ ] Crear guía de troubleshooting
 
 ## Áreas de Mejora Identificadas [⚠️]
 

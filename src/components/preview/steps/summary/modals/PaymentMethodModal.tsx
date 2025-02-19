@@ -89,6 +89,11 @@ export function PaymentMethodModal({
 
   const handleCardSelection = (card: StoredCard) => {
     try {
+      console.log('Iniciando selección de tarjeta:', {
+        cardData: card,
+        currentSelection: selectedCardId
+      });
+
       // Crear un objeto PaymentMethod completo
       const paymentMethod: PaymentMethod = {
         id: card.id,
@@ -117,6 +122,10 @@ export function PaymentMethodModal({
       
       // Cerrar el modal después de verificar que todo está correcto
       requestAnimationFrame(() => {
+        console.log('Cerrando modal con selección:', {
+          selectedId: card.id,
+          paymentMethod
+        });
         onClose();
       });
       

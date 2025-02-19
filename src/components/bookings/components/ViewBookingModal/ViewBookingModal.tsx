@@ -22,6 +22,7 @@ import { IconCircleCheck } from '@tabler/icons-react'
 import { createPortal } from "react-dom"
 import { bookingQueryService } from '@/services/bookingQueryService'
 import { useOrganization } from '@/contexts/OrganizationContext'
+import { supabase } from "@/lib/supabase"
 
 interface ViewBookingModalProps {
   isOpen: boolean
@@ -331,6 +332,7 @@ export function ViewBookingModal({
   const { data: courts = [] } = useCourts({ branchId: currentBranch?.id })
   const queryClient = useQueryClient()
   const [showCancelModal, setShowCancelModal] = useState(false)
+  const [isProcessingCancel, setIsProcessingCancel] = useState(false)
   const { toast } = useToast()
 
   const { registerPayment, cancelBooking } = useBookings({
@@ -511,33 +513,49 @@ export function ViewBookingModal({
     }
   }
 
-  const handleCancelBooking = async ({ reason, shouldCharge }: { reason?: string; shouldCharge?: boolean }) => {
-    if (!currentBooking) return
+  const handleCancelBooking = async ({ 
+    reason, 
+    shouldCharge 
+  }: { 
+    reason?: string; 
+    shouldCharge?: boolean 
+  }) => {
+    if (!currentBooking) return;
 
+    setIsProcessingCancel(true);
     try {
-      await cancelBooking({
-        bookingId: currentBooking.id,
-        reason,
-        shouldCharge
-      })
+      const { data, error } = await supabase.rpc('cancel_booking_v1', {
+        p_booking_id: currentBooking.id,
+        p_reason: reason,
+        p_should_charge: shouldCharge,
+        p_charge_amount: shouldCharge ? (currentBooking.totalAmount * 0.3) : null,
+        p_stripe_payment_method_id: currentBooking.stripePaymentMethodId,
+        p_stripe_account_id: organization?.stripeAccountId
+      });
 
-      // Cerrar los modales
-      setShowCancelModal(false)
-      onClose()
+      if (error) throw error;
 
-      // Actualizar la UI
-      queryClient.invalidateQueries({ queryKey: ['bookings'] })
-
-      // Notificar el éxito
-      onCancelSuccess()
-    } catch (error) {
-      console.error('Error al cancelar la reserva:', error)
       toast({
-        description: 'Error al cancelar la reserva',
-        variant: 'destructive'
-      })
+        title: "Reserva cancelada",
+        description: shouldCharge 
+          ? "La reserva ha sido cancelada y se procesará el cargo"
+          : "La reserva ha sido cancelada exitosamente"
+      });
+
+      onCancelSuccess?.();
+      setShowCancelModal(false);
+      onClose();
+    } catch (error) {
+      console.error('Error al cancelar reserva:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo procesar la cancelación",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingCancel(false);
     }
-  }
+  };
 
   const handleCancelSuccess = () => {}
 
@@ -801,8 +819,9 @@ export function ViewBookingModal({
           isOpen={showCancelModal}
           onClose={() => setShowCancelModal(false)}
           onConfirm={handleCancelBooking}
-          hasGuarantee={Boolean(currentBooking?.paymentType === 'guarantee')}
-          totalAmount={processedData?.totalAmount ?? 0}
+          hasGuarantee={currentBooking?.paymentType === 'guarantee'}
+          totalAmount={processedData?.totalAmount}
+          booking={currentBooking}
         />
       </>,
       document.body

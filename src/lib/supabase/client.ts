@@ -1,38 +1,78 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { type Database } from '@/types/supabase'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import type { Database } from '@/types/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { SupabaseClientSingleton } from '@/lib/supabase'
 
-// Validación de variables de entorno
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+// Re-exportar el singleton para mantener compatibilidad
+export const supabase = SupabaseClientSingleton.getInstance()
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan variables de entorno de Supabase')
-}
-
-// Singleton pattern para el cliente de Supabase
-class SupabaseClientSingleton {
-  private static instance: ReturnType<typeof createSupabaseClient<Database>> | null = null
-
-  private constructor() {}
-
-  public static getInstance(): ReturnType<typeof createSupabaseClient<Database>> {
-    if (!SupabaseClientSingleton.instance) {
-      SupabaseClientSingleton.instance = createSupabaseClient<Database>(
-        supabaseUrl,
-        supabaseAnonKey,
-        {
-          auth: {
-            persistSession: true,
-            autoRefreshToken: true,
-            detectSessionInUrl: true,
-            storage: typeof window !== 'undefined' ? window.localStorage : undefined
-          }
-        }
-      )
+// Función mejorada para obtener cliente autenticado
+export const getAuthenticatedSupabaseClient = async () => {
+  const client = SupabaseClientSingleton.getInstance()
+  
+  try {
+    const { data: { session }, error: sessionError } = await client.auth.getSession()
+    
+    if (sessionError) {
+      console.error('❌ Error al obtener sesión:', {
+        error: sessionError,
+        timestamp: new Date().toISOString()
+      })
+      throw sessionError
     }
-    return SupabaseClientSingleton.instance
+
+    if (!session) {
+      console.warn('⚠️ No hay sesión activa:', {
+        timestamp: new Date().toISOString()
+      })
+      throw new Error('No hay sesión activa')
+    }
+
+    return {
+      client,
+      session,
+      userId: session.user.id
+    }
+  } catch (error) {
+    console.error('❌ Error en getAuthenticatedSupabaseClient:', {
+      error,
+      timestamp: new Date().toISOString()
+    })
+    
+    // Limpiar instancia en caso de error
+    SupabaseClientSingleton.clearInstance()
+    throw error
   }
 }
 
-// Exportamos una única función para obtener la instancia
-export const getSupabaseClient = () => SupabaseClientSingleton.getInstance() 
+// Función para validar sesión
+export const validateSession = async () => {
+  try {
+    const { session } = await getAuthenticatedSupabaseClient()
+    return !!session
+  } catch {
+    return false
+  }
+}
+
+// Función para obtener el ID del usuario actual
+export const getCurrentUserId = async () => {
+  try {
+    const { userId } = await getAuthenticatedSupabaseClient()
+    return userId
+  } catch {
+    return null
+  }
+}
+
+// Función para cerrar sesión
+export const signOut = async () => {
+  const client = SupabaseClientSingleton.getInstance()
+  try {
+    await client.auth.signOut()
+    SupabaseClientSingleton.clearInstance()
+  } catch (error) {
+    console.error('❌ Error al cerrar sesión:', error)
+    throw error
+  }
+} 

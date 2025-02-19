@@ -95,6 +95,7 @@ export interface CreateBookingParams {
   }>;
   p_rental_items: RentalItemDB[];
   p_empresa_id?: string;
+  p_stripe_payment_method_id?: string;
 }
 
 const validatePaymentMethod = (method: string): PaymentMethodEnum => {
@@ -133,16 +134,12 @@ const transformBookingDataForDB = (data: BookingCreationData): CreateBookingPara
     total_price: rental.totalPrice
   }));
 
-  console.log('Rentals transformados:', {
-    original: data.rentalItems,
-    transformed: transformedRentals
+  // Log para debugging
+  console.log('Datos de pago:', {
+    type: paymentType,
+    method: data.paymentMethod,
+    stripe_payment_method_id: data.stripe_payment_method_id
   });
-
-  // Transformar los participantes asegurando que tengan user_id
-  const transformedParticipants = data.participants?.map(p => ({
-    user_id: p.userId || p.id,
-    role: p.role
-  })) || [];
 
   const transformedData = {
     p_court_id: data.courtId,
@@ -157,15 +154,14 @@ const transformBookingDataForDB = (data: BookingCreationData): CreateBookingPara
     p_deposit_amount: data.depositAmount || 0,
     p_title: data.title,
     p_description: data.description,
-    p_participants: transformedParticipants,
+    p_participants: data.participants?.map(p => ({
+      user_id: p.userId || p.id,
+      role: p.role
+    })) || [],
     p_rental_items: transformedRentals,
-    p_empresa_id: data.empresa_id
+    p_empresa_id: data.empresa_id,
+    p_stripe_payment_method_id: data.stripe_payment_method_id
   };
-
-  console.log('Datos transformados para RPC:', {
-    ...transformedData,
-    rentals: transformedRentals
-  });
 
   return transformedData;
 };
@@ -652,6 +648,14 @@ export const bookingService = {
   validateBookingData(data: BookingCreationData): boolean {
     if (!data) return false;
 
+    // Log inicial de validación
+    console.log('🔍 Iniciando validación de datos de reserva:', {
+      paymentType: data.paymentType,
+      paymentMethod: data.paymentMethod,
+      stripePaymentMethodId: data.stripe_payment_method_id,
+      isGuarantee: data.paymentType === 'guarantee'
+    });
+
     // Validación básica
     const isBasicValid = !!(
       data.courtId &&
@@ -672,6 +676,23 @@ export const bookingService = {
         invalidRentalPrice: Number(data.rentalItemsPrice) < 0
       });
       return false;
+    }
+
+    // Validación de método de pago para garantías
+    if (data.paymentType === 'guarantee') {
+      if (!data.stripe_payment_method_id) {
+        console.error('❌ Error en método de pago para garantía:', {
+          type: data.paymentType,
+          method: data.paymentMethod,
+          stripe_payment_method_id: data.stripe_payment_method_id
+        });
+        return false;
+      }
+      
+      console.log('✅ Validación de garantía exitosa:', {
+        paymentMethodId: data.stripe_payment_method_id,
+        method: data.paymentMethod
+      });
     }
 
     // Validación específica para rentals
