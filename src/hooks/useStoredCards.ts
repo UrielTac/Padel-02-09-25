@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStripe } from '@/contexts/StripeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface StoredCard {
   id: string;
@@ -15,6 +16,7 @@ export function useStoredCards(refreshTrigger = 0) {
   const [cards, setCards] = useState<StoredCard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const { user } = useAuth();
   let stripeContext;
   let isConnected = false;
 
@@ -35,10 +37,11 @@ export function useStoredCards(refreshTrigger = 0) {
   const RETRY_DELAY = 1000;
 
   const loadCards = useCallback(async () => {
-    if (!stripeAccountId || !isConnected) {
-      console.log('[StoredCards] No hay cuenta de Stripe conectada:', {
+    if (!stripeAccountId || !isConnected || !user) {
+      console.log('[StoredCards] No se puede cargar tarjetas:', {
         stripeAccountId,
-        isConnected
+        isConnected,
+        hasUser: Boolean(user)
       });
       setCards([]);
       setIsLoading(false);
@@ -48,16 +51,45 @@ export function useStoredCards(refreshTrigger = 0) {
     try {
       console.log('[StoredCards] 🔄 Iniciando carga de tarjetas:', {
         stripeAccountId,
+        userId: user.id,
         refreshTrigger,
         retryCount: retryCountRef.current
       });
       
+      // Primero, asegurarnos de que existe el customer
+      const customerResponse = await fetch('/api/stripe/customer', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          stripeAccountId,
+          userId: user.id,
+          email: user.email,
+          metadata: {
+            name: user.metadata?.name,
+            empresa_id: user.metadata?.empresa_id
+          }
+        })
+      });
+
+      if (!customerResponse.ok) {
+        throw new Error('Error al obtener/crear el customer de Stripe');
+      }
+
+      const customerData = await customerResponse.json();
+      
+      // Luego, cargar las tarjetas
       const response = await fetch('/api/stripe/payment-methods', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ stripeAccountId })
+        body: JSON.stringify({ 
+          stripeAccountId,
+          userId: user.id,
+          customerId: customerData.stripeCustomerId
+        })
       });
 
       const data = await response.json();
@@ -108,13 +140,14 @@ export function useStoredCards(refreshTrigger = 0) {
       console.error('[StoredCards] ❌ Error al cargar las tarjetas:', {
         message: errorMessage,
         stripeAccountId,
+        userId: user.id,
         error: err
       });
       
       setError(err as Error);
       setIsLoading(false);
     }
-  }, [stripeAccountId, isConnected, refreshTrigger]);
+  }, [stripeAccountId, isConnected, refreshTrigger, user]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -128,15 +161,19 @@ export function useStoredCards(refreshTrigger = 0) {
   }, [loadCards]);
 
   const deleteCard = async (cardId: string) => {
-    if (!stripeAccountId) {
-      console.error('[StoredCards] ❌ No hay cuenta de Stripe para eliminar tarjeta');
+    if (!stripeAccountId || !user) {
+      console.error('[StoredCards] ❌ No se puede eliminar la tarjeta:', {
+        hasStripeAccount: Boolean(stripeAccountId),
+        hasUser: Boolean(user)
+      });
       return;
     }
 
     try {
       console.log('[StoredCards] 🗑️ Eliminando tarjeta:', { 
         cardId, 
-        stripeAccountId 
+        stripeAccountId,
+        userId: user.id
       });
 
       const response = await fetch(`/api/stripe/payment-methods/${cardId}`, {
@@ -144,7 +181,10 @@ export function useStoredCards(refreshTrigger = 0) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ stripeAccountId })
+        body: JSON.stringify({ 
+          stripeAccountId,
+          userId: user.id
+        })
       });
 
       const data = await response.json();
@@ -170,6 +210,7 @@ export function useStoredCards(refreshTrigger = 0) {
         message: errorMessage,
         cardId,
         stripeAccountId,
+        userId: user?.id,
         error: err
       });
       throw err;

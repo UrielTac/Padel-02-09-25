@@ -7,52 +7,51 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-12-18.acacia'
+  apiVersion: '2025-01-27.acacia'
 });
-
-// Por ahora, usar un usuario por defecto
-const DEFAULT_USER_ID = process.env.NEXT_PUBLIC_DEFAULT_USER_ID;
 
 export async function POST(request: Request) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   console.log(`📝 [${requestId}] Iniciando listado de métodos de pago`);
 
   try {
-    const { stripeAccountId } = await request.json();
+    const { stripeAccountId, userId, customerId } = await request.json();
 
-    if (!stripeAccountId) {
-      console.warn(`⚠️ [${requestId}] No se proporcionó el ID de cuenta de Stripe`);
+    if (!stripeAccountId || !userId) {
+      console.warn(`⚠️ [${requestId}] Faltan datos requeridos:`, {
+        hasStripeAccount: Boolean(stripeAccountId),
+        hasUserId: Boolean(userId)
+      });
       return NextResponse.json(
-        { error: 'stripeAccountId es requerido' },
+        { error: 'stripeAccountId y userId son requeridos' },
         { status: 400 }
       );
     }
 
-    if (!DEFAULT_USER_ID) {
-      console.warn(`⚠️ [${requestId}] DEFAULT_USER_ID no está configurado`);
+    console.log(`📍 [${requestId}] Obteniendo customer para:`, {
+      userId,
+      stripeAccountId,
+      hasCustomerId: Boolean(customerId)
+    });
+
+    // Usar el customerId proporcionado o obtenerlo del servicio
+    const customer = customerId 
+      ? { stripeCustomerId: customerId }
+      : await stripeCustomerService.getOrCreateCustomer(userId, stripeAccountId);
+
+    if (!customer) {
+      console.error(`❌ [${requestId}] No se pudo obtener/crear el customer`);
       return NextResponse.json(
-        { error: 'DEFAULT_USER_ID no está configurado' },
+        { error: 'Error al obtener el customer' },
         { status: 500 }
       );
     }
 
-    console.log(`📍 [${requestId}] Obteniendo customer para:`, {
-      userId: DEFAULT_USER_ID,
-      stripeAccountId
-    });
-
-    // 1. Obtener o crear el customer
-    const customer = await stripeCustomerService.getOrCreateCustomer(
-      DEFAULT_USER_ID,
-      stripeAccountId
-    );
-
     console.log(`✅ [${requestId}] Customer encontrado:`, {
-      customerId: customer.stripeCustomerId,
-      status: customer.status
+      customerId: customer.stripeCustomerId
     });
 
-    // 2. Listar métodos de pago del customer
+    // Listar métodos de pago del customer
     const paymentMethods = await stripe.paymentMethods.list(
       {
         customer: customer.stripeCustomerId,
@@ -63,7 +62,7 @@ export async function POST(request: Request) {
       }
     );
 
-    // 3. Transformar los datos para el frontend
+    // Transformar los datos para el frontend
     const formattedMethods = paymentMethods.data.map(method => ({
       id: method.id,
       brand: method.card?.brand || 'unknown',

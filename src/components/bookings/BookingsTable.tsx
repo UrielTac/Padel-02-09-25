@@ -22,6 +22,8 @@ import { cn } from "@/lib/utils"
 import { IconCircleCheck } from "@tabler/icons-react"
 import { toast } from "@/components/ui/use-toast"
 import { useBookingStore } from '@/store/bookingStore'
+import { format } from 'date-fns'
+import type { SelectedBooking } from '@/types/bookings'
 
 const ScrollContainer = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -45,6 +47,7 @@ export function BookingsTable() {
   const [configMenuOpen, setConfigMenuOpen] = useState(false)
   const [configButtonPosition, setConfigButtonPosition] = useState({ x: 0, y: 0 })
   const configButtonRef = useRef<HTMLButtonElement>(null)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [tableConfig, setTableConfig] = useState({
     colors: {
       shift: '#FBD950',
@@ -59,17 +62,21 @@ export function BookingsTable() {
     onlyActive: true
   })
 
+  // Formatear la fecha para la consulta de reservas
+  const formattedDate = format(selectedDate, 'yyyy-MM-dd')
+
+  // Usar useBookings hook con TanStack Query
   const {
-    bookings,
+    bookings = [],
     isLoading,
     isError,
-    selectedBooking,
-    setSelectedBooking,
-    handleBookingCreated
-  } = useBookingState({
-    selectedDate,
+    refetch
+  } = useBookings({
+    selectedDate: formattedDate,
     branchId: currentBranch?.id
   })
+
+  const [selectedBooking, setSelectedBooking] = useState<SelectedBooking | null>(null)
 
   const { timeSlots, isOpen } = useTimeSlots({ selectedDate })
 
@@ -135,6 +142,43 @@ export function BookingsTable() {
     }
   }
 
+  // Manejar el cambio de fecha
+  const handleDateChange = (newDate: Date) => {
+    setSelectedDate(newDate)
+    // No es necesario llamar a refetch explícitamente ya que TanStack Query
+    // lo manejará automáticamente al cambiar la fecha en el queryKey
+  }
+
+  // Manejar la actualización manual
+  const handleRefresh = async () => {
+    try {
+      setIsRefreshing(true)
+      
+      // Iniciar la actualización
+      const refreshPromise = refetch()
+      
+      // Esperar al menos 1 segundo para la animación
+      const animationPromise = new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Esperar a que ambas promesas se completen
+      await Promise.all([refreshPromise, animationPromise])
+
+      toast({
+        title: "Datos actualizados",
+        description: "Las reservas se han actualizado correctamente",
+        variant: "default"
+      })
+    } catch (error) {
+      toast({
+        title: "Error al actualizar",
+        description: "No se pudieron actualizar las reservas. Por favor, intente nuevamente.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsRefreshing(false)
+    }
+  }
+
   // Agregar efecto para manejar eventos globales del mouse
   useEffect(() => {
     document.addEventListener('mouseup', handleMouseUp)
@@ -176,9 +220,11 @@ export function BookingsTable() {
       <div className="flex-none">
         <TableHeader
           selectedDate={selectedDate}
-          onDateChange={setSelectedDate}
+          onDateChange={handleDateChange}
           onConfigClick={handleConfigButtonClick}
           onCreateClassClick={() => setShowNewBookingModal(true)}
+          onRefreshClick={handleRefresh}
+          isRefreshing={isRefreshing}
         />
       </div>
 
@@ -239,7 +285,7 @@ export function BookingsTable() {
         isOpen={showSimpleShiftModal}
         onClose={handleSimpleShiftModalClose}
         selection={selection}
-        onBookingCreated={handleBookingCreated}
+        onBookingCreated={refetch}
       />
 
       <ViewBookingModal
@@ -257,6 +303,7 @@ export function BookingsTable() {
               </div>
             )
           })
+          refetch()
         }}
       />
     </div>

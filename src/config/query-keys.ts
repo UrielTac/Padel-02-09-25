@@ -10,8 +10,8 @@ export const queryKeys = {
   bookings: {
     all: ['bookings'] as const,
     lists: () => [...queryKeys.bookings.all, 'list'] as const,
-    list: (filters: { date?: string; branchId?: string }) => 
-      [...queryKeys.bookings.lists(), filters] as const,
+    list: (date?: string, branchId?: string) => 
+      ['bookings', { date, branchId }] as const,
     details: () => [...queryKeys.bookings.all, 'detail'] as const,
     detail: (id: string) => [...queryKeys.bookings.details(), id] as const,
   },

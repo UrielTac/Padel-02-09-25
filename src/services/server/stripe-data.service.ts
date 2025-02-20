@@ -13,7 +13,10 @@ export const stripeDataService = {
   async getStripePaymentData(bookingId: string): Promise<StripePaymentData | null> {
     const requestId = createId();
     try {
-      const client = createServerComponentClient<Database>({ cookies });
+      const client = createServerComponentClient<Database>({ 
+        cookies,
+        options: { db: { schema: 'public' } }
+      });
 
       console.log(`🔍 [${requestId}] Iniciando búsqueda de datos Stripe (Server):`, {
         bookingId,

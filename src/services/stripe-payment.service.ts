@@ -5,7 +5,16 @@ import type { NoShowChargeRequest, PaymentResult } from '@/types/api';
 import { ValidationService } from './ValidationService';
 import { stripeDataService } from './server/stripe-data.service';
 import { Database } from '@/types/supabase';
-import type { Payment, PaymentInsert } from '@/types/payments';
+
+interface PaymentInsert {
+  booking_id: string;
+  deposit_amount: number;
+  total_price: number;
+  payment_method: 'stripe' | 'cash' | 'transfer';
+  payment_status: 'pending' | 'completed' | 'failed';
+  stripe_payment_intent_id?: string;
+  notes?: string;
+}
 
 interface PaymentServiceError {
   code: string;
@@ -23,68 +32,36 @@ export class StripePaymentService {
     private validationService: ValidationService
   ) {}
 
-  async chargeNoShow({
-    bookingId,
-    amount,
-    reason,
-    stripeAccountId,
-    empresaId,
-    stripePaymentMethodId
-  }: NoShowChargeRequest): Promise<PaymentResult> {
+  async chargeNoShow(params: NoShowChargeRequest): Promise<PaymentResult> {
     const requestId = createId();
     console.log(`🔄 [${requestId}] Iniciando proceso de cargo por no-show:`, {
-      bookingId,
-      amount,
-      empresaId
+      bookingId: params.bookingId,
+      amount: params.amount,
+      empresaId: params.empresaId
     });
 
     try {
-      // 1. Obtener datos de Stripe usando el servicio correcto
-      const stripeData = await stripeDataService.getStripePaymentData(bookingId);
-      if (!stripeData?.customerId) {
-        throw new Error('No se encontró el customer_id de Stripe');
+      // 1. Obtener datos de Stripe usando el servicio del servidor
+      const stripeData = await stripeDataService.getStripePaymentData(params.bookingId);
+      
+      if (!stripeData) {
+        throw {
+          code: 'STRIPE_DATA_NOT_FOUND',
+          message: 'No se encontraron datos de Stripe para la reserva'
+        };
       }
 
-      // 2. Procesar el cargo con todos los datos necesarios
+      // 2. Procesar el cargo
       const paymentIntent = await this.processCharge({
-        amount,
-        stripeAccountId,
-        customerId: stripeData.customerId,
-        paymentMethodId: stripePaymentMethodId,
+        amount: params.amount,
+        stripeAccountId: params.stripeAccountId,
+        customerId: stripeData.customerId || '',
+        paymentMethodId: params.stripePaymentMethodId,
         metadata: {
-          booking_id: bookingId,
+          booking_id: params.bookingId,
           charge_type: 'no_show',
-          reason: reason || 'No show charge'
+          reason: params.reason || 'No show charge'
         }
-      });
-
-      // 3. Registrar el pago
-      const payment = await this.registerPayment({
-        bookingId,
-        amount,
-        totalPrice: amount,
-        paymentMethodId: stripePaymentMethodId,
-        accountId: stripeAccountId,
-        reason: reason || 'Cargo por no-show',
-        notes: `Cargo por no-show procesado: ${paymentIntent.id}`
-      });
-
-      // 4. Actualizar la reserva
-      const { error: bookingError } = await this.supabase
-        .from('bookings')
-        .update({
-          payment_status: 'completed',
-          cancelled_at: new Date().toISOString(),
-          cancellation_reason: reason
-        })
-        .eq('id', bookingId);
-
-      if (bookingError) throw bookingError;
-
-      console.log(`✅ [${requestId}] Cargo procesado exitosamente:`, {
-        paymentIntentId: paymentIntent.id,
-        status: paymentIntent.status,
-        payment_id: payment.id
       });
 
       return {
@@ -95,14 +72,6 @@ export class StripePaymentService {
 
     } catch (error: any) {
       console.error(`❌ [${requestId}] Error en chargeNoShow:`, error);
-      
-      // Registrar error
-      await this.logError(error, {
-        requestId,
-        bookingId,
-        type: 'no_show_charge'
-      });
-
       return {
         success: false,
         error: {
@@ -243,21 +212,32 @@ export class StripePaymentService {
     reason?: string;
     status: string;
   }) {
-    const { error } = await this.supabase
-      .from('bookings_payments')
-      .insert({
-        booking_id: bookingId,
-        amount,
-        type: 'no_show_charge',
-        status: status === 'succeeded' ? 'completed' : 'failed',
-        stripe_payment_intent_id: paymentIntentId,
-        notes: reason || 'Cargo por no-show'
-      });
+    try {
+      const { error } = await this.supabase
+        .from('payments')
+        .insert({
+          booking_id: bookingId,
+          deposit_amount: amount,
+          total_price: amount,
+          payment_method: 'stripe',
+          payment_status: status === 'succeeded' ? 'completed' : 'failed',
+          stripe_payment_intent_id: paymentIntentId,
+          notes: reason || 'Cargo por no-show'
+        } as any);
 
-    if (error) {
+      if (error) {
+        console.error('Error al registrar pago:', error);
+        throw {
+          code: 'RECORD_ERROR',
+          message: 'Error al registrar el pago',
+          details: error
+        };
+      }
+    } catch (error) {
+      console.error('Error inesperado al registrar pago:', error);
       throw {
-        code: 'RECORD_ERROR',
-        message: 'Error al registrar el pago',
+        code: 'UNEXPECTED_ERROR',
+        message: 'Error inesperado al registrar el pago',
         details: error
       };
     }
