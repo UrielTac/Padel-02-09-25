@@ -107,37 +107,31 @@ export function PaymentSection({
       transition={{ duration: 0.4, delay: 0.3 }}
       className="space-y-3"
     >
-      {/* Título de la sección */}
-      <h3 className={cn(
-        "text-base font-medium px-1",
-        theme === 'dark' ? "text-white/90" : "text-gray-900"
-      )}>
-        Método de pago
-      </h3>
-
       {!methodToDisplay || !isValidPaymentMethod() ? (
         <button
           onClick={handleShowMethods}
           className={cn(
-            "w-full h-[52px] rounded-lg flex items-center justify-center",
+            "w-full h-[52px] rounded-lg",
             "transition-all duration-200",
             "bg-white dark:bg-neutral-900",
             "border border-gray-100 dark:border-neutral-800",
             "hover:border-gray-200 dark:hover:border-neutral-700",
             "shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]",
-            "dark:shadow-[0_1px_4px_-2px_rgba(0,0,0,0.3)]"
+            "dark:shadow-[0_1px_4px_-2px_rgba(0,0,0,0.3)]",
+            "flex items-center"
           )}
         >
-          <div className={cn(
-            "w-7 h-7 rounded-full flex items-center justify-center",
-            "transition-colors duration-200",
-            "bg-gray-50 dark:bg-neutral-800",
-            "group-hover:bg-gray-100 dark:group-hover:bg-neutral-700"
-          )}>
+          <div className="flex items-center gap-3 px-4">
             <CreditCard className={cn(
-              "h-3.5 w-3.5 transition-colors duration-200",
-              "text-gray-400 dark:text-neutral-400"
+              "h-[18px] w-[18px]",
+              theme === 'dark' ? "text-gray-400" : "text-gray-500"
             )} />
+            <span className={cn(
+              "text-[15px] font-medium",
+              theme === 'dark' ? "text-gray-400" : "text-gray-500"
+            )}>
+              Método de Pago
+            </span>
           </div>
         </button>
       ) : (
