@@ -66,30 +66,30 @@ export function BookingLimitStatus({ empresaId, date, className }: BookingLimitS
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-gray-300 font-normal">
+            <span className="text-[11px] text-gray-600 font-normal">
               Créditos disponibles
             </span>
           </div>
-          <span className="text-[11px] text-gray-200 font-normal">
-            {remainingBookings} de {limit}
+          <span className="text-[11px] text-gray-600 font-medium">
+            {remainingBookings}
           </span>
         </div>
         <Progress 
           value={usagePercentage} 
           className={cn(
-            "h-1 bg-gray-800 rounded-full",
-            usagePercentage >= 90 ? "bg-red-900/50" : "bg-gray-800"
+            "h-1 bg-gray-200 rounded-full",
+            usagePercentage >= 90 ? "bg-red-900/50" : "bg-gray-300"
           )}
           indicatorClassName={cn(
             "transition-all duration-300 rounded-full",
             usagePercentage >= 90 
               ? "bg-red-400" 
               : usagePercentage >= 75 
-                ? "bg-white" 
-                : "bg-white"
+                ? "bg-blue-400" 
+                : "bg-blue-400"
           )}
         />
-        <p className="text-[11px] text-gray-400 font-normal mt-0.5">
+        <p className="text-[11px] text-gray-400 font-normal mt-1">
           Se renuevan el {formattedResetDate}
         </p>
       </div>

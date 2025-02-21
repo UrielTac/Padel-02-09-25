@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from 'framer-motion'
-import { IconX, IconPackage } from '@tabler/icons-react'
+import Image from 'next/image'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
@@ -42,23 +42,21 @@ export function PackageStatusModal({
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
-            className="relative w-full max-w-md bg-white rounded-lg shadow-lg p-6"
+            className="relative w-full max-w-md bg-white rounded-2xl p-6 border border-gray-200"
           >
-            {/* Botón de cerrar */}
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <IconX className="w-5 h-5" strokeWidth={2} />
-            </button>
-
             {/* Contenido */}
             <div className="space-y-6">
-              {/* Ícono y título */}
+              {/* Imagen y título */}
               <div className="text-center space-y-3">
                 <div className="flex justify-center">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                    <IconPackage className="w-6 h-6 text-gray-600" strokeWidth={2} />
+                  <div className="relative w-16 h-16 flex items-center justify-center">
+                    <Image
+                      src="/images/Miroodles - paquete.png"
+                      alt="Package icon"
+                      fill
+                      className="object-contain"
+                      priority
+                    />
                   </div>
                 </div>
                 <div>
@@ -75,7 +73,7 @@ export function PackageStatusModal({
               </div>
 
               {/* Detalles del paquete */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 {/* Sesiones restantes */}
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Sesiones restantes</span>
@@ -122,7 +120,7 @@ export function PackageStatusModal({
                     whileTap={{ scale: 0.98 }}
                     className={cn(
                       "w-full",
-                      "px-4 py-2 rounded-lg",
+                      "px-4 py-2 rounded-xl",
                       "bg-white border border-gray-200",
                       "text-gray-800 hover:text-gray-900",
                       "hover:border-gray-300 hover:bg-gray-50",

@@ -181,9 +181,10 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
     return isLoadingAuth || (orgLoading && !organization) || isCheckingVinculacion
   }, [isLoadingAuth, orgLoading, organization, isCheckingVinculacion])
 
-  // Modificamos el efecto de inicialización para no redireccionar automáticamente
+  // Modificamos el efecto de inicialización para mantener el paso inicial
   useEffect(() => {
     if (!isLoadingAuth && !hasInitialized) {
+      // Actualizamos el estado de autenticación
       dispatch({
         type: 'SET_AUTH_STATUS',
         payload: { 
@@ -191,21 +192,26 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
           isGuest: false 
         }
       })
+
+      // Solo cambiamos el paso si el usuario está autenticado
+      if (user) {
+        // Iniciamos en el paso de paquetes por defecto
+        dispatch({ type: 'SET_STEP', payload: 'package' })
+      }
+      
       setHasInitialized(true)
     }
-
-    // Removemos la redirección automática al login
-    // Solo actualizamos el estado si el usuario se desautentica
-    if (!isLoadingAuth && !user && hasInitialized) {
-      dispatch({
-        type: 'SET_AUTH_STATUS',
-        payload: { 
-          isAuthenticated: false, 
-          isGuest: false 
-        }
-      })
-    }
   }, [isLoadingAuth, user, hasInitialized])
+
+  // Efecto para mantener el estado cuando cambiamos de URL
+  useEffect(() => {
+    if (organization && !isLoading && hasInitialized) {
+      // Solo actualizamos el paso si estamos en auth y el usuario está autenticado
+      if (state.step === 'auth' && state.isAuthenticated) {
+        dispatch({ type: 'SET_STEP', payload: 'class' })
+      }
+    }
+  }, [organization, isLoading, state.step, state.isAuthenticated, hasInitialized])
 
   const setAuthView = useCallback((view: AuthView) => {
     dispatch({ type: 'SET_AUTH_VIEW', payload: view })

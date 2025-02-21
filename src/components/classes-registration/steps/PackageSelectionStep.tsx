@@ -10,6 +10,7 @@ import { StepContainer } from '../shared/StepContainer'
 import { StepHeader, StepSection, StepGrid, StepActions } from '../shared/StepSection'
 import { cn } from '@/lib/utils'
 import type { Organization, ClassPackage } from '../types/models'
+import Image from 'next/image'
 
 interface PackageSelectionStepProps {
   organization: Organization
@@ -111,120 +112,157 @@ export function PackageSelectionStep({ organization }: PackageSelectionStepProps
 
   return (
     <StepContainer stepId="package-selection" centered={false}>
-      <StepHeader 
-        title="Elige tu paquete"
-        subtitle="Selecciona un paquete de clases para continuar"
-      />
+      <div className="w-full max-w-3xl mx-auto px-5 sm:px-6 lg:px-0">
+        <div className="space-y-8">
+          {/* Imagen decorativa */}
+          <div className="flex justify-start">
+            <div className="relative w-24 h-24">
+              <Image
+                src="/images/Miroodles - package.png"
+                alt="Decorative package sticker"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+          </div>
 
-      <div className="w-full max-w-3xl mx-auto">
-        {/* Grid de paquetes en dos columnas */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {currentPackages.map((packageItem: ClassPackage) => {
-            const isSelected = state.selectedPackage?.id === packageItem.id
-            
-            return (
-              <button
-                key={packageItem.id}
-                onClick={() => handlePackageClick(packageItem.id)}
-                disabled={isProcessing}
-                className={cn(
-                  "relative w-full rounded-lg border text-left",
-                  "transition-all duration-200",
-                  isProcessing ? "opacity-50 cursor-not-allowed" : "hover:shadow-sm hover:border-gray-300",
-                  isSelected
-                    ? "bg-gray-50 border-gray-900/10 ring-1 ring-gray-900/5"
-                    : "bg-white border-gray-200"
-                )}
-              >
-                {/* Contenedor principal con padding reducido */}
-                <div className="p-3 sm:p-4">
-                  {/* Encabezado del paquete */}
-                  <div className="flex flex-col space-y-1">
-                    <div className="flex items-start justify-between">
-                      <h3 className="text-base font-medium text-gray-900 flex-1">
-                        {packageItem.title}
-                      </h3>
-                      <div className="text-right">
-                        <p className="text-lg font-semibold text-gray-900">
+          {/* Encabezado */}
+          <div className="text-left space-y-1.5">
+            <h2 className="text-xl font-semibold text-gray-900">
+              ¿No tienes un paquete?
+            </h2>
+            <p className="text-sm text-gray-600">
+              Si deseas obtener varias clases con un descuento y grandes beneficios.
+            </p>
+          </div>
+
+          {/* Grid de paquetes */}
+          <div className={cn(
+            "grid gap-6",
+            "grid-cols-1",
+            packages.length === 1 ? "sm:grid-cols-1" :
+            packages.length === 2 ? "sm:grid-cols-2" :
+            packages.length === 3 ? "sm:grid-cols-3" :
+            "sm:grid-cols-2 lg:grid-cols-2",
+            "justify-center mx-auto"
+          )}>
+            {currentPackages.map((packageItem: ClassPackage) => {
+              const isSelected = state.selectedPackage?.id === packageItem.id
+              
+              return (
+                <div
+                  key={packageItem.id}
+                  className={cn(
+                    "relative w-full rounded-xl",
+                    "border",
+                    isSelected
+                      ? "border-gray-300 bg-gray-50/80 ring-1 ring-gray-200"
+                      : "border-gray-100 hover:border-gray-200 bg-white",
+                    "transition-all duration-200",
+                    "flex flex-col"
+                  )}
+                >
+                  {/* Contenido del paquete */}
+                  <div className="p-6 space-y-5 flex-grow">
+                    {/* Header: Título y Precio */}
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <h3 className="text-base font-medium text-gray-900">
+                          {packageItem.title}
+                        </h3>
+                        <p className="text-sm text-gray-500 line-clamp-2">
+                          {packageItem.description}
+                        </p>
+                      </div>
+                      <div className="text-left">
+                        <p className="text-2xl font-semibold text-gray-900">
                           ${packageItem.price.toLocaleString('es-AR')}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-sm text-gray-500">
                           {packageItem.numberOfClasses} {packageItem.numberOfClasses === 1 ? 'clase' : 'clases'}
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2">
-                      {packageItem.description}
-                    </p>
+
+                    {/* Detalles */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-gray-500">Duración:</span>
+                        <span className="font-medium text-gray-700">{packageItem.expiration_days} días</span>
+                      </div>
+                      {packageItem.branches && packageItem.branches.length > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-gray-500">Sedes:</span>
+                          <span className="font-medium text-gray-700">
+                            {packageItem.branches.length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Características */}
+                    {packageItem.features && packageItem.features.length > 0 && (
+                      <div className="pt-4 border-t border-gray-100">
+                        <ul className="space-y-2">
+                          {packageItem.features.map((feature, index) => (
+                            <li key={index} className="text-sm text-gray-600 flex items-start gap-2">
+                              <span className="text-blue-500">•</span>
+                              <span>{feature.text}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Información principal en grid */}
-                  <div className="mt-3">
-                    <div>
-                      <p className="font-medium text-gray-700">Duración</p>
-                      <p className="text-gray-600">{packageItem.expiration_days} días</p>
-                    </div>
+                  {/* Botón de compra */}
+                  <div className="p-6 pt-0">
+                    <button
+                      onClick={() => handlePackageClick(packageItem.id)}
+                      disabled={isProcessing}
+                      className={cn(
+                        "w-full px-0 py-2.5",
+                        "text-gray-900",
+                        "text-sm font-medium",
+                        "transition-colors duration-200",
+                        "hover:text-gray-600",
+                        "flex items-center justify-start gap-2",
+                        isProcessing && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      Comprar
+                    </button>
                   </div>
-
-                  {/* Sedes disponibles simplificadas */}
-                  {packageItem.branches && packageItem.branches.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm font-medium text-gray-700">
-                        Sedes disponibles
-                      </p>
-                      <p className="text-sm text-gray-600 mt-0.5">
-                        {packageItem.branches.map((branch, index) => (
-                          <span key={branch.id}>
-                            {branch.name}
-                            {index < packageItem.branches.length - 1 ? ', ' : ''}
-                          </span>
-                        ))}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Características en línea */}
-                  {packageItem.features && packageItem.features.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-xs text-gray-600">
-                        {packageItem.features.map((feature, index) => (
-                          <span key={index}>
-                            {feature.text}
-                            {index < packageItem.features.length - 1 ? ', ' : ''}
-                          </span>
-                        ))}
-                      </p>
-                    </div>
-                  )}
                 </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Sistema de paginación */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-6">
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={cn(
-                    "w-8 h-8 rounded-lg",
-                    "text-sm font-medium",
-                    "transition-colors duration-200",
-                    currentPage === page
-                      ? "bg-gray-100 text-gray-700"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-600"
-                  )}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
+              )
+            })}
           </div>
-        )}
+
+          {/* Sistema de paginación */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <div className="flex items-center gap-2">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={cn(
+                      "w-8 h-8 rounded-lg",
+                      "text-sm font-medium",
+                      "transition-colors duration-200",
+                      currentPage === page
+                        ? "bg-gray-100 text-gray-700"
+                        : "text-gray-500 hover:bg-gray-50 hover:text-gray-600"
+                    )}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </StepContainer>
   )

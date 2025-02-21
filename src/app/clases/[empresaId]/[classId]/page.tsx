@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClassRegistrationProvider, ClassRegistrationForm } from '@/components/classes-registration'
 import { LoadingSpinner } from '@/components/classes-registration/shared/LoadingSpinner'
+import { cn } from '@/lib/utils'
 
 interface Props {
   params: {
@@ -18,7 +19,7 @@ export default function ClassRegistrationPage({ params }: Props) {
   const { user, isLoading: isLoadingAuth } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
 
-  // Efecto para manejar la autenticación
+  // Efecto para manejar la autenticación y el estado inicial
   useEffect(() => {
     if (!isLoadingAuth) {
       if (!user) {
@@ -36,11 +37,14 @@ export default function ClassRegistrationPage({ params }: Props) {
   // Estado de carga
   if (isLoading || isLoadingAuth) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className={cn(
+        "min-h-screen bg-white",
+        "flex items-center justify-center"
+      )}>
         <div className="text-center space-y-3">
           <LoadingSpinner />
           <p className="text-sm text-gray-500">
-            Cargando información...
+            Preparando tu sesión...
           </p>
         </div>
       </div>
@@ -53,8 +57,16 @@ export default function ClassRegistrationPage({ params }: Props) {
   }
 
   return (
-    <ClassRegistrationProvider empresaId={params.empresaId}>
-      <ClassRegistrationForm selectedClassId={params.classId} />
-    </ClassRegistrationProvider>
+    <div className={cn(
+      "min-h-screen w-full",
+      "bg-white",
+      "flex flex-col",
+      "py-12",
+      "overflow-hidden"
+    )}>
+      <ClassRegistrationProvider empresaId={params.empresaId}>
+        <ClassRegistrationForm selectedClassId={params.classId} />
+      </ClassRegistrationProvider>
+    </div>
   )
 } 

@@ -8,7 +8,6 @@ import { SessionStep } from './SessionStep'
 import { SummaryStep } from './SummaryStep'
 import { PaymentStep } from './PaymentStep'
 import { ConfirmationStep } from './ConfirmationStep'
-import { UserBadge } from '../shared/UserBadge'
 import { LoadingSpinner } from '../shared/LoadingSpinner'
 import { cn } from '@/lib/utils'
 
@@ -37,18 +36,6 @@ export function StepRenderer() {
       "flex flex-col",
       "relative"
     )}>
-      {/* Header con el badge de usuario */}
-      <div className={cn(
-        "w-full",
-        "flex items-center justify-end",
-        "mb-8",
-        "sticky top-0 z-10",
-        "pt-4 sm:pt-6",
-        "bg-white/95 backdrop-blur-sm"
-      )}>
-        <UserBadge />
-      </div>
-
       {/* Contenedor principal de los pasos */}
       <div className={cn(
         "w-full flex-1",

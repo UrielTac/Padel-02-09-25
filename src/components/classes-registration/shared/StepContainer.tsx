@@ -38,7 +38,7 @@ export function StepContainer({
         // Layout base
         "w-full h-full",
         "max-w-[var(--container-default)]",
-        "max-h-[calc(90vh-3rem)]", // Reducido el espacio para la navegación
+        "min-h-[calc(100vh-8rem)]",
         // Centrado y scroll
         "mx-auto",
         "overflow-auto scrollbar-custom",
@@ -46,8 +46,8 @@ export function StepContainer({
         "px-[var(--padding-container-mobile)]",
         "sm:px-[var(--padding-container-tablet)]",
         "lg:px-[var(--padding-container-desktop)]",
-        // Padding inferior para la navegación
-        "pb-20", // Reducido el espacio para los botones
+        // Padding inferior para la navegación y superior para el UserBadge
+        "pb-24 pt-20",
         className
       )}
     >
@@ -56,12 +56,9 @@ export function StepContainer({
         "w-full h-full",
         "flex flex-col",
         // Centrado condicional
-        centered && "justify-center",
+        centered ? "justify-center" : "justify-start",
         // Espaciado usando variables CSS
         "gap-[var(--gap-medium)]",
-        // Padding vertical reducido
-        "py-[var(--padding-section-mobile)]",
-        "sm:py-[var(--padding-section-tablet)]",
         contentClassName
       )}>
         {children}

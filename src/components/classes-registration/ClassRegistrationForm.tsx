@@ -11,6 +11,7 @@ import { StepNavigation } from './shared/StepNavigation'
 import type { Step } from './types/registration'
 import { useRouter } from 'next/navigation'
 import { LinkService } from './services/linkService'
+import { cn } from '@/lib/utils'
 
 const linkService = new LinkService()
 
@@ -25,16 +26,28 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
 
   // Efecto para manejar el acceso directo a una clase
   useEffect(() => {
-    if (selectedClassId && !state.selectedClass && classes.length > 0) {
-      // Buscar la clase por ID
-      const selectedClass = classes.find(c => c.id === selectedClassId)
-      if (selectedClass) {
-        // Seleccionar la clase y navegar al paso de sesión
-        selectClass(selectedClass)
-        goToStep('session')
+    const initializeWithClass = async () => {
+      if (selectedClassId && classes.length > 0) {
+        const selectedClass = classes.find(c => c.id === selectedClassId)
+        if (selectedClass) {
+          // Solo activamos skipPackage si accedemos directamente a una clase
+          dispatch({ type: 'SET_SKIP_PACKAGE', payload: true })
+          await selectClass(selectedClass)
+          dispatch({ type: 'SET_STEP', payload: 'session' })
+        }
       }
     }
-  }, [selectedClassId, state.selectedClass, classes, selectClass, goToStep])
+
+    initializeWithClass()
+  }, [selectedClassId, classes, selectClass, dispatch])
+
+  // Modificamos este efecto para ser más específico
+  useEffect(() => {
+    if (!selectedClassId && state.step === 'class' && state.selectedClass) {
+      // Solo mantenemos skipPackage en true si venimos de una sesión
+      dispatch({ type: 'SET_SKIP_PACKAGE', payload: true })
+    }
+  }, [selectedClassId, state.step, state.selectedClass, dispatch])
 
   // Estado de carga
   if (isLoading || isLoadingClasses) {
@@ -94,13 +107,8 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
       case 'class':
         config.isNextDisabled = !state.selectedClass
         config.onNext = async () => {
-          if (!state.selectedClass) {
-            console.warn('No hay clase seleccionada')
-            return
-          }
-
-          if (!organization.id) {
-            console.error('No se encontró el ID de la organización')
+          if (!state.selectedClass || !organization.id) {
+            console.warn('Falta información necesaria para continuar')
             return
           }
 
@@ -112,15 +120,9 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
               return
             }
 
-            console.log('Navegando al siguiente paso:', {
-              classId: state.selectedClass.id,
-              slug: companyLink.slug
-            })
-
-            // Actualizamos la URL y navegamos al siguiente paso
+            // Solo navegamos, el cambio de paso se manejará por la URL
             const newUrl = `/clases/${companyLink.slug}/${state.selectedClass.id}`
-            router.push(newUrl)
-            goToStep('session')
+            await router.push(newUrl)
           } catch (error) {
             console.error('Error al navegar:', error)
           }
@@ -130,7 +132,28 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
       case 'session':
         config.isNextDisabled = state.selectedSessions.length === 0
         config.onNext = () => goToStep('summary')
-        config.onBack = () => goToStep('class')
+        config.onBack = async () => {
+          try {
+            // Primero obtenemos el slug de la empresa
+            if (selectedClassId && organization?.id) {
+              const companyLink = await linkService.getCompanyLink(organization.id)
+              if (!companyLink?.slug) {
+                console.error('No se encontró el slug de la organización')
+                return
+              }
+
+              // Aseguramos que el estado se mantenga en el paso de clases
+              dispatch({ type: 'SET_SKIP_PACKAGE', payload: true })
+              dispatch({ type: 'SET_STEP', payload: 'class' })
+
+              // Navegamos usando el slug después de actualizar el estado
+              const baseUrl = `/clases/${companyLink.slug}`
+              await router.push(baseUrl)
+            }
+          } catch (error) {
+            console.error('Error al navegar hacia atrás:', error)
+          }
+        }
         break
       case 'summary':
         config.onNext = () => goToStep('payment')
@@ -153,7 +176,11 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
   const stepConfig = getStepConfig(state.step)
 
   return (
-    <div className="relative min-h-screen">
+    <div className={cn(
+      "relative min-h-screen",
+      "w-full",
+      "flex flex-col"
+    )}>
       <StepRenderer />
       <StepNavigation
         onNext={stepConfig.onNext}

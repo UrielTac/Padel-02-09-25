@@ -61,9 +61,9 @@ export function PromoCard({ className }: PromoCardProps) {
         onClick={handleUpgradeClick}
         className={cn(
           "p-3.5 rounded-xl",
-          "bg-gray-900/95",
-          "border border-gray-800",
-          "cursor-pointer hover:bg-gray-900/90",
+          "bg-blue-500/10",
+          "border border-blue-200/20",
+          "cursor-pointer hover:bg-blue-500/15",
           "transition-all duration-200",
           "group"
         )}
@@ -72,14 +72,14 @@ export function PromoCard({ className }: PromoCardProps) {
       >
         <div className="flex flex-col gap-3">
           <div className="flex items-start">
-            <div className="p-1.5 rounded-lg bg-primary/20 group-hover:bg-primary/30 transition-colors">
-              <Zap className="h-3.5 w-3.5 text-primary text-white" />
+            <div className="p-1.5 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
+              <Zap className="h-3.5 w-3.5 text-blue-400" />
             </div>
             <div className="flex-1 ml-2.5">
               <div className="flex items-center gap-2">
-                <h4 className="text-sm font-medium text-gray-100">Upgrade</h4>
+                <h4 className="text-sm font-medium text-gray-800">Upgrade</h4>
               </div>
-              <p className="text-xs text-gray-400 mt-0.5 leading-relaxed">
+              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
                 Obtenga acceso Pro | Simple Link
               </p>
             </div>
@@ -87,7 +87,7 @@ export function PromoCard({ className }: PromoCardProps) {
           <BookingLimitStatus 
             empresaId={user.metadata.empresa_id} 
             date={today}
-            className="pt-2 border-t border-gray-800"
+            className="pt-2 border-t border-blue-200"
           />
         </div>
       </motion.div>

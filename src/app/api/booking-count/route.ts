@@ -16,6 +16,7 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
   const supabase = createSupabaseClient()
   
   try {
+    // Obtener la empresa con su plan de suscripción
     const { data: empresa, error: empresaError } = await supabase
       .from('empresas')
       .select(`
@@ -42,14 +43,34 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
     // Usar plan_type de la empresa como fuente de verdad
     const isPro = empresa.plan_type === 'PRO'
 
-    // Obtener el plan de suscripción
-    let limit = 100 // Valor por defecto para plan FREE
-    
-    if (empresa.subscription_plans && Array.isArray(empresa.subscription_plans)) {
-      const subscriptionPlan = empresa.subscription_plans[0]
-      if (subscriptionPlan?.daily_booking_limit) {
-        limit = subscriptionPlan.daily_booking_limit
+    // Si es PRO, no necesitamos el plan
+    if (isPro) {
+      return {
+        isPro: true,
+        limit: Number.MAX_SAFE_INTEGER,
+        planUpdatedAt: empresa.plan_updated_at || new Date().toISOString()
       }
+    }
+
+    // Para planes FREE, obtener el plan de suscripción
+    if (!empresa.plan_id) {
+      throw new Error('Empresa sin plan asignado')
+    }
+
+    // Obtener el plan directamente usando el plan_id
+    const { data: plan, error: planError } = await supabase
+      .from('subscription_plans')
+      .select('daily_booking_limit, code')
+      .eq('id', empresa.plan_id)
+      .single()
+
+    if (planError || !plan) {
+      console.error('❌ Error al obtener plan de suscripción:', {
+        error: planError,
+        empresaId,
+        planId: empresa.plan_id
+      })
+      throw new Error('Plan de suscripción no encontrado')
     }
 
     // Asegurarnos de que tenemos una fecha de actualización del plan
@@ -60,12 +81,12 @@ async function getCompanyPlanInfo(empresaId: string): Promise<{
       planType: empresa.plan_type,
       planId: empresa.plan_id,
       planUpdatedAt,
-      limit: isPro ? 'unlimited' : limit
+      limit: plan.daily_booking_limit
     })
 
     return {
-      isPro,
-      limit: isPro ? Number.MAX_SAFE_INTEGER : limit,
+      isPro: false,
+      limit: plan.daily_booking_limit,
       planUpdatedAt
     }
   } catch (error: any) {
