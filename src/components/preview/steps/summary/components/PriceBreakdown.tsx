@@ -1,4 +1,4 @@
-import { Clock, Package, Ticket } from "lucide-react";
+import { Clock, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ReservationDetails } from "./ReservationDetails";
@@ -11,12 +11,14 @@ interface PriceBreakdownProps {
     discount: number;
   };
   onShowItemsDetails: () => void;
+  className?: string;
 }
 
 export function PriceBreakdown({ 
   theme,
   calculations,
-  onShowItemsDetails
+  onShowItemsDetails,
+  className
 }: PriceBreakdownProps) {
   return (
     <motion.div
@@ -24,38 +26,30 @@ export function PriceBreakdown({
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: 0.1 }}
       className={cn(
-        "rounded-lg p-5",
+        "w-full rounded-lg",
         "transition-all duration-200 ease-in-out",
-        theme === 'dark' 
-          ? "bg-neutral-900"
-          : "bg-gray-50 hover:bg-gray-100/80"
+        className
       )}
     >
-      <div className="space-y-2">
+      <div className="space-y-4">
         {/* Detalles de la Reserva */}
         <ReservationDetails theme={theme} />
 
-        {/* Separador */}
-        <div className={cn(
-          "border-t my-5",
-          theme === 'dark' ? "border-zinc-800" : "border-gray-200/50"
-        )} />
-
         {/* Resumen de Precios */}
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {/* Precio Pista */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <Clock className="h-3.5 w-3.5 text-gray-400" />
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-[18px] w-[18px] text-gray-400" />
               <p className={cn(
-                "text-sm font-medium",
-                theme === 'dark' ? "text-gray-400" : "text-gray-600"
+                "text-[15px] font-medium",
+                theme === 'dark' ? "text-gray-300" : "text-gray-600"
               )}>
                 Pista
               </p>
             </div>
             <p className={cn(
-              "text-sm font-medium",
+              "text-[15px] font-medium",
               theme === 'dark' ? "text-gray-200" : "text-gray-700"
             )}>
               €{calculations.courtPrice}
@@ -67,18 +61,29 @@ export function PriceBreakdown({
             <div className="flex items-center justify-between">
               <button
                 onClick={onShowItemsDetails}
-                className="flex items-center gap-1.5 group"
+                className="flex items-center gap-2.5 group"
               >
-                <Package className="h-3.5 w-3.5 text-gray-400" />
+                <svg 
+                  viewBox="0 0 24 24" 
+                  className="h-[18px] w-[18px] text-gray-400"
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z" />
+                </svg>
                 <p className={cn(
-                  "text-sm font-medium",
-                  theme === 'dark' ? "text-gray-400" : "text-gray-600"
+                  "text-[15px] font-medium",
+                  theme === 'dark' ? "text-gray-300" : "text-gray-600"
                 )}>
                   Artículos
                 </p>
               </button>
               <p className={cn(
-                "text-sm font-medium",
+                "text-[15px] font-medium",
                 theme === 'dark' ? "text-gray-200" : "text-gray-700"
               )}>
                 €{calculations.itemsTotal}
@@ -89,17 +94,17 @@ export function PriceBreakdown({
           {/* Descuento si hay cupón aplicado */}
           {calculations.discount > 0 && (
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5">
-                <Ticket className="h-3.5 w-3.5 text-gray-400" />
+              <div className="flex items-center gap-2.5">
+                <Ticket className="h-[18px] w-[18px] text-gray-400" />
                 <p className={cn(
-                  "text-sm font-medium",
-                  theme === 'dark' ? "text-gray-400" : "text-gray-600"
+                  "text-[15px] font-medium",
+                  theme === 'dark' ? "text-gray-300" : "text-gray-600"
                 )}>
                   Descuento
                 </p>
               </div>
               <p className={cn(
-                "text-sm font-medium text-green-500",
+                "text-[15px] font-medium text-green-500",
                 theme === 'dark' ? "text-green-400" : "text-green-600"
               )}>
                 -€{calculations.discount}

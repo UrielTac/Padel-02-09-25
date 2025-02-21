@@ -1,3 +1,9 @@
+// Tipos de método de pago disponibles
+export type PaymentMethodEnum = 'card' | 'cash' | 'transfer';
+
+// Tipos de pago disponibles
+export type PaymentTypeEnum = 'card' | 'cash' | 'club' | 'full' | 'advance' | 'guarantee';
+
 export interface PaymentMethod {
   id: string;
   brand: string;
@@ -6,7 +12,7 @@ export interface PaymentMethod {
   expYear: number;
   name: string;
   description: string;
-  type: 'card' | 'cash' | 'transfer';
+  type: PaymentMethodEnum;
 }
 
 export interface Coupon {
@@ -21,9 +27,13 @@ export interface GuaranteeConfig {
 }
 
 export interface PaymentType {
-  id: string;
+  id: PaymentTypeEnum;
   name: string;
   description: string;
+  icon?: string;
+  details?: string[];
+  requiresCard?: boolean;
+  guaranteeConfig?: GuaranteeConfig;
   config?: PaymentConfig;
 }
 
@@ -138,4 +148,13 @@ export interface BookingValidation {
     message: string;
     severity: 'error' | 'warning';
   }>;
+}
+
+export interface CouponsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  theme: 'light' | 'dark';
+  viewType: "mobile" | "desktop";
+  onSelect: (coupon: string) => void;
+  isPublicView?: boolean;
 } 

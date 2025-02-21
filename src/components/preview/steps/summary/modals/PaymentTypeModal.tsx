@@ -7,6 +7,12 @@ import { cn } from "@/lib/utils";
 import { PaymentType, PAYMENT_TYPES } from "../types";
 import { useStripeConnection } from "@/hooks/useStripeConnection";
 import { toast } from "sonner";
+import { PaymentTypeCarousel } from "../components/PaymentTypeCarousel";
+
+// Filtrar solo los tipos de pago que queremos mostrar
+const FILTERED_PAYMENT_TYPES = PAYMENT_TYPES.filter(type => 
+  !['card', 'cash'].includes(type.id)
+);
 
 interface PaymentTypeModalProps {
   isOpen: boolean;
@@ -114,40 +120,117 @@ export function PaymentTypeModal({
   };
 
   return (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className={cn(
-            "fixed inset-0 z-50",
-            "flex items-center justify-center",
-            "bg-black/50"
-          )}
-          onClick={onClose}
-        >
+        <>
+          {/* Overlay con efecto de blur mejorado */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
+            initial={{ 
+              opacity: 0,
+              backdropFilter: "blur(0px)",
+              WebkitBackdropFilter: "blur(0px)"
+            }}
+            animate={{ 
+              opacity: 1,
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)"
+            }}
+            exit={{ 
+              opacity: 0,
+              backdropFilter: "blur(0px)",
+              WebkitBackdropFilter: "blur(0px)"
+            }}
+            transition={{ 
+              duration: 0.2,
+              ease: "easeInOut"
+            }}
+            className={cn(
+              "fixed inset-0",
+              "z-[100]",
+              theme === 'dark'
+                ? "bg-neutral-900/40"
+                : "bg-white/40",
+              "backdrop-blur-[8px]",
+              "transition-all duration-200"
+            )}
+            onClick={onClose}
+          />
+
+          {/* Modal con animación mejorada */}
+          <motion.div
+            initial={viewType === "mobile" 
+              ? { 
+                  y: "100%",
+                  opacity: 1,
+                  scale: 1
+                }
+              : { 
+                  y: 20,
+                  opacity: 0,
+                  scale: 0.95
+                }
+            }
+            animate={{ 
+              y: 0,
+              opacity: 1,
+              scale: 1
+            }}
+            exit={viewType === "mobile"
+              ? { 
+                  y: "100%",
+                  opacity: 1,
+                  scale: 1
+                }
+              : { 
+                  y: 20,
+                  opacity: 0,
+                  scale: 0.95
+                }
+            }
+            transition={{
+              duration: 0.2,
+              ease: [0.32, 0.72, 0, 1]
+            }}
             onClick={(e) => e.stopPropagation()}
             className={cn(
+              "fixed z-[101]",
               viewType === "mobile"
-                ? "fixed bottom-0 left-0 right-0"
-                : "w-[480px] rounded-xl",
-              theme === 'dark' ? "bg-neutral-900" : "bg-white",
-              "shadow-xl overflow-hidden"
+                ? "bottom-0 left-0 right-0 max-h-[90vh]"
+                : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[480px] max-h-[85vh]",
+              theme === 'dark' 
+                ? "bg-neutral-900/95" 
+                : "bg-white/95",
+              "shadow-2xl",
+              "rounded-t-xl overflow-hidden",
+              "flex flex-col",
+              "ring-1",
+              theme === 'dark'
+                ? "ring-white/10"
+                : "ring-black/5",
+              "backdrop-blur-sm",
+              "will-change-transform"
             )}
           >
-            {/* Header */}
-            <div className="border-b border-gray-100 dark:border-neutral-800">
+            {/* Header con animación sutil */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15, delay: 0.05 }}
+              className={cn(
+                "flex-none border-b",
+                theme === 'dark'
+                  ? "border-white/[0.08]"
+                  : "border-black/[0.06]"
+              )}
+            >
               <div className="p-4 pb-3">
                 {viewType === "mobile" && (
                   <div className="flex justify-center -mt-2 mb-3">
                     <div className={cn(
                       "w-10 h-1 rounded-full",
-                      theme === 'dark' ? "bg-neutral-800" : "bg-gray-200"
+                      theme === 'dark' 
+                        ? "bg-white/[0.08]" 
+                        : "bg-black/[0.06]"
                     )} />
                   </div>
                 )}
@@ -157,13 +240,13 @@ export function PaymentTypeModal({
                     <h3 className={cn(
                       viewType === "mobile" ? "text-base" : "text-lg",
                       "font-medium mb-1",
-                      theme === 'dark' ? "text-white" : "text-gray-900"
+                      theme === 'dark' ? "text-white/90" : "text-gray-900"
                     )}>
                       Tipo de Pago
                     </h3>
                     <p className={cn(
                       "text-sm",
-                      theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                      theme === 'dark' ? "text-white/60" : "text-gray-500"
                     )}>
                       Selecciona cómo deseas realizar el pago
                     </p>
@@ -173,51 +256,35 @@ export function PaymentTypeModal({
                     className={cn(
                       "p-1.5 rounded-md transition-colors self-start -mt-1",
                       theme === 'dark' 
-                        ? "text-gray-400 hover:bg-neutral-800"
-                        : "text-gray-500 hover:bg-gray-100"
+                        ? "text-white/60 hover:bg-white/[0.08]"
+                        : "text-gray-500 hover:bg-black/[0.04]"
                     )}
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               </div>
-            </div>
+            </motion.div>
 
-            {/* Content */}
-            <div className="p-4">
-              <div className="space-y-2">
-                {PAYMENT_TYPES.map((type) => (
-                  <button
-                    key={type.id}
-                    onClick={() => handleTypeSelect(type)}
-                    disabled={type.id === 'guarantee' && isLoading}
-                    className={cn(
-                      "w-full p-4 rounded-lg text-left transition-colors",
-                      selectedType?.id === type.id
-                        ? theme === 'dark'
-                          ? "bg-neutral-800 text-white"
-                          : "bg-gray-100 text-gray-900"
-                        : theme === 'dark'
-                        ? "hover:bg-neutral-800 text-gray-300"
-                        : "hover:bg-gray-100 text-gray-600",
-                      type.id === 'guarantee' && isLoading && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <div>
-                      <h4 className="font-medium mb-1">{type.name}</h4>
-                      <p className={cn(
-                        "text-sm",
-                        theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                      )}>
-                        {type.description}
-                      </p>
-                    </div>
-                  </button>
-                ))}
+            {/* Content con animación sutil */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.15, delay: 0.1 }}
+              className="flex-1 overflow-y-auto min-h-0 relative"
+            >
+              <div className="p-4">
+                <PaymentTypeCarousel
+                  paymentTypes={FILTERED_PAYMENT_TYPES}
+                  onSelect={handleTypeSelect}
+                  theme={theme}
+                  selectedTypeId={selectedType?.id}
+                  isLoading={isLoading}
+                />
               </div>
-            </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

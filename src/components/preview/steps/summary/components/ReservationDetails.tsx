@@ -16,27 +16,37 @@ export function ReservationDetails({ theme }: ReservationDetailsProps) {
   }
 
   return (
-    <div className="space-y-1">
-      <p className={cn(
-        "text-sm font-semibold",
-        theme === 'dark' ? "text-white" : "text-gray-900"
-      )}>
-        {location.branchName || "No seleccionada"}
-      </p>
-      <div className="space-y-0.5">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <p className={cn(
-          "text-sm",
-          theme === 'dark' ? "text-gray-400" : "text-gray-500"
+          "text-lg font-semibold leading-tight",
+          theme === 'dark' ? "text-white/90" : "text-gray-900"
         )}>
-          {format(new Date(shift.date), "EEEE d 'de' MMMM", { locale: es })}
+          {location.branchName || "No seleccionada"}
         </p>
-        <p className={cn(
-          "text-xs",
-          theme === 'dark' ? "text-gray-500" : "text-gray-500"
-        )}>
-          {shift.startTime} - {shift.endTime} • {shift.courtName}
-        </p>
+        <div>
+          <p className={cn(
+            "text-[14px]",
+            theme === 'dark' ? "text-gray-400" : "text-gray-500"
+          )}>
+            {format(new Date(shift.date), "EEEE d 'de' MMMM", { locale: es })}
+            <span className={cn(
+              "text-[14px] ml-1",
+              theme === 'dark' ? "text-gray-500" : "text-gray-400"
+            )}>
+              • {shift.startTime} - {shift.endTime} • {shift.courtName}
+            </span>
+          </p>
+        </div>
       </div>
+
+      {/* Línea divisoria sutil */}
+      <div className={cn(
+        "border-b",
+        theme === 'dark' 
+          ? "border-neutral-800/50" 
+          : "border-gray-200/70"
+      )} />
     </div>
   );
 } 

@@ -28,12 +28,23 @@ interface TableBodyProps {
   getCourtColumnWidth: () => string
 }
 
-const TIME_COLUMN_WIDTH = 60
+const TIME_COLUMN_WIDTH = 75
 const CELL_HEIGHT = 48
 const DISABLED_CELL_STYLES = {
   background: "repeating-linear-gradient(45deg, #f3f4f6, #f3f4f6 4px, #f9fafb 4px, #f9fafb 8px)",
   opacity: "0.6",
   borderColor: "transparent"
+}
+
+// Estilos CSS más específicos para la columna de tiempo
+const TIME_COLUMN_STYLES = {
+  width: `${TIME_COLUMN_WIDTH}px`,
+  minWidth: `${TIME_COLUMN_WIDTH}px`,
+  maxWidth: `${TIME_COLUMN_WIDTH}px`,
+  flex: `0 0 ${TIME_COLUMN_WIDTH}px`,
+  boxSizing: 'border-box' as const,
+  overflow: 'hidden' as const,
+  whiteSpace: 'nowrap' as const
 }
 
 export function TableBody({
@@ -51,15 +62,16 @@ export function TableBody({
   getCourtColumnWidth
 }: TableBodyProps) {
   return (
-    <table className="w-full border-collapse">
+    <table className="w-full border-collapse relative">
       <colgroup>
-        <col style={{ width: `${TIME_COLUMN_WIDTH}px`, minWidth: `${TIME_COLUMN_WIDTH}px` }} />
+        <col style={TIME_COLUMN_STYLES} />
         {visibleCourts.map(court => (
           <col 
             key={court.id} 
             style={{ 
               width: getCourtColumnWidth(),
-              minWidth: "150px"
+              minWidth: "150px",
+              boxSizing: 'border-box'
             }} 
           />
         ))}
@@ -70,9 +82,15 @@ export function TableBody({
           <th 
             className={cn(
               "sticky left-0 text-left font-semibold text-sm text-gray-900 p-3",
-              "border-b border-r border-gray-200/60 bg-gray-50"
+              "border-b border-r border-gray-200/60 bg-gray-50",
+              "w-[75px] min-w-[75px] max-w-[75px] overflow-hidden whitespace-nowrap"
             )}
-            style={{ zIndex: Z_LAYERS.STICKY_HEADER }}
+            style={{ 
+              zIndex: Z_LAYERS.STICKY_HEADER,
+              ...TIME_COLUMN_STYLES,
+              position: 'sticky',
+              left: 0
+            }}
           >
             Horario
           </th>
@@ -80,9 +98,13 @@ export function TableBody({
             <th 
               key={court.id}
               className={cn(
-                "text-center font-semibold text-sm text-gray-900 p-3 border-b border-gray-200",
-                index < visibleCourts.length - 1 && "border-r"
+                "text-center font-semibold text-sm text-gray-900 p-3 border-b border-gray-200 relative",
+                index < visibleCourts.length - 1 && "border-r border-gray-200/60"
               )}
+              style={{
+                boxSizing: 'border-box',
+                minWidth: "150px"
+              }}
             >
               {court.name}
             </th>
@@ -92,10 +114,18 @@ export function TableBody({
 
       <tbody>
         {timeSlots.map((slot, rowIndex) => (
-          <tr key={slot.hour}>
+          <tr key={slot.hour} className="relative">
             <td 
-              className="sticky left-0 z-10 text-sm font-medium text-gray-900 p-3 border-r border-gray-200 bg-white"
-              style={{ zIndex: Z_LAYERS.STICKY_HEADER }}
+              className={cn(
+                "sticky left-0 z-10 text-sm font-medium text-gray-900 p-3 border-r border-gray-200 bg-white",
+                "w-[75px] min-w-[75px] max-w-[75px] overflow-hidden whitespace-nowrap"
+              )}
+              style={{ 
+                zIndex: Z_LAYERS.STICKY_HEADER,
+                ...TIME_COLUMN_STYLES,
+                position: 'sticky',
+                left: 0
+              }}
             >
               {slot.hour}
             </td>
@@ -108,7 +138,10 @@ export function TableBody({
                     ? "cursor-not-allowed" 
                     : "cursor-pointer"
                 )}
-                style={{ height: `${CELL_HEIGHT}px` }}
+                style={{ 
+                  height: `${CELL_HEIGHT}px`,
+                  boxSizing: 'border-box'
+                }}
               >
                 <div className="absolute inset-0 pointer-events-none">
                   {colIndex < visibleCourts.length - 1 && (

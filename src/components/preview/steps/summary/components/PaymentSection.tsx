@@ -105,81 +105,91 @@ export function PaymentSection({
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: 0.3 }}
-      className={cn(
-        "rounded-lg p-5",
-        "transition-all duration-200 ease-in-out",
-        theme === 'dark' 
-          ? "bg-neutral-900"
-          : "bg-gray-50 hover:bg-gray-100/80"
-      )}
+      className="space-y-3"
     >
+      {/* Título de la sección */}
+      <h3 className={cn(
+        "text-base font-medium px-1",
+        theme === 'dark' ? "text-white/90" : "text-gray-900"
+      )}>
+        Método de pago
+      </h3>
+
       {!methodToDisplay || !isValidPaymentMethod() ? (
         <button
           onClick={handleShowMethods}
           className={cn(
-            "w-full p-3 rounded-lg flex items-center justify-between",
-            "border-2 border-dashed",
-            theme === 'dark' 
-              ? "border-neutral-700 hover:border-neutral-600 bg-neutral-900/50" 
-              : "border-gray-200 hover:border-gray-300 bg-gray-50/50"
+            "w-full h-[52px] rounded-lg flex items-center justify-center",
+            "transition-all duration-200",
+            "bg-white dark:bg-neutral-900",
+            "border border-gray-100 dark:border-neutral-800",
+            "hover:border-gray-200 dark:hover:border-neutral-700",
+            "shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]",
+            "dark:shadow-[0_1px_4px_-2px_rgba(0,0,0,0.3)]"
           )}
         >
-          <span className={cn(
-            "text-xs",
-            theme === 'dark' ? "text-neutral-300" : "text-gray-600"
+          <div className={cn(
+            "w-7 h-7 rounded-full flex items-center justify-center",
+            "transition-colors duration-200",
+            "bg-gray-50 dark:bg-neutral-800",
+            "group-hover:bg-gray-100 dark:group-hover:bg-neutral-700"
           )}>
-            {isStripeAvailable
-              ? 'Seleccionar método de pago'
-              : 'Sistema de pagos no disponible'}
-          </span>
+            <CreditCard className={cn(
+              "h-3.5 w-3.5 transition-colors duration-200",
+              "text-gray-400 dark:text-neutral-400"
+            )} />
+          </div>
         </button>
       ) : (
         <div className={cn(
-          "p-3 rounded-lg flex items-center justify-between",
-          "border-2 border-dashed",
-          theme === 'dark' 
-            ? "border-zinc-800 bg-zinc-900/50"
-            : "border-gray-200 bg-gray-50"
+          "p-3 rounded-lg",
+          "transition-all duration-200",
+          "bg-white dark:bg-neutral-900",
+          "border border-gray-100 dark:border-neutral-800",
+          "shadow-[0_1px_4px_-2px_rgba(0,0,0,0.05)]",
+          "dark:shadow-[0_1px_4px_-2px_rgba(0,0,0,0.3)]"
         )}>
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              "p-1.5 rounded-md",
-              theme === 'dark' ? "bg-neutral-800" : "bg-gray-100"
-            )}>
-              <CardBrandIcon brand={methodToDisplay.brand} className={cn(
-                theme === 'dark' ? "text-gray-400" : "text-gray-600"
-              )} />
-            </div>
-            <div className="flex flex-col">
-              <span className={cn(
-                "text-sm font-medium",
-                theme === 'dark' 
-                  ? "text-gray-200"
-                  : "text-gray-900"
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-1.5 rounded-md",
+                theme === 'dark' ? "bg-neutral-800" : "bg-gray-50"
               )}>
-                {methodToDisplay.name || `${methodToDisplay.brand} terminada en ${methodToDisplay.last4}`}
-              </span>
-              <span className={cn(
-                "text-xs mt-0.5",
-                theme === 'dark' 
-                  ? "text-gray-400"
-                  : "text-gray-500"
-              )}>
-                {methodToDisplay.description || `Expira: ${methodToDisplay.expMonth.toString().padStart(2, '0')}/${methodToDisplay.expYear}`}
-              </span>
+                <CardBrandIcon brand={methodToDisplay.brand} className={cn(
+                  theme === 'dark' ? "text-gray-400" : "text-gray-600"
+                )} />
+              </div>
+              <div className="flex flex-col">
+                <span className={cn(
+                  "text-sm font-medium",
+                  theme === 'dark' 
+                    ? "text-gray-200"
+                    : "text-gray-900"
+                )}>
+                  {methodToDisplay.name || `${methodToDisplay.brand} terminada en ${methodToDisplay.last4}`}
+                </span>
+                <span className={cn(
+                  "text-xs mt-1",
+                  theme === 'dark' 
+                    ? "text-gray-400"
+                    : "text-gray-500"
+                )}>
+                  {methodToDisplay.description || `Expira: ${methodToDisplay.expMonth.toString().padStart(2, '0')}/${methodToDisplay.expYear}`}
+                </span>
+              </div>
             </div>
+            <button
+              onClick={handleRemoveMethod}
+              className={cn(
+                "p-1.5 rounded-lg transition-colors duration-200",
+                theme === 'dark' 
+                  ? "text-gray-400 hover:bg-neutral-800"
+                  : "text-gray-400 hover:bg-gray-50"
+              )}
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
-          <button
-            onClick={handleRemoveMethod}
-            className={cn(
-              "p-1 rounded-md self-start -mt-0.5",
-              theme === 'dark' 
-                ? "text-gray-400 hover:bg-zinc-800"
-                : "text-gray-600 hover:bg-gray-100"
-            )}
-          >
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
     </motion.div>

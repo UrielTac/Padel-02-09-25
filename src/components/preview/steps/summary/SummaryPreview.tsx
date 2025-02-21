@@ -17,7 +17,7 @@ import { TotalPrice } from "./components/TotalPrice";
 import { PreviewPopup } from "../../shared/PreviewPopup";
 import { useState, useEffect, useCallback } from "react";
 import { SummaryStepField } from "@/components/steps/summary/types";
-import { PaymentMethod, Coupon, PaymentConfig } from "./types";
+import { PaymentMethod, PaymentType, PaymentMethodEnum, PaymentTypeEnum } from "./types";
 import { StripeProvider } from "@/providers/StripeProvider";
 import { useFormConfig } from '@/hooks/useFormConfig';
 import { Loader2 } from "lucide-react";
@@ -26,6 +26,7 @@ import { useSummaryBooking } from './hooks/use-summary-booking';
 import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { useForm } from '@/contexts/FormContext';
+import { MobilePaymentContainer } from './components/mobile/MobilePaymentContainer';
 
 interface SummaryPreviewProps {
   field: SummaryStepField;
@@ -54,6 +55,7 @@ export function SummaryPreview({
   const [isValidForNextStep, setIsValidForNextStep] = useState(false);
   const [showStripeError, setShowStripeError] = useState(false);
   const [stripeInitialized, setStripeInitialized] = useState(false);
+  const [showCoupons, setShowCoupons] = useState(false);
   const { state, setPayment } = useForm();
 
   const { 
@@ -61,29 +63,20 @@ export function SummaryPreview({
     showItemsDetails,
     showPaymentMethods,
     showPaymentTypes,
-    showCouponsPanel,
     setShowItemsDetails,
     setShowPaymentMethods,
     setShowPaymentTypes,
-    setShowCouponsPanel,
-    handleApplyCoupon,
     handleSelectPaymentMethod,
     handleSelectPaymentType,
-    handleRemoveCoupon,
-    appliedCoupon,
     selectedPaymentMethod,
     selectedPaymentType,
-    couponCode,
-    setCouponCode,
-    couponError,
-    setCouponError
   } = useSummaryState();
 
   const {
     isValid,
     hasWarnings,
     validationErrors,
-    isProcessing
+    isCreating: isProcessing
   } = useSummaryBooking({
     onSuccess: () => {
       toast.success('Configuración completada');
@@ -123,8 +116,8 @@ export function SummaryPreview({
   useEffect(() => {
     if (selectedPaymentMethod && selectedPaymentType) {
       setPayment({
-        method: selectedPaymentMethod.type,
-        type: selectedPaymentType,
+        method: selectedPaymentMethod.type as PaymentMethodEnum,
+        type: selectedPaymentType as PaymentTypeEnum,
         config: {
           paymentMethodId: selectedPaymentMethod.id,
           brand: selectedPaymentMethod.brand,
@@ -178,11 +171,11 @@ export function SummaryPreview({
   ]);
 
   const handleModalAction = (action: () => void) => {
-    if (!isPublicView) {
-      setShowPopup(true);
+    if (viewType === 'mobile' || isPublicView) {
+      action();
       return;
     }
-    action();
+    setShowPopup(true);
   };
 
   const handleReservar = async () => {
@@ -199,6 +192,13 @@ export function SummaryPreview({
     console.log('Formulario válido, procediendo a farewell');
     await onNext();
   };
+
+  // Función para manejar la selección de cupones
+  const handleSelectCoupon = useCallback((coupon: string) => {
+    // Implementa la lógica para manejar cupones aquí
+    console.log('Cupón seleccionado:', coupon);
+    setShowCoupons(false);
+  }, []);
 
   return (
     <PreviewContainer 
@@ -218,44 +218,67 @@ export function SummaryPreview({
           <StripeProvider empresaId={empresaId}>
             <div className="min-h-full flex flex-col">
               <div className="flex-1">
-                <div className="pb-24">
-                  <div className="space-y-4 px-4 pt-6">
-                    <TotalPrice total={calculations.total} theme={theme} />
+                <div className={cn(
+                  "relative",
+                  viewType === 'mobile' ? "pb-0" : "pb-24"
+                )}>
+                  <div className={cn(
+                    viewType === 'mobile' 
+                      ? "px-4 pb-0" 
+                      : "space-y-4 px-4 pt-6"
+                  )}>
+                    <div className={cn(
+                      "relative",
+                      viewType === 'mobile' && "z-20 h-[300px] flex items-center justify-center"
+                    )}>
+                      <TotalPrice total={calculations.total} theme={theme} />
+                    </div>
 
-                    <PriceBreakdown
-                      theme={theme}
-                      calculations={calculations}
-                      onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
-                    />
+                    {viewType === 'mobile' ? (
+                      <MobilePaymentContainer
+                        theme={theme}
+                        viewType={viewType}
+                        calculations={calculations}
+                        selectedPaymentType={selectedPaymentType}
+                        selectedPaymentMethod={selectedPaymentMethod}
+                        onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
+                        onShowPaymentTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
+                        onShowPaymentMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
+                        onRemovePaymentType={() => handleSelectPaymentType(null)}
+                        onRemovePaymentMethod={() => handleSelectPaymentMethod(null)}
+                        empresaId={empresaId}
+                      />
+                    ) : (
+                      <>
+                        <PriceBreakdown
+                          theme={theme}
+                          calculations={calculations}
+                          onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
+                        />
 
-                    <CouponsSection
-                      theme={theme}
-                      appliedCoupon={appliedCoupon}
-                      onShowCoupons={() => handleModalAction(() => setShowCouponsPanel(true))}
-                      onRemoveCoupon={handleRemoveCoupon}
-                    />
+                        <PaymentTypeSection
+                          theme={theme}
+                          selectedType={selectedPaymentType}
+                          onShowTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
+                          onRemoveType={() => handleSelectPaymentType(null)}
+                        />
 
-                    <PaymentTypeSection
-                      theme={theme}
-                      selectedType={selectedPaymentType}
-                      onShowTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
-                      onRemoveType={() => handleSelectPaymentType(null)}
-                    />
-
-                    <PaymentSection
-                      theme={theme}
-                      selectedMethod={selectedPaymentMethod}
-                      onShowMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
-                      onRemoveMethod={() => handleSelectPaymentMethod(null)}
-                      viewType={viewType}
-                      empresaId={empresaId}
-                    />
+                        <PaymentSection
+                          theme={theme}
+                          selectedMethod={selectedPaymentMethod}
+                          onShowMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
+                          onRemoveMethod={() => handleSelectPaymentMethod(null)}
+                          viewType={viewType}
+                          empresaId={empresaId}
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
 
               <ItemsDetailsModal
-                isOpen={Boolean(showItemsDetails && isPublicView)}
+                isOpen={showItemsDetails}
                 onClose={() => setShowItemsDetails(false)}
                 theme={theme}
                 viewType={viewType}
@@ -263,51 +286,33 @@ export function SummaryPreview({
                 isPublicView={isPublicView}
               />
 
-              <CouponsModal
-                isOpen={Boolean(showCouponsPanel && isPublicView)}
-                onClose={() => setShowCouponsPanel(false)}
-                theme={theme}
-                viewType={viewType}
-                onApply={handleApplyCoupon}
-                couponCode={couponCode || ''}
-                setCouponCode={setCouponCode}
-                error={couponError || ''}
-                isPublicView={isPublicView}
-              />
-
               <PaymentTypeModal
-                isOpen={Boolean(showPaymentTypes && isPublicView)}
+                isOpen={showPaymentTypes}
                 onClose={() => setShowPaymentTypes(false)}
                 theme={theme}
                 viewType={viewType}
-                onSelect={(type: string, config?: PaymentConfig) => {
-                  handleSelectPaymentType(type);
-                  if (config?.paymentMethodId) {
-                    const paymentMethod: PaymentMethod = {
-                      id: config.paymentMethodId,
-                      brand: 'card',
-                      last4: '',
-                      expMonth: 0,
-                      expYear: 0,
-                      name: 'Tarjeta',
-                      description: 'Tarjeta de crédito/débito',
-                      type: 'card'
-                    };
-                    handleSelectPaymentMethod(paymentMethod);
-                  }
-                }}
-                onShowCardModal={() => setShowPaymentMethods(true)}
+                onSelect={handleSelectPaymentType}
+                onShowCardModal={() => handleModalAction(() => setShowPaymentMethods(true))}
                 isPublicView={isPublicView}
-                empresaId={empresaId || ''}
+                empresaId={empresaId}
               />
 
               <PaymentMethodModal
-                isOpen={Boolean(showPaymentMethods && isPublicView)}
+                isOpen={showPaymentMethods}
                 onClose={() => setShowPaymentMethods(false)}
                 theme={theme}
                 viewType={viewType}
                 onSelect={handleSelectPaymentMethod}
-                empresaId={empresaId || ''}
+                isPublicView={isPublicView}
+                empresaId={empresaId}
+              />
+
+              <CouponsModal
+                isOpen={showCoupons}
+                onClose={() => setShowCoupons(false)}
+                theme={theme}
+                viewType={viewType}
+                onSelect={handleSelectCoupon}
                 isPublicView={isPublicView}
               />
 
@@ -320,63 +325,10 @@ export function SummaryPreview({
           </StripeProvider>
         </StripeConfigProvider>
       ) : (
-        <div className="min-h-full flex flex-col">
-          <div className="flex-1">
-            <div className="pb-24">
-              <div className="space-y-4 px-4 pt-6">
-                <TotalPrice total={calculations.total} theme={theme} />
-
-                <PriceBreakdown
-                  theme={theme}
-                  calculations={calculations}
-                  onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
-                />
-
-                <CouponsSection
-                  theme={theme}
-                  appliedCoupon={appliedCoupon}
-                  onShowCoupons={() => handleModalAction(() => setShowCouponsPanel(true))}
-                  onRemoveCoupon={handleRemoveCoupon}
-                />
-
-                <PaymentTypeSection
-                  theme={theme}
-                  selectedType={selectedPaymentType}
-                  onShowTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
-                  onRemoveType={() => handleSelectPaymentType(null)}
-                />
-
-                <div className="p-4 text-center">
-                  <p className="text-sm text-gray-500">
-                    {isConfigLoading ? 'Cargando configuración de pagos...' :
-                     !empresaId ? 'No se pudo cargar el método de pago' :
-                     'Inicializando sistema de pagos...'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center justify-center h-full">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
         </div>
       )}
-
-      {isProcessing && (
-        <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 shadow-lg">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-            <p className="text-sm text-gray-500 mt-2">Procesando reserva...</p>
-          </div>
-        </div>
-      )}
-
-      <div className="space-y-6">
-        <Button
-          onClick={handleReservar}
-          disabled={!isValid}
-          className="w-full"
-        >
-          Reservar
-        </Button>
-      </div>
     </PreviewContainer>
   );
 } 
