@@ -1,4 +1,4 @@
-import { Clock, Ticket } from "lucide-react";
+import { Clock, Ticket, Package2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ReservationDetails } from "./ReservationDetails";
@@ -9,6 +9,13 @@ interface PriceBreakdownProps {
     courtPrice: number;
     itemsTotal: number;
     discount: number;
+    selectedItems: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+      total: number;
+    }>;
   };
   onShowItemsDetails: () => void;
   className?: string;
@@ -56,40 +63,37 @@ export function PriceBreakdown({
             </p>
           </div>
 
-          {/* Precio Artículos */}
-          {calculations.itemsTotal > 0 && (
-            <div className="flex items-center justify-between">
-              <button
-                onClick={onShowItemsDetails}
-                className="flex items-center gap-2.5 group"
-              >
-                <svg 
-                  viewBox="0 0 24 24" 
-                  className="h-[18px] w-[18px] text-gray-400"
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 8c-2.2 0-4 1.8-4 4s1.8 4 4 4 4-1.8 4-4-1.8-4-4-4z" />
-                </svg>
-                <p className={cn(
-                  "text-[15px] font-medium",
-                  theme === 'dark' ? "text-gray-300" : "text-gray-600"
-                )}>
-                  Artículos
-                </p>
-              </button>
+          {/* Desglose de Artículos */}
+          {calculations.selectedItems.map((item) => (
+            <div 
+              key={item.id}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2.5">
+                <Package2 className="h-[18px] w-[18px] text-gray-400" />
+                <div className="flex items-center gap-2">
+                  <p className={cn(
+                    "text-[15px] font-medium",
+                    theme === 'dark' ? "text-gray-300" : "text-gray-600"
+                  )}>
+                    {item.name}
+                  </p>
+                  <span className={cn(
+                    "text-[13px]",
+                    theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                  )}>
+                    ({item.quantity} x €{item.price})
+                  </span>
+                </div>
+              </div>
               <p className={cn(
                 "text-[15px] font-medium",
                 theme === 'dark' ? "text-gray-200" : "text-gray-700"
               )}>
-                €{calculations.itemsTotal}
+                €{item.total}
               </p>
             </div>
-          )}
+          ))}
 
           {/* Descuento si hay cupón aplicado */}
           {calculations.discount > 0 && (
