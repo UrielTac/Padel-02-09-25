@@ -10,10 +10,11 @@ interface FormContainerProps {
   onPrev: () => void;
   isFirstStep: boolean;
   isLastStep: boolean;
-  isNextDisabled?: boolean;
-  hideNavigation?: boolean;
-  nextLabel?: string;
-  currentStep?: number;
+  hideNavigation: boolean;
+  isNextDisabled: boolean;
+  nextLabel: string;
+  currentStep: number;
+  showNextButton?: boolean;
 }
 
 export function FormContainer({
@@ -24,11 +25,15 @@ export function FormContainer({
   onPrev,
   isFirstStep,
   isLastStep,
-  isNextDisabled,
   hideNavigation,
-  nextLabel = "Siguiente",
-  currentStep = 0
+  isNextDisabled,
+  nextLabel,
+  currentStep,
+  showNextButton = true
 }: FormContainerProps) {
+  // Determinar si debemos mostrar la navegación
+  const shouldShowNavigation = !hideNavigation && showNextButton;
+
   return (
     <main className={cn(
       "w-full min-h-[100dvh] flex flex-col",
@@ -38,7 +43,8 @@ export function FormContainer({
         "flex-1 w-full mx-auto",
         viewType === "mobile"
           ? "px-4 pt-6 w-[95%] sm:w-[90%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl"
-          : "px-6 pt-8 w-[95%] sm:w-[90%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl"
+          : "px-6 pt-8 w-[95%] sm:w-[90%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl",
+        shouldShowNavigation && "pb-24"
       )}>
         <div className="h-full">
           {children}
@@ -46,7 +52,7 @@ export function FormContainer({
       </div>
 
       <AnimatePresence mode="wait">
-        {!hideNavigation && (
+        {shouldShowNavigation && (
           <motion.div
             key={`nav-${currentStep}`}
             initial={{ opacity: 0 }}
@@ -57,9 +63,9 @@ export function FormContainer({
               ease: [0.22, 1, 0.36, 1]
             }}
             className={cn(
-              "sticky bottom-0 left-0 right-0 z-50",
+              "fixed bottom-0 left-0 right-0 z-50",
               "bg-gradient-to-t from-white dark:from-black to-transparent",
-              "pt-4 pb-3 mt-auto"
+              "pt-4 pb-3"
             )}
           >
             <motion.div
@@ -74,8 +80,8 @@ export function FormContainer({
               className={cn(
                 "mx-auto",
                 viewType === "mobile"
-                  ? "px-4 w-[95%] sm:w-[90%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl"
-                  : "px-6 w-[95%] sm:w-[90%] md:w-[85%] lg:w-[80%] xl:w-[75%] max-w-5xl"
+                  ? "px-4 max-w-[320px]"
+                  : "px-6 max-w-[480px]"
               )}
             >
               <NavigationButtons
@@ -83,10 +89,11 @@ export function FormContainer({
                 onPrev={onPrev}
                 isFirstStep={isFirstStep}
                 isLastStep={isLastStep}
-                isNextDisabled={isNextDisabled}
                 theme={theme}
                 viewType={viewType}
+                isNextDisabled={isNextDisabled}
                 nextLabel={nextLabel}
+                hidePrevButton={viewType === "mobile"}
               />
             </motion.div>
           </motion.div>

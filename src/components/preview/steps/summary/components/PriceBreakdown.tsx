@@ -1,7 +1,9 @@
-import { Clock, Ticket, Package2 } from "lucide-react";
+import { Clock, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { ReservationDetails } from "./ReservationDetails";
+import { TotalPrice } from "./TotalPrice";
+import { useEffect, useRef, useState } from "react";
 
 interface PriceBreakdownProps {
   theme: 'light' | 'dark';
@@ -9,6 +11,7 @@ interface PriceBreakdownProps {
     courtPrice: number;
     itemsTotal: number;
     discount: number;
+    total: number;
     selectedItems: Array<{
       id: string;
       name: string;
@@ -19,104 +22,76 @@ interface PriceBreakdownProps {
   };
   onShowItemsDetails: () => void;
   className?: string;
+  viewType?: 'mobile' | 'desktop';
+  hideDetails?: boolean;
 }
 
 export function PriceBreakdown({ 
   theme,
   calculations,
   onShowItemsDetails,
-  className
+  className,
+  viewType = 'desktop',
+  hideDetails = false
 }: PriceBreakdownProps) {
+  const [scrollY, setScrollY] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (viewType === 'mobile') {
+      const handleScroll = () => {
+        if (containerRef.current) {
+          setScrollY(window.scrollY);
+        }
+      };
+
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [viewType]);
+
+  // Calcular la opacidad basada en el scroll (solo para móvil)
+  const opacity = Math.max(0, Math.min(1, 1 - (scrollY / 150)));
+  const translateY = Math.min(0, -(scrollY * 0.3));
+
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, delay: 0.1 }}
       className={cn(
-        "w-full rounded-lg",
-        "transition-all duration-200 ease-in-out",
+        "w-full",
         className
       )}
     >
-      <div className="space-y-4">
-        {/* Detalles de la Reserva */}
-        <ReservationDetails theme={theme} />
+      {!hideDetails && (
+        <ReservationDetails 
+          theme={theme} 
+          calculations={calculations}
+          viewType={viewType}
+        />
+      )}
 
-        {/* Resumen de Precios */}
-        <div className="space-y-3.5">
-          {/* Precio Pista */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <Clock className="h-[18px] w-[18px] text-gray-400" />
-              <p className={cn(
-                "text-[15px] font-medium",
-                theme === 'dark' ? "text-gray-300" : "text-gray-600"
-              )}>
-                Pista
-              </p>
-            </div>
+      {calculations.discount > 0 && (
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2.5">
+            <Ticket className="h-[18px] w-[18px] text-gray-400" />
             <p className={cn(
               "text-[15px] font-medium",
-              theme === 'dark' ? "text-gray-200" : "text-gray-700"
+              theme === 'dark' ? "text-gray-300" : "text-gray-600"
             )}>
-              €{calculations.courtPrice}
+              Descuento
             </p>
           </div>
-
-          {/* Desglose de Artículos */}
-          {calculations.selectedItems.map((item) => (
-            <div 
-              key={item.id}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center gap-2.5">
-                <Package2 className="h-[18px] w-[18px] text-gray-400" />
-                <div className="flex items-center gap-2">
-                  <p className={cn(
-                    "text-[15px] font-medium",
-                    theme === 'dark' ? "text-gray-300" : "text-gray-600"
-                  )}>
-                    {item.name}
-                  </p>
-                  <span className={cn(
-                    "text-[13px]",
-                    theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                  )}>
-                    ({item.quantity} x €{item.price})
-                  </span>
-                </div>
-              </div>
-              <p className={cn(
-                "text-[15px] font-medium",
-                theme === 'dark' ? "text-gray-200" : "text-gray-700"
-              )}>
-                €{item.total}
-              </p>
-            </div>
-          ))}
-
-          {/* Descuento si hay cupón aplicado */}
-          {calculations.discount > 0 && (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <Ticket className="h-[18px] w-[18px] text-gray-400" />
-                <p className={cn(
-                  "text-[15px] font-medium",
-                  theme === 'dark' ? "text-gray-300" : "text-gray-600"
-                )}>
-                  Descuento
-                </p>
-              </div>
-              <p className={cn(
-                "text-[15px] font-medium text-green-500",
-                theme === 'dark' ? "text-green-400" : "text-green-600"
-              )}>
-                -€{calculations.discount}
-              </p>
-            </div>
-          )}
+          <p className={cn(
+            "text-[15px] font-medium text-green-500",
+            theme === 'dark' ? "text-green-400" : "text-green-600"
+          )}>
+            -€{calculations.discount}
+          </p>
         </div>
-      </div>
+      )}
     </motion.div>
   );
 } 

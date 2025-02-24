@@ -10,6 +10,8 @@ import { useLocationBranches } from "@/hooks/use-location-branches";
 import { formatScheduleRange } from "@/lib/utils/schedule";
 import { useForm } from "@/contexts/FormContext";
 import { useFormConfig } from "@/hooks/useFormConfig";
+import { MobileNavigation } from "../layout/MobileNavigation";
+import { MobileNextButton } from "../layout/MobileNextButton";
 
 interface LocationPreviewProps {
   field: LocationStepField;
@@ -141,9 +143,24 @@ export function LocationPreview({
       isLastStep={isLastStep}
       isPublicView={isPublicView}
       isNextDisabled={!selectedLocation}
+      hideNavigation={viewType === "mobile" && isPublicView}
     >
-      <div className="min-h-full flex flex-col">
-        <div className="flex-1">
+      <div className="min-h-full flex flex-col relative">
+        {viewType === "mobile" && (
+          <>
+            <MobileNextButton
+              theme={theme}
+              onNext={handleNext}
+              isDisabled={!selectedLocation}
+              isPublicView={isPublicView}
+              viewType={viewType}
+            />
+          </>
+        )}
+        <div className={cn(
+          "flex-1",
+          viewType === "mobile" && isPublicView && "pt-8 pb-24"
+        )}>
           <div className="pb-24">
             <div className="pb-4">
               <motion.div 

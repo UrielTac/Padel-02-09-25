@@ -30,41 +30,24 @@ export function PreviewContainer({
   hideNavigation,
   isPublicView = false
 }: PreviewContainerProps) {
-  // Vista pública - Solo contenido sin botones de navegación
-  if (isPublicView) {
-    return (
-      <div className={cn(
-        "relative flex flex-col h-full",
-        theme === 'dark' ? "bg-black" : "bg-white"
-      )}>
-        <div className={cn(
-          "flex-1 overflow-y-auto",
-          viewType === "mobile" 
-            ? "px-3" 
-            : "px-4 md:px-6 lg:px-8",
-          "text-base md:text-lg"
-        )}>
-          {children}
-        </div>
-      </div>
-    );
-  }
+  const isMobilePublic = viewType === "mobile" && isPublicView;
+  const shouldShowNavigation = !hideNavigation && onNext && onPrev && !isMobilePublic;
 
-  // Vista de configuración
   return (
     <div className={cn(
-      "relative flex flex-col h-full",
+      "relative flex flex-col min-h-[100dvh]",
       theme === 'dark' ? "bg-black" : "bg-white"
     )}>
       <div className={cn(
         "flex-1 overflow-y-auto",
-        viewType === "mobile" ? "px-3" : "px-4",
-        !hideNavigation && "pb-20"
+        viewType === "mobile" ? "px-0" : "px-4",
+        shouldShowNavigation && !isMobilePublic && "pb-20",
+        isMobilePublic && "pb-28" // Espacio para el botón flotante
       )}>
         {children}
       </div>
 
-      {!hideNavigation && onNext && onPrev && (
+      {shouldShowNavigation && !isMobilePublic && (
         <div className={cn(
           "absolute bottom-0 left-0 right-0 z-10",
           "bg-gradient-to-t from-white dark:from-black to-transparent",
@@ -82,6 +65,8 @@ export function PreviewContainer({
             nextLabel={nextLabel}
             prevLabel={prevLabel}
             isPreview={true}
+            hidePrevButton={false}
+            isPublicView={isPublicView}
           />
         </div>
       )}

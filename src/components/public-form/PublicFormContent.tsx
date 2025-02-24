@@ -18,14 +18,27 @@ export function PublicFormContent({ form }: PublicFormContentProps) {
   const [error, setError] = useState<Error | null>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [viewType, setViewType] = useState<"mobile" | "desktop">("desktop");
+
+  // Detectar el tipo de vista al montar y en resize
+  useEffect(() => {
+    const handleResize = () => {
+      setViewType(window.innerWidth < 768 ? "mobile" : "desktop");
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Obtener el campo actual y siguiente
   const currentField = form.fields[state.currentStep];
   const currentType = getStepType(currentField?.type);
   const nextField = form.fields[state.currentStep + 1];
 
-  // Simplificar la lógica de navegación
-  const showNextButton = true; // Siempre mostrar el botón excepto en casos específicos
+  // Mostrar el botón siguiente solo si NO es vista móvil pública
+  const isMobilePublic = viewType === "mobile";
+  const showNextButton = !isMobilePublic;
   const isNextDisabled = isNavigating;
 
   useEffect(() => {
@@ -145,6 +158,7 @@ export function PublicFormContent({ form }: PublicFormContentProps) {
       isNextDisabled={isNextDisabled}
       showNextButton={showNextButton}
       nextLabel={currentType === 'farewell' ? 'Finalizar' : 'Siguiente'}
+      viewType={viewType}
     />
   );
 }

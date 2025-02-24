@@ -27,6 +27,7 @@ import { toast } from "react-hot-toast";
 import { Button } from "@/components/ui/button";
 import { useForm } from '@/contexts/FormContext';
 import { MobilePaymentContainer } from './components/mobile/MobilePaymentContainer';
+import { MobileNavigation } from "@/components/preview/layout/MobileNavigation";
 
 interface SummaryPreviewProps {
   field: SummaryStepField;
@@ -200,127 +201,129 @@ export function SummaryPreview({
     setShowCoupons(false);
   }, []);
 
+  const isMobilePublic = viewType === "mobile" && isPublicView;
+
   return (
     <PreviewContainer 
       viewType={viewType} 
       theme={theme}
-      onNext={handleReservar}
+      onNext={handleNext}
       onPrev={onPrev}
       isFirstStep={isFirstStep}
       isLastStep={isLastStep}
-      nextLabel="Reservar"
-      prevLabel="Volver"
       isPublicView={isPublicView}
       isNextDisabled={!isValid || isProcessing}
+      hideNavigation={isMobilePublic}
+      nextLabel="Reservar"
     >
       {empresaId && stripeInitialized ? (
         <StripeConfigProvider empresaId={empresaId}>
           <StripeProvider empresaId={empresaId}>
-            <div className="min-h-full flex flex-col">
-              <div className="flex-1">
+            <div className="min-h-full flex flex-col relative">
+              <div className={cn(
+                "flex-1",
+                viewType === "mobile" && isPublicView && "pt-16 pb-24"
+              )}>
                 <div className={cn(
-                  "relative",
-                  viewType === 'mobile' ? "pb-0" : "pb-24"
+                  viewType === 'mobile' 
+                    ? "px-4 pb-0" 
+                    : "space-y-4 px-4 pt-6"
                 )}>
-                  <div className={cn(
-                    viewType === 'mobile' 
-                      ? "px-4 pb-0" 
-                      : "space-y-4 px-4 pt-6"
-                  )}>
-                    <div className={cn(
-                      "relative",
-                      viewType === 'mobile' && "z-20 h-[300px] flex items-center justify-center"
-                    )}>
+                  {viewType === 'desktop' && (
+                    <div className="relative">
                       <TotalPrice total={calculations.total} theme={theme} />
                     </div>
+                  )}
 
-                    {viewType === 'mobile' ? (
-                      <MobilePaymentContainer
+                  {viewType === 'mobile' ? (
+                    <MobilePaymentContainer
+                      theme={theme}
+                      viewType={viewType}
+                      calculations={calculations}
+                      selectedPaymentType={selectedPaymentType}
+                      selectedPaymentMethod={selectedPaymentMethod}
+                      onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
+                      onShowPaymentTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
+                      onShowPaymentMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
+                      onRemovePaymentType={() => handleSelectPaymentType(null)}
+                      onRemovePaymentMethod={() => handleSelectPaymentMethod(null)}
+                      onNext={handleReservar}
+                      onPrev={onPrev}
+                      isPublicView={isPublicView}
+                      empresaId={empresaId}
+                    />
+                  ) : (
+                    <>
+                      <PriceBreakdown
                         theme={theme}
-                        viewType={viewType}
                         calculations={calculations}
-                        selectedPaymentType={selectedPaymentType}
-                        selectedPaymentMethod={selectedPaymentMethod}
                         onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
-                        onShowPaymentTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
-                        onShowPaymentMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
-                        onRemovePaymentType={() => handleSelectPaymentType(null)}
-                        onRemovePaymentMethod={() => handleSelectPaymentMethod(null)}
+                      />
+
+                      <PaymentTypeSection
+                        theme={theme}
+                        selectedType={selectedPaymentType}
+                        onShowTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
+                        onRemoveType={() => handleSelectPaymentType(null)}
+                      />
+
+                      <PaymentSection
+                        theme={theme}
+                        selectedMethod={selectedPaymentMethod}
+                        onShowMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
+                        onRemoveMethod={() => handleSelectPaymentMethod(null)}
+                        viewType={viewType}
                         empresaId={empresaId}
                       />
-                    ) : (
-                      <>
-                        <PriceBreakdown
-                          theme={theme}
-                          calculations={calculations}
-                          onShowItemsDetails={() => handleModalAction(() => setShowItemsDetails(true))}
-                        />
-
-                        <PaymentTypeSection
-                          theme={theme}
-                          selectedType={selectedPaymentType}
-                          onShowTypes={() => handleModalAction(() => setShowPaymentTypes(true))}
-                          onRemoveType={() => handleSelectPaymentType(null)}
-                        />
-
-                        <PaymentSection
-                          theme={theme}
-                          selectedMethod={selectedPaymentMethod}
-                          onShowMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
-                          onRemoveMethod={() => handleSelectPaymentMethod(null)}
-                          viewType={viewType}
-                          empresaId={empresaId}
-                        />
-                      </>
-                    )}
-                  </div>
+                    </>
+                  )}
                 </div>
+
+                <ItemsDetailsModal
+                  isOpen={showItemsDetails}
+                  onClose={() => setShowItemsDetails(false)}
+                  theme={theme}
+                  viewType={viewType}
+                  items={calculations.selectedItems}
+                  isPublicView={isPublicView}
+                />
+
+                <PaymentTypeModal
+                  isOpen={showPaymentTypes}
+                  onClose={() => setShowPaymentTypes(false)}
+                  theme={theme}
+                  viewType={viewType}
+                  onSelect={handleSelectPaymentType}
+                  onShowCardModal={() => handleModalAction(() => setShowPaymentMethods(true))}
+                  isPublicView={isPublicView}
+                  empresaId={empresaId}
+                />
+
+                <PaymentMethodModal
+                  isOpen={showPaymentMethods}
+                  onClose={() => setShowPaymentMethods(false)}
+                  theme={theme}
+                  viewType={viewType}
+                  onSelect={handleSelectPaymentMethod}
+                  isPublicView={isPublicView}
+                  empresaId={empresaId}
+                />
+
+                <CouponsModal
+                  isOpen={showCoupons}
+                  onClose={() => setShowCoupons(false)}
+                  theme={theme}
+                  viewType={viewType}
+                  onSelect={handleSelectCoupon}
+                  isPublicView={isPublicView}
+                />
+
+                <PreviewPopup
+                  isOpen={showPopup}
+                  onClose={() => setShowPopup(false)}
+                  theme={theme}
+                />
               </div>
-
-              <ItemsDetailsModal
-                isOpen={showItemsDetails}
-                onClose={() => setShowItemsDetails(false)}
-                theme={theme}
-                viewType={viewType}
-                items={calculations.selectedItems}
-                isPublicView={isPublicView}
-              />
-
-              <PaymentTypeModal
-                isOpen={showPaymentTypes}
-                onClose={() => setShowPaymentTypes(false)}
-                theme={theme}
-                viewType={viewType}
-                onSelect={handleSelectPaymentType}
-                onShowCardModal={() => handleModalAction(() => setShowPaymentMethods(true))}
-                isPublicView={isPublicView}
-                empresaId={empresaId}
-              />
-
-              <PaymentMethodModal
-                isOpen={showPaymentMethods}
-                onClose={() => setShowPaymentMethods(false)}
-                theme={theme}
-                viewType={viewType}
-                onSelect={handleSelectPaymentMethod}
-                isPublicView={isPublicView}
-                empresaId={empresaId}
-              />
-
-              <CouponsModal
-                isOpen={showCoupons}
-                onClose={() => setShowCoupons(false)}
-                theme={theme}
-                viewType={viewType}
-                onSelect={handleSelectCoupon}
-                isPublicView={isPublicView}
-              />
-
-              <PreviewPopup
-                isOpen={showPopup}
-                onClose={() => setShowPopup(false)}
-                theme={theme}
-              />
             </div>
           </StripeProvider>
         </StripeConfigProvider>

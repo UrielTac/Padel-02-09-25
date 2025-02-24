@@ -20,6 +20,11 @@ interface PublicFormContentProps {
   theme: 'light' | 'dark';
   viewType: "mobile" | "desktop";
   slug: string;
+  isNextDisabled: boolean;
+  nextLabel: string;
+  showNextButton: boolean;
+  isPublicView: boolean;
+  hideNavigation: boolean;
 }
 
 export function PublicFormContent({
@@ -33,7 +38,12 @@ export function PublicFormContent({
   error,
   theme,
   viewType,
-  slug
+  slug,
+  isNextDisabled: isNextButtonDisabled,
+  nextLabel,
+  showNextButton,
+  isPublicView,
+  hideNavigation
 }: PublicFormContentProps) {
   const currentField = fields[currentStep];
   const nextField = fields[currentStep + 1];
@@ -111,8 +121,21 @@ export function PublicFormContent({
     ].includes(type);
   };
 
+  // Determinar si debemos ocultar la navegación
+  const shouldHideNavigation = () => {
+    // Si es un paso especial, mantener la navegación visible
+    if (currentField?.type === 'summary') return false;
+    
+    // Si hideNavigation está explícitamente establecido, respetarlo
+    if (hideNavigation) return true;
+    
+    // Para otros pasos especiales, evaluar caso por caso
+    return currentField && isSpecialStep(currentField.type);
+  };
+
   // Verificar si el botón siguiente debe estar deshabilitado
   const isNextDisabled = () => {
+    if (isNextButtonDisabled) return true;
     if (!currentField) return true;
 
     switch (currentField.type) {
@@ -165,10 +188,11 @@ export function PublicFormContent({
       onPrev={onPrev}
       isFirstStep={currentStep === 0}
       isLastStep={isLastStep}
-      hideNavigation={currentField && isSpecialStep(currentField.type)}
+      hideNavigation={shouldHideNavigation()}
       isNextDisabled={isNextDisabled()}
       nextLabel={getNextButtonLabel()}
       currentStep={currentStep}
+      showNextButton={showNextButton}
     >
       <div className="max-w-lg mx-auto space-y-8">
         <AnimatePresence mode="wait">

@@ -14,6 +14,8 @@ import { useAvailability } from '@/hooks/useAvailability';
 import { AvailabilitySlot } from '@/types/availability';
 import { DURATIONS, COURT_TYPES, TIME_RANGES } from '@/config/availability';
 import { useForm } from "@/contexts/FormContext";
+import { MobileNavigation } from "../layout/MobileNavigation";
+import { MobileNextButton } from "../layout/MobileNextButton";
 
 interface ShiftsPreviewProps {
   field: FormStepField;
@@ -738,489 +740,516 @@ export function ShiftsPreview({ field, theme, viewType, onNext, onPrev, isFirstS
     setShowCourtPopup(false);
   };
 
+  const handleNext = () => {
+    onNext();
+  };
+
   return (
     <PreviewContainer 
       viewType={viewType} 
       theme={theme}
-      onNext={onNext}
+      onNext={handleNext}
       onPrev={onPrev}
       isFirstStep={isFirstStep}
       isLastStep={isLastStep}
       isPublicView={isPublicView}
       isNextDisabled={!selectedShift}
+      hideNavigation={viewType === "mobile" && isPublicView}
     >
-      <div className="min-h-full flex flex-col">
-        <div className="pb-4">
-          <div className="text-center space-y-1">
-            <h1 className={cn(
-              "text-lg font-semibold transition-colors",
-              theme === 'dark' ? "text-white" : "text-gray-900"
-            )}>
-              {title || "Seleccionar Horario"}
-            </h1>
-            <p className={cn(
-              "text-sm transition-colors px-6",
-              theme === 'dark' ? "text-gray-400" : "text-gray-500"
-            )}>
-              {description || "Elige el horario que mejor se adapte a tu agenda"}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex-1 pb-24">
-          <div className="px-4">
-            <div className="mb-8">
-              <div className={cn(
-                "w-full rounded-xl p-3",
-                "transition-all duration-200 ease-in-out",
-                theme === 'dark' 
-                  ? "bg-neutral-900 text-white"
-                  : "bg-gray-100/60 text-gray-900"
+      <div className="min-h-full flex flex-col relative">
+        {viewType === "mobile" && isPublicView && (
+          <>
+            <MobileNavigation
+              theme={theme}
+              onPrev={onPrev}
+              isPublicView={isPublicView}
+            />
+            <MobileNextButton
+              theme={theme}
+              onNext={handleNext}
+              isDisabled={!selectedShift}
+              isPublicView={isPublicView}
+              viewType={viewType}
+              variant="shifts"
+            />
+          </>
+        )}
+        <div className={cn(
+          "flex-1",
+          viewType === "mobile" && isPublicView && "pt-16 pb-24"
+        )}>
+          <div className="pb-4">
+            <div className="text-center space-y-1">
+              <h1 className={cn(
+                "text-lg font-semibold transition-colors",
+                theme === 'dark' ? "text-white" : "text-gray-900"
               )}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex-1 flex items-center justify-end">
+                {title || "Seleccionar Horario"}
+              </h1>
+              <p className={cn(
+                "text-sm transition-colors px-6",
+                theme === 'dark' ? "text-gray-400" : "text-gray-500"
+              )}>
+                {description || "Elige el horario que mejor se adapte a tu agenda"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-1 pb-24">
+            <div className="px-4">
+              <div className="mb-8">
+                <div className={cn(
+                  "w-full rounded-xl p-3",
+                  "transition-all duration-200 ease-in-out",
+                  theme === 'dark' 
+                    ? "bg-neutral-900 text-white"
+                    : "bg-gray-100/60 text-gray-900"
+                )}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex-1 flex items-center justify-end">
+                      <button
+                        onClick={handlePrevMonth}
+                        className={cn(
+                          "p-1 rounded-lg transition-colors",
+                          theme === 'dark'
+                            ? "hover:bg-neutral-800 text-gray-400 hover:text-white"
+                            : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                    </div>
+                  <p className={cn(
+                      "text-xs font-medium capitalize transition-colors px-4",
+                    theme === 'dark' ? "text-gray-300" : "text-gray-700"
+                  )}>
+                      {format(currentMonth, "MMMM yyyy", { locale: es })}
+                    </p>
+                    <div className="flex-1 flex items-center justify-start">
+                      <button
+                        onClick={handleNextMonth}
+                        className={cn(
+                          "p-1 rounded-lg transition-colors",
+                          theme === 'dark'
+                            ? "hover:bg-neutral-800 text-gray-400 hover:text-white"
+                            : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                        )}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="relative group">
                     <button
-                      onClick={handlePrevMonth}
                       className={cn(
-                        "p-1 rounded-lg transition-colors",
-                        theme === 'dark'
-                          ? "hover:bg-neutral-800 text-gray-400 hover:text-white"
-                          : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                        "absolute left-2 top-1/2 -translate-y-1/2 p-1 z-20",
+                        "opacity-0 group-hover:opacity-100 transition-opacity",
+                        theme === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"
                       )}
+                      onClick={() => {
+                        if (containerRef.current) {
+                          containerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
+                        }
+                      }}
                     >
                       <ChevronLeft className="h-4 w-4" />
                     </button>
-                  </div>
-                <p className={cn(
-                    "text-xs font-medium capitalize transition-colors px-4",
-                  theme === 'dark' ? "text-gray-300" : "text-gray-700"
-                )}>
-                    {format(currentMonth, "MMMM yyyy", { locale: es })}
-                  </p>
-                  <div className="flex-1 flex items-center justify-start">
+
                     <button
-                      onClick={handleNextMonth}
                       className={cn(
-                        "p-1 rounded-lg transition-colors",
-                        theme === 'dark'
-                          ? "hover:bg-neutral-800 text-gray-400 hover:text-white"
-                          : "hover:bg-gray-200 text-gray-500 hover:text-gray-900"
+                        "absolute right-2 top-1/2 -translate-y-1/2 p-1 z-20",
+                        "opacity-0 group-hover:opacity-100 transition-opacity",
+                        theme === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"
                       )}
+                      onClick={() => {
+                        if (containerRef.current) {
+                          containerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
+                        }
+                      }}
                     >
                       <ChevronRight className="h-4 w-4" />
                     </button>
+
+                    <LayoutGroup>
+                      <div className="flex justify-center overflow-hidden">
+                        <motion.div 
+                          ref={containerRef}
+                          className="flex gap-4 overflow-x-auto scrollbar-hide px-6"
+                          layout
+                        >
+                          <AnimatePresence mode="wait">
+                          {allDays.map((date) => {
+                            const isSelected = isSameDay(date, selectedDate);
+                            
+                            return (
+                              <motion.button
+                                id={`date-${date.toISOString()}`}
+                                key={date.toISOString()}
+                                onClick={() => handleDateSelect(date)}
+                                className={cn(
+                                  "flex flex-col items-center px-2 py-1 rounded-lg",
+                                  "transition-all duration-200",
+                                  isSelected && (
+                                    theme === 'dark'
+                                      ? "bg-zinc-800"
+                                      : "bg-gray-200/70"
+                                  )
+                                )}
+                                layout
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ 
+                                  opacity: isSelected ? 1 : 0.8,
+                                  scale: isSelected ? 1 : 0.95,
+                                  transition: { duration: 0.2 }
+                                }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                              >
+                                <span className={cn(
+                                  "text-[10px] font-medium mb-1 transition-colors capitalize",
+                                  theme === 'dark' ? "text-gray-400" : "text-gray-600"
+                                )}>
+                                  {format(date, "EEE", { locale: es })}
+                                </span>
+                                <span className={cn(
+                                  "text-sm transition-colors font-medium",
+                                  isSelected 
+                                    ? theme === 'dark' 
+                                      ? "text-white"
+                                      : "text-gray-900"
+                                    : theme === 'dark' 
+                                      ? "text-gray-300" 
+                                      : "text-gray-700"
+                                )}>
+                                  {format(date, "d")}
+                                </span>
+                              </motion.button>
+                            );
+                          })}
+                          </AnimatePresence>
+                        </motion.div>
+                      </div>
+                    </LayoutGroup>
                   </div>
                 </div>
-
-                <div className="relative group">
-                  <button
-                    className={cn(
-                      "absolute left-2 top-1/2 -translate-y-1/2 p-1 z-20",
-                      "opacity-0 group-hover:opacity-100 transition-opacity",
-                      theme === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"
-                    )}
-                    onClick={() => {
-                      if (containerRef.current) {
-                        containerRef.current.scrollBy({ left: -200, behavior: 'smooth' });
-                      }
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-
-                  <button
-                    className={cn(
-                      "absolute right-2 top-1/2 -translate-y-1/2 p-1 z-20",
-                      "opacity-0 group-hover:opacity-100 transition-opacity",
-                      theme === 'dark' ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-gray-900"
-                    )}
-                    onClick={() => {
-                      if (containerRef.current) {
-                        containerRef.current.scrollBy({ left: 200, behavior: 'smooth' });
-                      }
-                    }}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
-
-                  <LayoutGroup>
-                    <div className="flex justify-center overflow-hidden">
-                      <motion.div 
-                        ref={containerRef}
-                        className="flex gap-4 overflow-x-auto scrollbar-hide px-6"
-                        layout
-                      >
-                        <AnimatePresence mode="wait">
-                        {allDays.map((date) => {
-                          const isSelected = isSameDay(date, selectedDate);
-                          
-                          return (
-                            <motion.button
-                              id={`date-${date.toISOString()}`}
-                              key={date.toISOString()}
-                              onClick={() => handleDateSelect(date)}
-                              className={cn(
-                                "flex flex-col items-center px-2 py-1 rounded-lg",
-                                "transition-all duration-200",
-                                isSelected && (
-                                  theme === 'dark'
-                                    ? "bg-zinc-800"
-                                    : "bg-gray-200/70"
-                                )
-                              )}
-                              layout
-                                initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ 
-                                opacity: isSelected ? 1 : 0.8,
-                                scale: isSelected ? 1 : 0.95,
-                                transition: { duration: 0.2 }
-                              }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                            >
-                              <span className={cn(
-                                "text-[10px] font-medium mb-1 transition-colors capitalize",
-                                theme === 'dark' ? "text-gray-400" : "text-gray-600"
-                              )}>
-                                {format(date, "EEE", { locale: es })}
-                              </span>
-                              <span className={cn(
-                                "text-sm transition-colors font-medium",
-                                isSelected 
-                                  ? theme === 'dark' 
-                                    ? "text-white"
-                                    : "text-gray-900"
-                                  : theme === 'dark' 
-                                    ? "text-gray-300" 
-                                    : "text-gray-700"
-                              )}>
-                                {format(date, "d")}
-                              </span>
-                            </motion.button>
-                          );
-                        })}
-                        </AnimatePresence>
-                      </motion.div>
-                    </div>
-                  </LayoutGroup>
-                </div>
               </div>
-            </div>
 
-            <div className={cn(
-              "w-full rounded-xl relative",
-              "transition-all duration-200 ease-in-out",
-              "z-0",
-              theme === 'dark' 
-                ? "bg-neutral-900"
-                : "bg-gray-100/60"
-            )}>
               <div className={cn(
-                "w-full p-4 border-b",
+                "w-full rounded-xl relative",
+                "transition-all duration-200 ease-in-out",
+                "z-0",
                 theme === 'dark' 
-                  ? "border-gray-800" 
-                  : "border-gray-200/50"
+                  ? "bg-neutral-900"
+                  : "bg-gray-100/60"
               )}>
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex-1 max-w-[200px] pl-3">
-                    <div className="space-y-1.5">
-                      <Label className={cn(
-                        "text-[10px] font-medium",
-                        theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                      )}>
-                        Duración
-                      </Label>
-                      <div>
-  <Slider
-    defaultValue={duration}
-    value={duration}
-    onValueChange={setDuration}
-    min={1}
-    max={3}
-    step={0.5}
-    className={cn(
-      "mb-1.5",
-      "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4",
-      "[&_.relative]:h-2",
-      theme === 'dark'
-        ? "[&_.absolute]:bg-neutral-800 [&_[role=slider]]:border-neutral-600 [&_[role=slider]]:bg-neutral-900"
-        : "[&_.absolute]:bg-gray-300/90 [&_[role=slider]]:border-gray-400",
-      "[&_[role=slider]]:border-2",
-      "[&_[role=slider]]:transition-colors"
-    )}
-  />
-  <span
-    className={cn(
-      "flex w-full items-center justify-between gap-1 px-2",
-      "text-[8px] font-medium",
-      theme === 'dark' ? "text-neutral-500" : "text-gray-400"
-    )}
-    aria-hidden="true"
-  >
-    {[...Array(5)].map((_, i) => (
-      <span 
-        key={i} 
-        className="flex w-0 flex-col items-center justify-center gap-0.5"
-      >
-        <span
-          className={cn(
-            "h-0.5 w-px",
-            theme === 'dark' 
-              ? "bg-neutral-700" 
-              : "bg-gray-400",
-            i % 2 !== 0 && "h-[1px]"
-          )}
-        />
-        <span className={cn(i % 2 !== 0 && "opacity-0")}>
-          {1 + i/2}h
-        </span>
-      </span>
-    ))}
-  </span>
-</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div className="relative" data-popup="time">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowTimePopup(!showTimePopup)}
-                        className={cn(
-                          "h-7 rounded-lg gap-2",
-                          "transition-all duration-200 ease-in-out",
-                          theme === 'dark' 
-                            ? "bg-zinc-800 hover:bg-zinc-700 text-neutral-300 hover:text-neutral-100"
-                            : "bg-zinc-300 hover:bg-zinc-400 text-white",
-                          showTimePopup && (
-                            theme === 'dark'
-                              ? "bg-zinc-700 text-neutral-100"
-                              : "bg-zinc-500 text-white"
-                          )
-                        )}
-                      >
-                        <Sun className="h-3.5 w-3.5" />
-                        <span className={cn(
-                          "text-xs",
-                          viewType === "mobile" && "hidden"
-                        )}>
-                          {selectedTime ? selectedTime === 'morning' ? 'Mañana' : selectedTime === 'afternoon' ? 'Tarde' : 'Noche' : "Horario"}
-                        </span>
-                      </Button>
-
-                      <AnimatePresence>
-                        {showTimePopup && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute right-0 top-10 z-50",
-                              "w-[140px] rounded-xl p-2",
-                              "shadow-lg",
-                              theme === 'dark'
-                                ? "bg-neutral-900 border border-neutral-800"
-                                : "bg-white border border-gray-200"
-                            )}
-                          >
-                            <p className={cn(
-                              "text-[10px] font-medium text-center pb-2",
-                              theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                            )}>
-                              Momento del día
-                            </p>
-                            <div className="space-y-1">
-                              {Object.keys(TIME_RANGES).map((time) => (
-                                <button
-                                  key={time}
-                                  onClick={() => {
-                                    setSelectedTime(selectedTime === time ? null : time as TimeOfDay);
-                                    setShowTimePopup(false);
-                                  }}
-                                  className={cn(
-                                    "w-full text-xs font-medium rounded-lg px-3 py-1.5",
-                                    "transition-all duration-200 ease-in-out",
-                                    "relative",
-                                    selectedTime === time
-                                      ? theme === 'dark'
-                                        ? "bg-neutral-800 text-neutral-200"
-                                        : "bg-gray-100 text-gray-900"
-                                      : theme === 'dark'
-                                        ? "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
-                                  )}
-                                >
-                                  <span className="flex items-center justify-between">
-                                    {time === 'morning' ? 'Mañana' : time === 'afternoon' ? 'Tarde' : 'Noche'}
-                                    {selectedTime === time && (
-                                      <X 
-                                        className={cn(
-                                          "h-3 w-3 ml-2",
-                                          theme === 'dark' ? "text-neutral-400" : "text-gray-500"
-                                        )} 
-                                      />
-                                    )}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    <div className="relative" data-popup="court">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowCourtPopup(!showCourtPopup)}
-                        className={cn(
-                          "h-7 rounded-lg gap-2",
-                          "transition-all duration-200 ease-in-out",
-                          theme === 'dark' 
-                            ? "bg-zinc-800 hover:bg-zinc-700 text-neutral-300 hover:text-neutral-100"
-                            : "bg-zinc-300 hover:bg-zinc-400 text-white",
-                          showCourtPopup && (
-                            theme === 'dark'
-                              ? "bg-zinc-700 text-neutral-100"
-                              : "bg-zinc-500 text-white"
-                          )
-                        )}
-                      >
-                        <Filter className="h-3.5 w-3.5" />
-                        <span className={cn(
-                          "text-xs",
-                          viewType === "mobile" && "hidden"
-                        )}>
-                          {getCourtTypeLabel(courtFilter)}
-                        </span>
-                      </Button>
-
-                      <AnimatePresence>
-                        {showCourtPopup && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={cn(
-                              "absolute right-0 top-10 z-50",
-                              "w-[140px] rounded-xl p-2",
-                              "shadow-lg",
-                              theme === 'dark'
-                                ? "bg-neutral-900 border border-neutral-800"
-                                : "bg-white border border-gray-200"
-                            )}
-                          >
-                            <p className={cn(
-                              "text-[10px] font-medium text-center pb-2",
-                              theme === 'dark' ? "text-neutral-400" : "text-gray-500"
-                            )}>
-                              Tipo de cancha
-                            </p>
-                            <div className="space-y-1">
-                              {courtOptions.map((option) => (
-                                <button
-                                  key={option.id}
-                                  onClick={() => handleCourtFilterChange(courtFilter === option.id ? 'all' : option.id as 'all' | CourtType)}
-                                  className={cn(
-                                    "w-full text-xs font-medium rounded-lg px-3 py-1.5",
-                                    "transition-all duration-200 ease-in-out",
-                                    "relative",
-                                    courtFilter === option.id
-                                      ? theme === 'dark'
-                                        ? "bg-neutral-800 text-neutral-200"
-                                        : "bg-gray-100 text-gray-900"
-                                      : theme === 'dark'
-                                        ? "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
-                                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
-                                  )}
-                                >
-                                  <span className="flex items-center justify-between">
-                                    {option.label}
-                                    {courtFilter === option.id && (
-                                      <X 
-                                        className={cn(
-                                          "h-3 w-3 ml-2",
-                                          theme === 'dark' ? "text-neutral-400" : "text-gray-500"
-                                        )} 
-                                      />
-                                    )}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {viewType === "mobile" && (selectedTime || courtFilter !== 'all') && (
                 <div className={cn(
-                  "px-5 py-2 flex gap-2 flex-wrap",
+                  "w-full p-4 border-b",
                   theme === 'dark' 
-                    ? "border-neutral-800" 
+                    ? "border-gray-800" 
                     : "border-gray-200/50"
                 )}>
-                  {selectedTime && (
-                    <div className={cn(
-                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium",
-                      theme === 'dark' 
-                        ? "bg-zinc-800 text-neutral-300"
-                        : "bg-gray-200 text-gray-700"
-                    )}>
-                      {selectedTime === 'morning' ? 'Mañana' : selectedTime === 'afternoon' ? 'Tarde' : 'Noche'}
-                      <button
-                        onClick={() => setSelectedTime(null)}
-                        className={cn(
-                          "p-0.5 rounded-full",
-                          theme === 'dark'
-                            ? "hover:bg-zinc-700"
-                            : "hover:bg-black/10",
-                          "transition-colors duration-200"
-                        )}
-                      >
-                        <X className={cn(
-                          "h-3 w-3",
-                          theme === 'dark' ? "text-neutral-400" : "text-gray-500"
-                        )} />
-                      </button>
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex-1 max-w-[200px] pl-3">
+                      <div className="space-y-1.5">
+                        <Label className={cn(
+                          "text-[10px] font-medium",
+                          theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                        )}>
+                          Duración
+                        </Label>
+                        <div>
+                          <Slider
+                            defaultValue={duration}
+                            value={duration}
+                            onValueChange={setDuration}
+                            min={1}
+                            max={3}
+                            step={0.5}
+                            className={cn(
+                              "mb-1.5",
+                              "[&_[role=slider]]:h-4 [&_[role=slider]]:w-4",
+                              "[&_.relative]:h-2",
+                              theme === 'dark'
+                                ? "[&_.absolute]:bg-neutral-800 [&_[role=slider]]:border-neutral-600 [&_[role=slider]]:bg-neutral-900"
+                                : "[&_.absolute]:bg-gray-300/90 [&_[role=slider]]:border-gray-400",
+                              "[&_[role=slider]]:border-2",
+                              "[&_[role=slider]]:transition-colors"
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              "flex w-full items-center justify-between gap-1 px-2",
+                              "text-[8px] font-medium",
+                              theme === 'dark' ? "text-neutral-500" : "text-gray-400"
+                            )}
+                            aria-hidden="true"
+                          >
+                            {[...Array(5)].map((_, i) => (
+                              <span 
+                                key={i} 
+                                className="flex w-0 flex-col items-center justify-center gap-0.5"
+                              >
+                                <span
+                                  className={cn(
+                                    "h-0.5 w-px",
+                                    theme === 'dark' 
+                                      ? "bg-neutral-700" 
+                                      : "bg-gray-400",
+                                    i % 2 !== 0 && "h-[1px]"
+                                  )}
+                                />
+                                <span className={cn(i % 2 !== 0 && "opacity-0")}>
+                                  {1 + i/2}h
+                                </span>
+                              </span>
+                            ))}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  )}
 
-                  {courtFilter !== 'all' && (
-                    <div className={cn(
-                      "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium",
-                      theme === 'dark' 
-                        ? "bg-zinc-800 text-neutral-300"
-                        : "bg-gray-200 text-gray-700"
-                    )}>
-                      {COURT_TYPES[courtFilter]}
-                      <button
-                        onClick={() => setCourtFilter('all')}
-                        className={cn(
-                          "p-0.5 rounded-full",
-                          theme === 'dark'
-                            ? "hover:bg-zinc-700"
-                            : "hover:bg-black/10",
-                          "transition-colors duration-200"
-                        )}
-                      >
-                        <X className={cn(
-                          "h-3 w-3",
-                          theme === 'dark' ? "text-neutral-400" : "text-gray-500"
-                        )} />
-                      </button>
+                    <div className="flex items-center gap-2">
+                      <div className="relative" data-popup="time">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowTimePopup(!showTimePopup)}
+                          className={cn(
+                            "h-7 rounded-lg gap-2",
+                            "transition-all duration-200 ease-in-out",
+                            theme === 'dark' 
+                              ? "bg-zinc-800 hover:bg-zinc-700 text-neutral-300 hover:text-neutral-100"
+                              : "bg-zinc-300 hover:bg-zinc-400 text-white",
+                            showTimePopup && (
+                              theme === 'dark'
+                                ? "bg-zinc-700 text-neutral-100"
+                                : "bg-zinc-500 text-white"
+                            )
+                          )}
+                        >
+                          <Sun className="h-3.5 w-3.5" />
+                          <span className={cn(
+                            "text-xs",
+                            viewType === "mobile" && "hidden"
+                          )}>
+                            {selectedTime ? selectedTime === 'morning' ? 'Mañana' : selectedTime === 'afternoon' ? 'Tarde' : 'Noche' : "Horario"}
+                          </span>
+                        </Button>
+
+                        <AnimatePresence>
+                          {showTimePopup && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className={cn(
+                                "absolute right-0 top-10 z-50",
+                                "w-[140px] rounded-xl p-2",
+                                "shadow-lg",
+                                theme === 'dark'
+                                  ? "bg-neutral-900 border border-neutral-800"
+                                  : "bg-white border border-gray-200"
+                              )}
+                            >
+                              <p className={cn(
+                                "text-[10px] font-medium text-center pb-2",
+                                theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                              )}>
+                                Momento del día
+                              </p>
+                              <div className="space-y-1">
+                                {Object.keys(TIME_RANGES).map((time) => (
+                                  <button
+                                    key={time}
+                                    onClick={() => {
+                                      setSelectedTime(selectedTime === time ? null : time as TimeOfDay);
+                                      setShowTimePopup(false);
+                                    }}
+                                    className={cn(
+                                      "w-full text-xs font-medium rounded-lg px-3 py-1.5",
+                                      "transition-all duration-200 ease-in-out",
+                                      "relative",
+                                      selectedTime === time
+                                        ? theme === 'dark'
+                                          ? "bg-neutral-800 text-neutral-200"
+                                          : "bg-gray-100 text-gray-900"
+                                        : theme === 'dark'
+                                          ? "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+                                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
+                                    )}
+                                  >
+                                    <span className="flex items-center justify-between">
+                                      {time === 'morning' ? 'Mañana' : time === 'afternoon' ? 'Tarde' : 'Noche'}
+                                      {selectedTime === time && (
+                                        <X 
+                                          className={cn(
+                                            "h-3 w-3 ml-2",
+                                            theme === 'dark' ? "text-neutral-400" : "text-gray-500"
+                                          )} 
+                                        />
+                                      )}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      <div className="relative" data-popup="court">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowCourtPopup(!showCourtPopup)}
+                          className={cn(
+                            "h-7 rounded-lg gap-2",
+                            "transition-all duration-200 ease-in-out",
+                            theme === 'dark' 
+                              ? "bg-zinc-800 hover:bg-zinc-700 text-neutral-300 hover:text-neutral-100"
+                              : "bg-zinc-300 hover:bg-zinc-400 text-white",
+                            showCourtPopup && (
+                              theme === 'dark'
+                                ? "bg-zinc-700 text-neutral-100"
+                                : "bg-zinc-500 text-white"
+                            )
+                          )}
+                        >
+                          <Filter className="h-3.5 w-3.5" />
+                          <span className={cn(
+                            "text-xs",
+                            viewType === "mobile" && "hidden"
+                          )}>
+                            {getCourtTypeLabel(courtFilter)}
+                          </span>
+                        </Button>
+
+                        <AnimatePresence>
+                          {showCourtPopup && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className={cn(
+                                "absolute right-0 top-10 z-50",
+                                "w-[140px] rounded-xl p-2",
+                                "shadow-lg",
+                                theme === 'dark'
+                                  ? "bg-neutral-900 border border-neutral-800"
+                                  : "bg-white border border-gray-200"
+                              )}
+                            >
+                              <p className={cn(
+                                "text-[10px] font-medium text-center pb-2",
+                                theme === 'dark' ? "text-neutral-400" : "text-gray-500"
+                              )}>
+                                Tipo de cancha
+                              </p>
+                              <div className="space-y-1">
+                                {courtOptions.map((option) => (
+                                  <button
+                                    key={option.id}
+                                    onClick={() => handleCourtFilterChange(courtFilter === option.id ? 'all' : option.id as 'all' | CourtType)}
+                                    className={cn(
+                                      "w-full text-xs font-medium rounded-lg px-3 py-1.5",
+                                      "transition-all duration-200 ease-in-out",
+                                      "relative",
+                                      courtFilter === option.id
+                                        ? theme === 'dark'
+                                          ? "bg-neutral-800 text-neutral-200"
+                                          : "bg-gray-100 text-gray-900"
+                                        : theme === 'dark'
+                                          ? "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/50"
+                                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100/50"
+                                    )}
+                                  >
+                                    <span className="flex items-center justify-between">
+                                      {option.label}
+                                      {courtFilter === option.id && (
+                                        <X 
+                                          className={cn(
+                                            "h-3 w-3 ml-2",
+                                            theme === 'dark' ? "text-neutral-400" : "text-gray-500"
+                                          )} 
+                                        />
+                                      )}
+                                    </span>
+                                  </button>
+                                ))}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     </div>
-                  )}
+                  </div>
                 </div>
-              )}
 
-              <div className="p-4">
-                {renderSlots()}
-                          </div>
+                {viewType === "mobile" && (selectedTime || courtFilter !== 'all') && (
+                  <div className={cn(
+                    "px-5 py-2 flex gap-2 flex-wrap",
+                    theme === 'dark' 
+                      ? "border-neutral-800" 
+                      : "border-gray-200/50"
+                  )}>
+                    {selectedTime && (
+                      <div className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium",
+                        theme === 'dark' 
+                          ? "bg-zinc-800 text-neutral-300"
+                          : "bg-gray-200 text-gray-700"
+                      )}>
+                        {selectedTime === 'morning' ? 'Mañana' : selectedTime === 'afternoon' ? 'Tarde' : 'Noche'}
+                        <button
+                          onClick={() => setSelectedTime(null)}
+                          className={cn(
+                            "p-0.5 rounded-full",
+                            theme === 'dark'
+                              ? "hover:bg-zinc-700"
+                              : "hover:bg-black/10",
+                            "transition-colors duration-200"
+                          )}
+                        >
+                          <X className={cn(
+                            "h-3 w-3",
+                            theme === 'dark' ? "text-neutral-400" : "text-gray-500"
+                          )} />
+                        </button>
+                      </div>
+                    )}
+
+                    {courtFilter !== 'all' && (
+                      <div className={cn(
+                        "inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium",
+                        theme === 'dark' 
+                          ? "bg-zinc-800 text-neutral-300"
+                          : "bg-gray-200 text-gray-700"
+                      )}>
+                        {COURT_TYPES[courtFilter]}
+                        <button
+                          onClick={() => setCourtFilter('all')}
+                          className={cn(
+                            "p-0.5 rounded-full",
+                            theme === 'dark'
+                              ? "hover:bg-zinc-700"
+                              : "hover:bg-black/10",
+                            "transition-colors duration-200"
+                          )}
+                        >
+                          <X className={cn(
+                            "h-3 w-3",
+                            theme === 'dark' ? "text-neutral-400" : "text-gray-500"
+                          )} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="p-4">
+                  {renderSlots()}
+                </div>
+              </div>
             </div>
           </div>
         </div>

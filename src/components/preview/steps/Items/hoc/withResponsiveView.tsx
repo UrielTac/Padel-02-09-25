@@ -24,7 +24,7 @@ interface ResponsiveOptions {
 }
 
 /**
- * HOC que proporciona capacidades responsive a los componentes
+ * HOC que proporciona capacidades responsive a los componentes de Items
  * @param Component - Componente a envolver
  * @param options - Opciones de configuración del componente responsive
  */
@@ -42,7 +42,7 @@ export function withResponsiveView<P extends WithResponsiveViewProps>(
     }
 
     // Obtener estilos base desde las constantes si se proporciona styleKey
-    const baseStyles = options.styleKey ? getStyle(options.styleKey) : {};
+    const baseStyles = options.styleKey ? getStyle(options.styleKey) : '';
 
     // Combinar estilos base con clases específicas proporcionadas en options
     const containerClassName = cn(

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { FormStepField } from "@/types/form-steps";
-import { PreviewContainer } from "../layout/PreviewContainer";
+import { PreviewContainer } from "../../layout/PreviewContainer";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ChevronLeft, Check, Search, Loader2, Plus, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavigationButtons } from "../layout/NavigationButtons";
+import { NavigationButtons } from "../../layout/NavigationButtons";
 import { Input } from "@/components/ui/input";
 import { useItems } from "@/hooks/useItems";
 import { toast } from "sonner";
@@ -14,6 +14,9 @@ import type { Item, ItemType, RentalSelection } from "@/types/items";
 import { format, parseISO } from "date-fns";
 import { useForm } from "@/contexts/FormContext";
 import { useFormItems } from '@/contexts/FormItemsContext';
+import { MobileNavigation } from "../../layout/MobileNavigation";
+import { MobileNextButton } from "../../layout/MobileNextButton";
+import { MobileItemsPreview } from "./mobile/MobileItemsPreview";
 
 // Interfaces
 interface ItemsPreviewProps {
@@ -114,7 +117,9 @@ export function ItemsPreview({
   onPrev,
   isFirstStep,
   isLastStep,
-  isPublicView
+  isPublicView,
+  branchId,
+  selectedSlot
 }: ItemsPreviewProps) {
   const { title, description } = field;
   const { state } = useForm();
@@ -133,13 +138,42 @@ export function ItemsPreview({
 
   // Obtener datos del contexto
   const { location, shift } = state;
-  const branchId = location.branchId || undefined;
-  const selectedSlot = shift.date ? {
+  const currentBranchId = location.branchId || undefined;
+  const currentSelectedSlot = shift.date ? {
     date: shift.date,
     startTime: shift.startTime!,
     endTime: shift.endTime!,
     duration: shift.duration
   } : undefined;
+
+  // Manejo de carga
+  if (!currentBranchId) {
+    return <div className="text-gray-500">Cargando información de la sede...</div>;
+  }
+
+  // Si es vista móvil y pública, usar el componente móvil
+  if (viewType === "mobile" && isPublicView) {
+    console.log('Current Selected Slot:', currentSelectedSlot);
+    if (!currentSelectedSlot) {
+      console.warn('Current Selected Slot no está definido.');
+      return <div className="text-red-500">Error: Selected Slot no está disponible.</div>;
+    }
+
+    return (
+      <MobileItemsPreview
+        field={field}
+        theme={theme}
+        viewType={viewType}
+        onNext={onNext}
+        onPrev={onPrev}
+        isFirstStep={isFirstStep}
+        isLastStep={isLastStep}
+        isPublicView={isPublicView}
+        branchId={currentBranchId}
+        selectedSlot={currentSelectedSlot}
+      />
+    );
+  }
 
   // Función para actualizar cantidades y contexto
   const handleQuantityChange = useCallback((itemId: string, newQuantity: number) => {
@@ -267,7 +301,7 @@ export function ItemsPreview({
   }, [selectedItems, handleQuantityChange]);
 
   // Obtener items usando el hook
-  const { data: items = [], isLoading, error } = useItems(branchId);
+  const { data: items = [], isLoading, error } = useItems(currentBranchId);
 
   // Función para validar y formatear fecha
   const validateAndFormatDate = useCallback((dateStr: string | undefined) => {
@@ -291,9 +325,9 @@ export function ItemsPreview({
 
   // Memoizar el slot key para comparaciones
   const slotKey = useMemo(() => {
-    if (!selectedSlot?.date || !selectedSlot?.startTime || !selectedSlot?.endTime) return null;
-    return `${selectedSlot.date}-${selectedSlot.startTime}-${selectedSlot.endTime}`;
-  }, [selectedSlot]);
+    if (!currentSelectedSlot?.date || !currentSelectedSlot?.startTime || !currentSelectedSlot?.endTime) return null;
+    return `${currentSelectedSlot.date}-${currentSelectedSlot.startTime}-${currentSelectedSlot.endTime}`;
+  }, [currentSelectedSlot]);
 
   // Efecto para inicializar itemsWithStock cuando items cambia
   useEffect(() => {
@@ -310,7 +344,7 @@ export function ItemsPreview({
     const checkAvailability = async () => {
       setIsLoadingStock(true);
       try {
-        const { date, startTime, endTime } = selectedSlot!;
+        const { date, startTime, endTime } = currentSelectedSlot!;
 
         // Verificar todos los items en paralelo
         const stockPromises = (items as Item[]).map(async (item: Item) => {
@@ -357,7 +391,7 @@ export function ItemsPreview({
     };
 
     checkAvailability();
-  }, [items, slotKey, lastCheckedSlot, selectedSlot]);
+  }, [items, slotKey, lastCheckedSlot, currentSelectedSlot]);
 
   const filteredItems = itemsWithStock.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -366,28 +400,13 @@ export function ItemsPreview({
   });
 
   const getItemPrice = useCallback((item: ItemWithStock) => {
-    if (!selectedSlot) return 0;
+    if (!currentSelectedSlot) return 0;
     
-    const durationInMinutes = selectedSlot.duration * 60;
+    const durationInMinutes = currentSelectedSlot.duration * 60;
     const price = item.duration_pricing[durationInMinutes.toString()];
     
     return price || 0;
-  }, [selectedSlot]);
-
-  if (!branchId) {
-    return (
-      <PreviewContainer viewType={viewType} theme={theme}>
-        <div className="flex flex-col items-center justify-center p-8 text-center">
-          <p className={cn(
-            "text-sm",
-            theme === 'dark' ? "text-gray-400" : "text-gray-500"
-          )}>
-            Selecciona una sede para ver los artículos disponibles
-          </p>
-        </div>
-      </PreviewContainer>
-    );
-  }
+  }, [currentSelectedSlot]);
 
   if (isLoading || isLoadingStock) {
     return (
@@ -440,39 +459,64 @@ export function ItemsPreview({
       isLastStep={isLastStep}
       isPublicView={isPublicView}
       isNextDisabled={false}
+      hideNavigation={viewType === "mobile" && isPublicView}
     >
-      <div className="min-h-full flex flex-col">
-        <div className="flex-1">
+      <div className="min-h-full flex flex-col relative">
+        {viewType === "mobile" && (
+          <>
+            <MobileNavigation
+              theme={theme}
+              onPrev={onPrev}
+              isPublicView={isPublicView}
+            />
+            <MobileNextButton
+              theme={theme}
+              onNext={handleNext}
+              isDisabled={false}
+              isPublicView={isPublicView}
+            />
+          </>
+        )}
+        <div className={cn(
+          "flex-1",
+          viewType === "mobile" && isPublicView && "pt-24 pb-24"
+        )}>
           <div className="pb-24">
             <div className="pb-4">
               <motion.div 
                 initial={{ opacity: 0, scale: 0.97 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.4 }}
-                className="text-center space-y-1"
+                className={cn(
+                  "space-y-1",
+                  viewType === "mobile" ? "text-left" : "text-center"
+                )}
               >
                 <h1 className={cn(
                   "text-lg font-semibold transition-colors",
                   theme === 'dark' ? "text-white" : "text-gray-900"
                 )}>
-                  {title || "Artículos Adicionales"}
+                  Elige tus ítems del club
                 </h1>
                 <p className={cn(
-                  "text-sm transition-colors px-6",
+                  "text-sm transition-colors",
                   theme === 'dark' ? "text-gray-400" : "text-gray-500"
                 )}>
-                  {description || "Selecciona los artículos que desees agregar"}
+                  Selecciona los artículos que deseas reservar
                 </p>
               </motion.div>
             </div>
 
-            <div className="px-4">
+            <div className={cn(
+              viewType === "mobile" ? "px-0" : "px-4"
+            )}>
               <div className={cn(
-                "w-full rounded-xl relative",
+                "w-full relative",
                 "transition-all duration-200 ease-in-out",
                 theme === 'dark' 
                   ? "bg-neutral-900" 
-                  : "bg-gray-100/60"
+                  : "bg-gray-100/60",
+                viewType === "mobile" ? "rounded-none" : "rounded-xl"
               )}>
                 <div className={cn(
                   "w-full p-4 border-b",
@@ -509,7 +553,9 @@ export function ItemsPreview({
                   </div>
                 </div>
 
-                <div className="p-4">
+                <div className={cn(
+                  viewType === "mobile" ? "p-2" : "p-4"
+                )}>
                   <div className="space-y-2">
                     {filteredItems.length === 0 ? (
                       <div className="text-center py-8">

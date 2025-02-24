@@ -17,6 +17,8 @@ interface PublicFormLayoutProps {
   isNextDisabled?: boolean;
   nextLabel?: string;
   showNextButton?: boolean;
+  onStepChange?: (step: number) => void;
+  viewType?: "mobile" | "desktop";
 }
 
 export function PublicFormLayout({
@@ -29,9 +31,11 @@ export function PublicFormLayout({
   slug,
   isNextDisabled = false,
   nextLabel = 'Siguiente',
-  showNextButton = true
+  showNextButton = true,
+  onStepChange = () => {},
+  viewType: propViewType
 }: PublicFormLayoutProps) {
-  const [viewType, setViewType] = useState<"mobile" | "desktop">("desktop");
+  const [viewType, setViewType] = useState<"mobile" | "desktop">(propViewType || "desktop");
   const [formFields, setFormFields] = useState(() => sortFormFields(form.fields));
   const currentField = fields[currentStep];
 
@@ -45,14 +49,22 @@ export function PublicFormLayout({
   });
 
   useEffect(() => {
-    const handleResize = () => {
-      setViewType(window.innerWidth < 768 ? "mobile" : "desktop");
-    };
+    if (!propViewType) {
+      const handleResize = () => {
+        setViewType(window.innerWidth < 768 ? "mobile" : "desktop");
+      };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+      handleResize();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [propViewType]);
+
+  useEffect(() => {
+    if (propViewType) {
+      setViewType(propViewType);
+    }
+  }, [propViewType]);
 
   useEffect(() => {
     setFormFields(sortFormFields(form.fields));
@@ -73,7 +85,7 @@ export function PublicFormLayout({
     );
 
     // Propagar el cambio hacia arriba
-    onStepChange(stepId, newSettings);
+    onStepChange(currentStep);
   };
 
   return (
@@ -89,12 +101,15 @@ export function PublicFormLayout({
         onSubmit={async () => {}}
         isSubmitting={false}
         error={null}
-        theme={form.settings.theme || 'light'}
+        theme={form.settings.theme?.mode || 'light'}
         viewType={viewType}
         slug={slug}
         isNextDisabled={isNextDisabled}
         nextLabel={nextLabel}
-        showNextButton={showNextButton}
+        showNextButton={showNextButton && viewType !== "mobile"}
+        isPublicView={isPublicView}
+        hideNavigation={viewType === "mobile" && isPublicView}
+        onStepChange={handleStepChange}
       />
     </div>
   );

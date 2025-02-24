@@ -13,7 +13,8 @@ interface NavigationButtonsProps {
   nextLabel?: string;
   prevLabel?: string;
   isPreview?: boolean;
-  showNextButton?: boolean;
+  hidePrevButton?: boolean;
+  isPublicView?: boolean;
 }
 
 export function NavigationButtons({ 
@@ -27,7 +28,8 @@ export function NavigationButtons({
   nextLabel = "Siguiente",
   prevLabel = "Volver",
   isPreview = false,
-  showNextButton = true
+  hidePrevButton = false,
+  isPublicView = false
 }: NavigationButtonsProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -41,7 +43,8 @@ export function NavigationButtons({
     return () => clearTimeout(timer);
   }, [isFirstStep, isLastStep]);
 
-  const shouldShowNextButton = showNextButton;
+  const shouldShowNextButton = true;
+  const isMobilePublic = viewType === "mobile" && isPublicView;
 
   return (
     <div 
@@ -68,7 +71,7 @@ export function NavigationButtons({
         "flex gap-3 w-full",
         viewType === "mobile" ? "max-w-[320px]" : "max-w-[480px]"
       )}>
-        {!isFirstStep && (
+        {!hidePrevButton && !isFirstStep && (
           <Button
             variant="outline"
             onClick={onPrev}
@@ -86,12 +89,13 @@ export function NavigationButtons({
             disabled={isNextDisabled}
             className={cn(
               "flex-1",
+              isMobilePublic && "rounded-full text-base py-6",
               theme === 'dark' 
                 ? "bg-white text-black hover:bg-neutral-200"
                 : "bg-black text-white hover:bg-neutral-800"
             )}
           >
-            {nextLabel}
+            {isMobilePublic ? "Continuar" : nextLabel}
           </Button>
         )}
       </div>
