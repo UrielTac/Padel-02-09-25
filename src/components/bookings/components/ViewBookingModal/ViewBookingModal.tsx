@@ -23,6 +23,7 @@ import { createPortal } from "react-dom"
 import { bookingQueryService } from '@/services/bookingQueryService'
 import { useOrganization } from '@/contexts/OrganizationContext'
 import { supabase } from "@/lib/supabase"
+import { DateTime } from "luxon"
 
 interface ViewBookingModalProps {
   isOpen: boolean
@@ -344,25 +345,34 @@ export function ViewBookingModal({
     queryFn: async () => {
       if (!booking?.id) throw new Error('No booking ID provided')
       
-      // Log inicial
-      console.log('🔍 Consultando reserva:', {
-        id: booking.id,
-        paymentType: booking.paymentType,
-        timestamp: new Date().toISOString()
-      })
+      // Si ya tenemos los datos transformados, los usamos
+      if (booking.startTime && booking.endTime) {
+        return booking;
+      }
       
+      // Si no, obtenemos los datos y los transformamos
       const result = await bookingQueryService.getBookingById(booking.id)
       
-      // Log después de obtener datos
-      console.log('📦 Datos recibidos:', {
-        id: result.id,
-        paymentType: result.paymentType,
-        isGuarantee: result.paymentType === 'guarantee',
-        rawType: typeof result.paymentType,
-        timestamp: new Date().toISOString()
-      })
-      
-      return result
+      if (!businessHours?.timezone) return result;
+
+      // Transformar los horarios si no vienen transformados
+      const startDateTime = DateTime.fromFormat(
+        result.startTime,
+        'HH:mm:ss',
+        { zone: 'UTC' }
+      ).setZone(businessHours.timezone);
+
+      const endDateTime = DateTime.fromFormat(
+        result.endTime,
+        'HH:mm:ss',
+        { zone: 'UTC' }
+      ).setZone(businessHours.timezone);
+
+      return {
+        ...result,
+        startTime: startDateTime.toFormat('HH:mm'),
+        endTime: endDateTime.toFormat('HH:mm')
+      };
     },
     enabled: !!booking?.id && isOpen,
     placeholderData: (previousData) => {
@@ -680,7 +690,8 @@ export function ViewBookingModal({
                               {format(new Date(currentBooking.date), "dd 'de' MMMM, yyyy", { locale: es })}
                             </p>
                             <p className="text-xs text-gray-500 mt-0.5">
-                              {formatTime(currentBooking.startTime)} - {formatTime(currentBooking.endTime)}
+                              {/* Los horarios ya vienen transformados desde BookingsTable */}
+                              {currentBooking.startTime} - {currentBooking.endTime}
                             </p>
                           </div>
                         </div>

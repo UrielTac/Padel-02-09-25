@@ -11,6 +11,7 @@ interface TableHeaderProps {
   onCreateClassClick: () => void
   onRefreshClick: () => void
   isRefreshing?: boolean
+  currentBranch: { timezone: string }
 }
 
 export function TableHeader({
@@ -19,11 +20,13 @@ export function TableHeader({
   onConfigClick,
   onCreateClassClick,
   onRefreshClick,
-  isRefreshing = false
+  isRefreshing = false,
+  currentBranch
 }: TableHeaderProps) {
   return (
     <div className="p-4 flex justify-between items-center">
       <div className="flex items-center">
+        <p className="text-sm text-gray-500 mr-4">Zona Horaria: {currentBranch ? currentBranch.timezone : 'Cargando...'}</p>
       </div>
 
       <div className="flex items-center gap-2">

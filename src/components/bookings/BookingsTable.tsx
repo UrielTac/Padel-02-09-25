@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useBranches } from '@/hooks/useBranches'
 import { useCourts } from "@/hooks/useCourts"
 import { useBookingSelection } from "./hooks/useBookingSelection"
@@ -24,6 +24,8 @@ import { toast } from "@/components/ui/use-toast"
 import { useBookingStore } from '@/store/bookingStore'
 import { format } from 'date-fns'
 import type { SelectedBooking } from '@/types/bookings'
+import { useBusinessHours } from '@/hooks/useBusinessHours'
+import { DateTime } from 'luxon'
 
 const ScrollContainer = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -124,13 +126,78 @@ export function BookingsTable() {
     onSelectionComplete: () => setShowSimpleShiftModal(true)
   })
 
+  const { businessHours } = useBusinessHours()
+  
+  // Transformar las reservas para convertir los horarios
+  const transformedBookings = useMemo(() => {
+    if (!bookings || !businessHours?.timezone) return [];
+
+    // Filtrar reservas canceladas
+    const activeBookings = bookings.filter(booking => booking.paymentStatus !== 'cancelled');
+
+    return activeBookings.map(booking => {
+        // Crear objetos DateTime de Luxon para la conversión
+        const startDateTime = DateTime.fromFormat(
+            booking.startTime,
+            'HH:mm:ss',
+            { zone: 'UTC' }
+        ).reconfigure({ 
+            year: DateTime.fromISO(booking.date).year,
+            month: DateTime.fromISO(booking.date).month,
+            day: DateTime.fromISO(booking.date).day
+        }).setZone(businessHours.timezone);
+
+        const endDateTime = DateTime.fromFormat(
+            booking.endTime,
+            'HH:mm:ss',
+            { zone: 'UTC' }
+        ).reconfigure({ 
+            year: DateTime.fromISO(booking.date).year,
+            month: DateTime.fromISO(booking.date).month,
+            day: DateTime.fromISO(booking.date).day
+        }).setZone(businessHours.timezone);
+
+        // Convertir a la zona horaria de la sede
+        const localStartTime = startDateTime.toFormat('HH:mm');
+        const localEndTime = endDateTime.toFormat('HH:mm');
+
+        return {
+            ...booking,
+            startTime: localStartTime,
+            endTime: localEndTime
+        };
+    });
+}, [bookings, businessHours?.timezone]);
+
   // Función para verificar si una celda tiene una reserva existente
   const getExistingBooking = (courtId: string, time: string) => {
-    return bookings.find(booking => 
+    if (!businessHours?.timezone) return null;
+
+    const transformedBookings = bookings.map(booking => {
+      const startDateTime = DateTime.fromFormat(
+        booking.startTime,
+        'HH:mm:ss',
+        { zone: 'UTC' }
+      ).setZone(businessHours.timezone);
+
+      const endDateTime = DateTime.fromFormat(
+        booking.endTime,
+        'HH:mm:ss',
+        { zone: 'UTC' }
+      ).setZone(businessHours.timezone);
+
+      return {
+        ...booking,
+        startTime: startDateTime.toFormat('HH:mm'),
+        endTime: endDateTime.toFormat('HH:mm')
+      };
+    });
+
+    return transformedBookings.find(booking => 
       booking.courtId === courtId &&
       timeToMinutes(time) >= timeToMinutes(booking.startTime) &&
       timeToMinutes(time) < timeToMinutes(booking.endTime)
-    ) || null
+    ) || null;
   }
 
   // Actualizar el manejador del botón de configuración
@@ -225,6 +292,7 @@ export function BookingsTable() {
           onCreateClassClick={() => setShowNewBookingModal(true)}
           onRefreshClick={handleRefresh}
           isRefreshing={isRefreshing}
+          currentBranch={currentBranch}
         />
       </div>
 
@@ -246,9 +314,14 @@ export function BookingsTable() {
                 onMouseDown={handleCellMouseDown}
                 onMouseMove={handleCellMouseMove}
                 onMouseEnter={handleCellMouseMove}
-                onBookingClick={setSelectedBooking}
+                onBookingClick={(booking) => {
+                  // Encontrar la reserva transformada correspondiente
+                  const transformedBooking = transformedBookings.find(b => b.id === booking.id);
+                  setSelectedBooking(transformedBooking || booking);
+                }}
                 isSlotSelected={isSlotSelected}
                 getCourtColumnWidth={getCourtColumnWidth}
+                bookings={transformedBookings}
               />
             </div>
           </div>

@@ -1,5 +1,6 @@
 import { createSupabaseClient } from '@/lib/supabase'
 import { type SelectedBooking, type PaymentStatusEnum, type PaymentTypeEnum, type PaymentMethodEnum } from '@/types/bookings'
+import { DateTime } from 'luxon'
 
 interface ServiceResponse<T> {
   data?: T
@@ -241,7 +242,6 @@ export const bookingQueryService = {
         .eq('date', date)
         .or('payment_status.neq.cancelled,payment_status.is.null')
 
-      // Aplicar filtro de sucursal a nivel de base de datos
       if (branchId) {
         query = query.eq('courts.branch_id', branchId)
       }
@@ -251,18 +251,7 @@ export const bookingQueryService = {
       if (error) throw error
       if (!bookings) return []
 
-      // Transformar los datos
       const transformedBookings = bookings.map(booking => transformBooking(booking))
-
-      console.log('✅ Datos transformados:', {
-        total: transformedBookings.length,
-        sample: transformedBookings[0],
-        payment_types: transformedBookings.map(b => ({
-          id: b.id,
-          paymentType: b.paymentType,
-          paymentStatus: b.paymentStatus
-        }))
-      })
 
       return transformedBookings
     } catch (error) {

@@ -59,54 +59,56 @@ export default function BookingsPage() {
               ) : !currentBranch ? (
                 <NoBranchState />
               ) : (
-                <Tabs defaultValue="bookings" className="flex flex-col h-full">
-                  <div className="flex-none mb-4">
-                    <TabsList>
-                      <TabsTrigger 
-                        value="bookings"
-                        className="data-[state=inactive]:text-gray-500"
-                      >
-                        Reservaciones
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="courts"
-                        className="data-[state=inactive]:text-gray-500"
-                      >
-                        Canchas
-                      </TabsTrigger>
-                      <TabsTrigger 
-                        value="classes"
-                        className="data-[state=inactive]:text-gray-500"
-                      >
-                        Clases
-                      </TabsTrigger>
-                    </TabsList>
-                  </div>
-
-                  <TabsContent value="bookings" className="flex-1">
-                    <div className="h-full overflow-auto scrollbar-none">
-                      <Suspense fallback={<LoadingState />}>
-                        <BookingsTable key={`bookings-${currentBranch.id}`} />
-                      </Suspense>
+                <div className="px-6 py-4">
+                  <Tabs defaultValue="bookings" className="flex flex-col h-full">
+                    <div className="flex-none mb-4">
+                      <TabsList>
+                        <TabsTrigger 
+                          value="bookings"
+                          className="data-[state=inactive]:text-gray-500"
+                        >
+                          Reservaciones
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="courts"
+                          className="data-[state=inactive]:text-gray-500"
+                        >
+                          Canchas
+                        </TabsTrigger>
+                        <TabsTrigger 
+                          value="classes"
+                          className="data-[state=inactive]:text-gray-500"
+                        >
+                          Clases
+                        </TabsTrigger>
+                      </TabsList>
                     </div>
-                  </TabsContent>
 
-                  <TabsContent value="courts" className="flex-1">
-                    <div className="h-full overflow-auto scrollbar-none">
-                      <Suspense fallback={<LoadingState />}>
-                        <CourtsTable key={`courts-${currentBranch.id}`} />
-                      </Suspense>
-                    </div>
-                  </TabsContent>
+                    <TabsContent value="bookings" className="flex-1">
+                      <div className="h-full overflow-auto scrollbar-none">
+                        <Suspense fallback={<LoadingState />}>
+                          <BookingsTable key={`bookings-${currentBranch.id}`} />
+                        </Suspense>
+                      </div>
+                    </TabsContent>
 
-                  <TabsContent value="classes" className="flex-1">
-                    <div className="h-full overflow-auto scrollbar-none">
-                      <Suspense fallback={<LoadingState />}>
-                        <ClassesTable key={`classes-${currentBranch.id}`} />
-                      </Suspense>
-                    </div>
-                  </TabsContent>
-                </Tabs>
+                    <TabsContent value="courts" className="flex-1">
+                      <div className="h-full overflow-auto scrollbar-none">
+                        <Suspense fallback={<LoadingState />}>
+                          <CourtsTable key={`courts-${currentBranch.id}`} />
+                        </Suspense>
+                      </div>
+                    </TabsContent>
+
+                    <TabsContent value="classes" className="flex-1">
+                      <div className="h-full overflow-auto scrollbar-none">
+                        <Suspense fallback={<LoadingState />}>
+                          <ClassesTable key={`classes-${currentBranch.id}`} />
+                        </Suspense>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
               )}
             </div>
           </div>

@@ -6,6 +6,7 @@ import { es } from "date-fns/locale"
 import { useCallback, useMemo } from 'react'
 import { queryKeys } from '@/config/query-keys'
 import { keepPreviousData } from '@tanstack/react-query'
+import { DateTime } from 'luxon'
 
 interface TimeRange {
   openTime: string
@@ -18,7 +19,10 @@ interface DaySchedule {
 }
 
 interface BusinessHours {
-  [key: string]: DaySchedule
+  schedule: {
+    [key: string]: DaySchedule
+  }
+  timezone: string
 }
 
 async function fetchBusinessHours(branchId: string, dayOfWeek: string) {
@@ -31,7 +35,7 @@ async function fetchBusinessHours(branchId: string, dayOfWeek: string) {
 
   const { data: branch, error } = await supabase
     .from('sedes')
-    .select('opening_hours')
+    .select('opening_hours, timezone')
     .eq('id', branchId)
     .single()
 
@@ -48,14 +52,19 @@ async function fetchBusinessHours(branchId: string, dayOfWeek: string) {
   const hours = branch.opening_hours as BusinessHours
   console.log('📅 Horarios de la sede:', hours)
 
-  const todaySchedule = hours[dayOfWeek]
+  const todaySchedule = hours.schedule[dayOfWeek]
   if (!todaySchedule) {
     console.error('❌ No se encontró configuración para el día:', dayOfWeek)
-    console.log('Días disponibles:', Object.keys(hours))
+    console.log('Días disponibles:', Object.keys(hours.schedule))
     throw new Error(`No hay horarios configurados para ${dayOfWeek}`)
   }
 
-  return todaySchedule
+  const timezone = branch.timezone || hours.timezone || 'Europe/Madrid'
+
+  return {
+    ...todaySchedule,
+    timezone
+  }
 }
 
 export function useBusinessHours(selectedDate?: Date) {
@@ -120,15 +129,24 @@ export function useBusinessHours(selectedDate?: Date) {
 
     return {
       start: minutesToTime(earliestMinutes),
-      end: minutesToTime(latestMinutes)
+      end: minutesToTime(latestMinutes),
+      timezone: query.data.timezone
     }
   }, [query.data, timeToMinutes, minutesToTime])
+
+  // Nueva lógica para convertir horarios de UTC a la zona horaria de la sede
+  const convertUTCToLocal = (utcTime: string) => {
+    const utcDateTime = DateTime.fromISO(utcTime, { zone: 'UTC' })
+    return utcDateTime.setZone(query.data.timezone).toFormat('HH:mm')
+  }
 
   return {
     ...query,
     businessHours,
     isOpen: true,
     timeRanges: query.data?.timeRanges || [],
+    timezone: query.data?.timezone,
+    convertUTCToLocal,
     isTimeInRange: useCallback((time: string) => {
       if (!query.data?.timeRanges?.length) return true
       const timeMinutes = timeToMinutes(time)

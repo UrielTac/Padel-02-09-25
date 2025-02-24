@@ -99,35 +99,35 @@ export function ScheduleList({ schedule, onScheduleChange }: ScheduleListProps) 
   }
 
   const handleTimeChange = (day: string, index: number, field: 'openTime' | 'closeTime', value: string) => {
-    const newSchedule = { ...currentSchedule }
-    const daySchedule = newSchedule[day]
-    const updatedRanges = [...(daySchedule.timeRanges || [{ openTime: '08:00', closeTime: '22:00' }])]
+    const newSchedule = { ...currentSchedule };
+    const daySchedule = newSchedule[day];
+    const updatedRanges = [...(daySchedule.timeRanges || [{ openTime: '08:00', closeTime: '22:00' }])];
     updatedRanges[index] = {
       ...updatedRanges[index],
       [field]: value
-    }
+    };
     newSchedule[day] = {
       ...daySchedule,
       timeRanges: updatedRanges
-    }
-    updateSchedule(newSchedule)
-  }
+    };
+    updateSchedule(newSchedule);
+  };
 
   const addRange = (day: string) => {
-    const newSchedule = { ...currentSchedule }
-    const daySchedule = newSchedule[day]
-    const currentRanges = daySchedule.timeRanges || [{ openTime: '08:00', closeTime: '22:00' }]
-    const lastRange = currentRanges[currentRanges.length - 1]
+    const newSchedule = { ...currentSchedule };
+    const daySchedule = newSchedule[day];
+    const currentRanges = daySchedule.timeRanges || [{ openTime: '08:00', closeTime: '22:00' }];
+    const lastRange = currentRanges[currentRanges.length - 1];
     const newRange = {
       openTime: lastRange ? lastRange.closeTime : '08:00',
       closeTime: lastRange ? incrementTime(lastRange.closeTime, 2) : '10:00'
-    }
+    };
     newSchedule[day] = {
       ...daySchedule,
       timeRanges: [...currentRanges, newRange]
-    }
-    updateSchedule(newSchedule)
-  }
+    };
+    updateSchedule(newSchedule);
+  };
 
   const removeRange = (day: string, index: number) => {
     const daySchedule = currentSchedule[day]

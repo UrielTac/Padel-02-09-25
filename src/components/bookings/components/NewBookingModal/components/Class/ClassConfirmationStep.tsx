@@ -255,5 +255,3 @@ export function ClassConfirmationStep({
     </motion.div>
   )
 } 
-
-

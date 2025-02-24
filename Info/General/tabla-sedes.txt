@@ -1,5 +1,5 @@
 -- Información básica de la tabla
-[
+  [
   {
     "table_schema": "public",
     "table_name": "sedes",
@@ -143,6 +143,18 @@
     "numeric_precision": null,
     "numeric_scale": null,
     "column_default": null
+  },
+  {
+    "table_schema": "public",
+    "table_name": "sedes",
+    "column_name": "timezone",
+    "ordinal_position": 13,
+    "data_type": "text",
+    "is_nullable": "NO",
+    "character_maximum_length": null,
+    "numeric_precision": null,
+    "numeric_scale": null,
+    "column_default": "'UTC'::text"
   }
 ]
 

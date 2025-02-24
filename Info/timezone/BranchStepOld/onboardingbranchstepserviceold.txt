@@ -23,11 +23,7 @@ interface OnboardingBranch {
   phone?: string
   manager_id?: string
   is_active?: boolean
-  timezone?: string
-  opening_hours?: {
-    timezone: string
-    schedule: ScheduleData
-  }
+  opening_hours?: ScheduleData
   settings?: Record<string, any>
   data?: {
     id?: string
@@ -36,11 +32,7 @@ interface OnboardingBranch {
     phone: string
     manager: string
     isActive: boolean
-    timezone: string
-    opening_hours: {
-      timezone: string
-      schedule: ScheduleData
-    }
+    opening_hours: ScheduleData
     courts: Array<{
       id: string
       name: string
@@ -164,7 +156,6 @@ export const onboardingBranchService = {
         phone: branch.phone || undefined,
         manager_id: branch.manager_id || undefined,
         is_active: branch.is_active ?? undefined,
-        timezone: branch.timezone || undefined,
         opening_hours: branch.opening_hours || undefined,
         settings: branch.settings || undefined,
         data: {
@@ -174,11 +165,7 @@ export const onboardingBranchService = {
           phone: branch.phone || '',
           manager: branch.manager_id || '',
           isActive: branch.is_active ?? true,
-          timezone: branch.timezone || 'Europe/Madrid',
-          opening_hours: branch.opening_hours || {
-            timezone: branch.timezone || 'Europe/Madrid',
-            schedule: {} as ScheduleData
-          },
+          opening_hours: branch.opening_hours || {},
           courts: (courtsByBranch[branch.id] || []).map(court => ({
             id: court.id,
             name: court.name,
@@ -209,6 +196,7 @@ export const onboardingBranchService = {
     try {
       console.log('📍 Obteniendo sede por ID:', branchId)
       
+      // 1. Obtener datos de la sede
       const { data: branchData, error: branchError } = await supabase
         .from('sedes')
         .select('*')
@@ -227,35 +215,40 @@ export const onboardingBranchService = {
       if (courtsError) throw courtsError
 
       if (branchData) {
-        // Procesar los horarios
-        let processedOpeningHours = {
-          timezone: branchData.timezone || 'Europe/Madrid',
-          schedule: {} as ScheduleData
-        }
+        // 3. Procesar los horarios
+        let processedOpeningHours: ScheduleData = {}
         
         try {
           if (typeof branchData.opening_hours === 'string') {
-            const parsed = JSON.parse(branchData.opening_hours)
-            processedOpeningHours.schedule = parsed.schedule || parsed
-            processedOpeningHours.timezone = parsed.timezone || branchData.timezone || 'Europe/Madrid'
+            processedOpeningHours = JSON.parse(branchData.opening_hours)
           } else if (branchData.opening_hours && typeof branchData.opening_hours === 'object') {
-            processedOpeningHours.schedule = branchData.opening_hours.schedule || branchData.opening_hours
-            processedOpeningHours.timezone = branchData.opening_hours.timezone || branchData.timezone || 'Europe/Madrid'
+            processedOpeningHours = branchData.opening_hours
           }
 
           // Validar la estructura de los horarios
           const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
           days.forEach(day => {
-            if (!processedOpeningHours.schedule[day]) {
-              processedOpeningHours.schedule[day] = {
+            if (!processedOpeningHours[day]) {
+              processedOpeningHours[day] = {
                 isOpen: true,
                 timeRanges: [{ openTime: '08:00', closeTime: '22:00' }]
               }
+            } else {
+              // Asegurar que timeRanges sea un array
+              if (!Array.isArray(processedOpeningHours[day].timeRanges)) {
+                processedOpeningHours[day].timeRanges = [{ openTime: '08:00', closeTime: '22:00' }]
+              }
+              // Asegurar que cada rango tenga el formato correcto
+              processedOpeningHours[day].timeRanges = processedOpeningHours[day].timeRanges.map(range => ({
+                openTime: range.openTime || '08:00',
+                closeTime: range.closeTime || '22:00'
+              }))
             }
           })
         } catch (e) {
           console.error('Error al procesar horarios:', e)
-          processedOpeningHours.schedule = {
+          // Usar horarios por defecto
+          processedOpeningHours = {
             monday: { isOpen: true, timeRanges: [{ openTime: '08:00', closeTime: '22:00' }] },
             tuesday: { isOpen: true, timeRanges: [{ openTime: '08:00', closeTime: '22:00' }] },
             wednesday: { isOpen: true, timeRanges: [{ openTime: '08:00', closeTime: '22:00' }] },
@@ -266,6 +259,7 @@ export const onboardingBranchService = {
           }
         }
 
+        // 4. Transformar los datos al formato esperado
         const formattedBranch: OnboardingBranch = {
           id: branchData.id,
           name: branchData.name,
@@ -274,7 +268,6 @@ export const onboardingBranchService = {
           phone: branchData.phone || undefined,
           manager_id: branchData.manager_id || undefined,
           is_active: branchData.is_active ?? undefined,
-          timezone: branchData.timezone || 'Europe/Madrid',
           opening_hours: processedOpeningHours,
           settings: branchData.settings || undefined,
           data: {
@@ -284,7 +277,6 @@ export const onboardingBranchService = {
             phone: branchData.phone || '',
             manager: branchData.manager_id || '',
             isActive: branchData.is_active ?? true,
-            timezone: branchData.timezone || 'Europe/Madrid',
             opening_hours: processedOpeningHours,
             courts: (courtsData || []).map(court => ({
               id: court.id,
@@ -331,7 +323,6 @@ export const onboardingBranchService = {
         phone: branchData.phone || null,
         manager_id: branchData.manager_id || null,
         is_active: branchData.is_active === undefined ? true : branchData.is_active,
-        timezone: branchData.timezone || undefined,
         opening_hours: branchData.opening_hours || {},
         settings: branchData.settings || {}
       }
@@ -354,7 +345,6 @@ export const onboardingBranchService = {
           phone: data.phone || undefined,
           manager_id: data.manager_id || undefined,
           is_active: data.is_active ?? true,
-          timezone: data.timezone || undefined,
           opening_hours: data.opening_hours || {},
           settings: data.settings || {}
         },

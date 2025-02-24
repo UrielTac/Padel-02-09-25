@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import type { Branch } from '@/types/branch'
 import { createSupabaseClient } from '@/lib/supabase'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/AuthContext'
 import { setEmpresaId } from '@/contexts/OrganizationContext'
 import { toast } from 'sonner'
@@ -78,7 +78,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     data: branchesData = [], 
     isLoading: isLoadingBranches,
     error: branchesError
-  } = useQuery({
+  } = useQuery<Branch[], Error>({
     queryKey: ['branches', empresa?.id],
     queryFn: async () => {
       if (!empresa?.id) throw new Error('No hay empresa seleccionada')
@@ -109,7 +109,9 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     },
     enabled: !!empresa?.id && !isLoadingAuth && !isLoadingEmpresa,
     retry: 1,
-    staleTime: BRANCH_CHECK_INTERVAL
+    staleTime: 1000 * 60 * 10, // 10 minutos
+    gcTime: 1000 * 60 * 30, // 30 minutos
+    placeholderData: keepPreviousData
   })
 
   // Efecto para manejar la sede actual

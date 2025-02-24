@@ -16,6 +16,7 @@ import { SingleSelect } from "@/components/ui/single-select"
 import { useGroupedCourts } from '@/hooks/useGroupedCourts'
 import { useBranches } from '@/hooks/useBranches'
 import { toast } from "@/components/ui/use-toast"
+import { toZonedTime } from 'date-fns-tz'
 
 interface TimeSlot {
   id: string
@@ -58,6 +59,8 @@ export function ClassSchedule({
   })
   const [newInstructor, setNewInstructor] = useState<string>("")
   const [instructorInputs, setInstructorInputs] = useState<{ [key: string]: string }>({})
+
+  const timezone = currentBranch?.timezone || 'Europe/Madrid'
 
   // Transformar las opciones agrupadas en una lista plana
   const flatCourtOptions = courtOptions.reduce<Array<{ id: string, name: string }>>((acc, group) => {
@@ -229,18 +232,18 @@ export function ClassSchedule({
                 <CustomCalendar
                   selected={config.startDate}
                   onSelect={(date) => {
-                    const utcDate = new Date(Date.UTC(
-                      date.getUTCFullYear(),
-                      date.getUTCMonth(),
-                      date.getUTCDate(),
-                      12, 0, 0
-                    ))
-                    const dayOfWeek = utcDate.getUTCDay()
+                    if (!date) return;
+
+                    // Convertir la fecha seleccionada a la zona horaria de la sede
+                    const localDate = toZonedTime(date, timezone);
+
+                    const dayOfWeek = localDate.getUTCDay();
+
                     onChange({
                       ...config,
-                      startDate: utcDate,
-                      weekDays: !config.isRecurring ? [dayOfWeek] : config.weekDays
-                    })
+                      startDate: localDate,
+                      weekDays: !config.isRecurring ? [dayOfWeek] : config.weekDays,
+                    });
                   }}
                 />
               </PopoverContent>

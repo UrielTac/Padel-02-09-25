@@ -5,8 +5,6 @@ import type { BookingParticipant, SelectedBooking } from '@/types/bookings'
 import { PAYMENT_METHODS, PAYMENT_STATUS } from '@/types/bookings'
 import { timeToMinutes } from '@/lib/time-utils'
 import type { RentalSelection } from '@/types/items'
-import { formatInTimeZone } from 'date-fns-tz'
-import { DateTime } from 'luxon'
 
 // Crear una instancia de Supabase memoizada
 let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null;
@@ -786,117 +784,33 @@ export const bookingService = {
 
   async createBooking(data: BookingCreationData): Promise<ServiceResponse<any>> {
     try {
-      console.log('📝 Creando reserva con datos:', data);
+      console.log('Creando reserva con datos:', data);
 
-      // Obtener la información de la cancha
-      const { data: court, error: courtError } = await this.getSupabase()
-        .from('courts')
-        .select('branch_id')
-        .eq('id', data.courtId)
-        .single();
-
-      if (courtError || !court) {
-        console.error('❌ Error al obtener información de la cancha:', courtError);
+      if (!this.validateBookingData(data)) {
         return {
           error: {
-            message: 'No se pudo obtener la información de la cancha',
-            code: 'INVALID_COURT'
+            message: 'Datos de reserva inválidos',
+            code: 'INVALID_DATA'
           }
         };
       }
 
-      // Obtener la zona horaria de la sede
-      const { data: branch, error: branchError } = await this.getSupabase()
-        .from('sedes')
-        .select('timezone')
-        .eq('id', court.branch_id)
-        .single();
-
-      if (branchError || !branch) {
-        console.error('❌ Error al obtener información de la sede:', branchError);
-        return {
-          error: {
-            message: 'Sede no encontrada',
-            code: 'INVALID_BRANCH'
-          }
-        };
-      }
-
-      // Validar y establecer zona horaria por defecto si es necesario
-      const timezone = branch.timezone || 'UTC';
-      console.log('✅ Zona horaria de la sede:', timezone);
-
-      // Crear fechas usando Luxon con la zona horaria de la sede
-      const localStartDateTime = DateTime.fromFormat(
-        `${data.date} ${data.startTime}`,
-        'yyyy-MM-dd HH:mm',
-        { zone: timezone }
-      );
-      const localEndDateTime = DateTime.fromFormat(
-        `${data.date} ${data.endTime}`,
-        'yyyy-MM-dd HH:mm',
-        { zone: timezone }
-      );
-
-      // Convertir a UTC
-      const startTimeUTC = localStartDateTime.toUTC().toFormat('HH:mm:ss');
-      const endTimeUTC = localEndDateTime.toUTC().toFormat('HH:mm:ss');
-      const bookingDateUTC = localStartDateTime.toUTC().toFormat('yyyy-MM-dd');
-
-      console.log('🕒 Conversión de horarios:', {
-        local: {
-          date: data.date,
-          start: data.startTime,
-          end: data.endTime,
-          timezone,
-          localStart: localStartDateTime.toISO(),
-          localEnd: localEndDateTime.toISO()
-        },
-        utc: {
-          date: bookingDateUTC,
-          start: startTimeUTC,
-          end: endTimeUTC,
-          fullStartUTC: localStartDateTime.toUTC().toISO(),
-          fullEndUTC: localEndDateTime.toUTC().toISO()
-        }
-      });
-
-      // Preparar los datos para la creación de la reserva
-      const bookingParams = {
-        p_court_id: data.courtId,
-        p_date: bookingDateUTC,
-        p_start_time: startTimeUTC,
-        p_end_time: endTimeUTC,
-        p_court_price: data.courtPrice,
-        p_rental_items_price: data.rentalItemsPrice || 0,
-        p_payment_method: data.paymentMethod,
-        p_payment_status: data.paymentStatus,
-        p_payment_type: data.paymentType,
-        p_deposit_amount: data.depositAmount || 0,
-        p_title: data.title || null,
-        p_description: data.description || null,
-        p_participants: data.participants || [],
-        p_rental_items: data.rentalItems || [],
-        p_empresa_id: data.empresa_id,
-        p_stripe_payment_method_id: data.stripe_payment_method_id
-      };
-
-      console.log('📦 Parámetros de la reserva:', bookingParams);
+      const transformedData = transformBookingDataForDB(data);
+      console.log('Datos transformados:', transformedData);
 
       const { data: result, error } = await this.getSupabase()
-        .rpc('create_booking_v2', bookingParams);
+        .rpc('create_booking_v2', transformedData as any);
 
       if (error) {
-        console.error('❌ Error al crear reserva:', error);
+        console.error('Error al crear reserva:', error);
         return {
           error: this.getDBErrorMessage(error)
         };
       }
 
-      console.log('✅ Reserva creada exitosamente:', result);
       return { data: result };
     } catch (error) {
-      console.error('❌ Error general al crear la reserva:', error);
+      console.error('Error inesperado al crear reserva:', error);
       return {
         error: {
           message: 'Error al procesar la reserva en la base de datos',

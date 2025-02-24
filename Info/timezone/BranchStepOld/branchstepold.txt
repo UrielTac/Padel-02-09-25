@@ -38,15 +38,6 @@ import { courtService } from "@/services/courtService"
 import { supabase } from "@/lib/supabase"
 import { onboardingBranchService } from '@/services/onboardingBranchService'
 import { useAuth } from '@/contexts/AuthContext'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { SingleSelect } from "@/components/ui/single-select"
-import { DateTime } from 'luxon'
 
 // Variantes de animación
 const fadeInVariants = {
@@ -223,7 +214,6 @@ interface BranchFormData {
   phone: string
   manager: string
   isActive: boolean
-  timezone: string
   schedule: ScheduleData
   courts: CourtData[]
 }
@@ -310,22 +300,6 @@ interface CourtDataDB {
   updated_at?: string
 }
 
-// Definir las zonas horarias
-const AVAILABLE_TIMEZONES = [
-  { value: 'Europe/Madrid', label: 'España (Península y Baleares)' },
-  { value: 'Atlantic/Canary', label: 'España (Islas Canarias)' },
-  { value: 'Europe/Zurich', label: 'Suiza' },
-  { value: 'Europe/Stockholm', label: 'Suecia' },
-  { value: 'Europe/Oslo', label: 'Noruega' },
-  { value: 'Europe/Copenhagen', label: 'Dinamarca' },
-  { value: 'Europe/Helsinki', label: 'Finlandia' },
-  { value: 'America/New_York', label: 'Estados Unidos (EST)' },
-  { value: 'America/Chicago', label: 'Estados Unidos (CST)' },
-  { value: 'America/Denver', label: 'Estados Unidos (MST)' },
-  { value: 'America/Los_Angeles', label: 'Estados Unidos (PST)' },
-  { value: 'America/Phoenix', label: 'Estados Unidos (MST sin horario de verano)' },
-] as const;
-
 export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
   const { user } = useAuth()
   const { completeAndAdvance, currentBranchId, updateBranchData, branches, setBranches, setCurrentBranchId } = useOnboarding()
@@ -334,19 +308,20 @@ export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isBranchSaved, setIsBranchSaved] = useState(false)
   const [formData, setFormData] = useState<BranchFormData>(() => {
+    // Si hay un currentBranchId, buscar los datos guardados
     if (currentBranchId) {
       const branch = branches.find(b => b.id === currentBranchId)
       if (branch?.data) {
         return branch.data
       }
     }
+    // Si no hay datos guardados, usar los valores iniciales
     return {
       name: '',
       address: '',
       phone: '',
       manager: '',
       isActive: true,
-      timezone: 'Europe/Madrid', // Valor por defecto
       schedule: {
         monday: { isOpen: true, timeRanges: [{ openTime: '08:00', closeTime: '22:00' }] },
         tuesday: { isOpen: true, timeRanges: [{ openTime: '08:00', closeTime: '22:00' }] },
@@ -378,7 +353,6 @@ export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
             phone: branchData.phone || '',
             manager: branchData.manager_id || '',
             isActive: branchData.is_active ?? true,
-            timezone: branchData.timezone || 'Europe/Madrid',
             schedule: branchData.opening_hours || initialSchedule,
             courts: (branchData.data?.courts || []).map(court => ({
               id: court.id,
@@ -461,28 +435,17 @@ export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
         throw new Error('No hay usuario autenticado')
       }
 
+      // 1. Obtener el ID de la empresa
       const empresaId = await onboardingBranchService.getEmpresaIdByUserId(user.id)
 
+      // 2. Preparar los datos de la sede
       const branchData = {
         name: formData.name.trim(),
         address: formData.address?.trim() || '',
         phone: formData.phone?.trim() || '',
         manager_id: formData.manager?.trim() || '',
         is_active: formData.isActive,
-        timezone: formData.timezone,
-        opening_hours: {
-          timezone: formData.timezone,
-          schedule: Object.entries(formData.schedule).reduce((acc, [day, { isOpen, timeRanges }]) => {
-            acc[day] = {
-              isOpen,
-              timeRanges: timeRanges.map(range => ({
-                openTime: range.openTime,
-                closeTime: range.closeTime
-              }))
-            };
-            return acc;
-          }, {} as Record<string, any>),
-        },
+        opening_hours: formData.schedule,
         empresa_id: empresaId,
         organization_id: empresaId
       }
@@ -604,7 +567,7 @@ export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
             updated_at: new Date().toISOString()
           }
 
-          console.log('�� Datos de la cancha a guardar:', courtData)
+          console.log('📍 Datos de la cancha a guardar:', courtData)
 
           if (court.id && !court.id.startsWith('court-')) {
             const { error: updateError } = await supabase
@@ -758,16 +721,6 @@ export function BranchesStep({ onReturnToSelection }: BranchesStepProps) {
                   className="h-9 text-sm"
                 />
               </div>
-            </div>
-
-            <div className="grid gap-1.5">
-              <Label htmlFor="timezone" className="text-sm">Zona Horaria</Label>
-              <SingleSelect
-                value={formData.timezone}
-                onChange={(value) => handleInputChange('timezone', value)}
-                options={AVAILABLE_TIMEZONES.map(tz => ({ id: tz.value, name: tz.label }))}
-                placeholder="Selecciona la zona horaria"
-              />
             </div>
           </div>
 
