@@ -28,6 +28,8 @@ import type {
 import type { RentalSelection } from "@/types/items"
 import { useQueryClient } from '@tanstack/react-query'
 import { useRentalContext } from "@/contexts/RentalContext"
+import { useBookingCount } from '@/hooks/useBookingCount'
+import NoCredits from "./components/SimpleShift/noCredits"
 
 interface TimeSelection {
   startTime: string
@@ -114,6 +116,14 @@ export function SimpleShiftBookingModal({
     }
   })
 
+  const { organization } = useOrganization()
+
+  const { canMakeBooking } = useBookingCount({ 
+    empresaId: organization?.id || '', 
+    date: selectedDate?.toISOString().split('T')[0] || '',
+    enabled: !!organization?.id && !!selectedDate
+  })
+
   const {
     currentStep,
     selectedCourts,
@@ -123,13 +133,12 @@ export function SimpleShiftBookingModal({
     resetState,
     setSelectedCourts,
     setTimeSelection,
+    setCurrentStep,
   } = useBookingState({
     initialBookingType: 'shift',
     disableTypeSelection: true,
     initialStep: 'participants'
   })
-
-  const { organization } = useOrganization()
 
   useEffect(() => {
     setMounted(true)
@@ -153,8 +162,12 @@ export function SimpleShiftBookingModal({
         endTime: selection.endTime,
         duration: durationInMinutes
       })
+
+      if (!canMakeBooking) {
+        setCurrentStep('noCredits')
+      }
     }
-  }, [isOpen, selection, setSelectedCourts, setTimeSelection])
+  }, [isOpen, selection, setSelectedCourts, setTimeSelection, canMakeBooking])
 
   useEffect(() => {
     switch (currentStep) {
@@ -342,6 +355,48 @@ export function SimpleShiftBookingModal({
   }
 
   if (!selection || !mounted) return null
+
+  if (currentStep === 'noCredits') {
+    return createPortal(
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            />
+            <motion.div
+              initial={{ x: "100%", opacity: 0.5 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{
+                x: "100%",
+                opacity: 0,
+                transition: {
+                  duration: 0.3,
+                  ease: [0.4, 0, 0.2, 1]
+                }
+              }}
+              transition={{
+                type: "spring",
+                damping: 30,
+                stiffness: 300,
+                mass: 0.8
+              }}
+              className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
+            >
+              <div className="h-full flex flex-col">
+                <NoCredits />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>,
+      document.body
+    );
+  }
 
   return createPortal(
     <AnimatePresence>

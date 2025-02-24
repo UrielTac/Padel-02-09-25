@@ -16,6 +16,7 @@ import { useItems } from "@/hooks/useItems"
 import { timeToMinutes } from "@/lib/time-utils"
 import { IconChevronDown } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import NoCredits from './components/SimpleShift/noCredits'
 
 interface SimpleShiftBookingProps {
   currentStep: BookingStep
@@ -24,9 +25,9 @@ interface SimpleShiftBookingProps {
   onCourtSelect: (courts: string[]) => void
   onTimeSelect: (time: TimeSelection) => void
   onValidationChange: (isValid: boolean) => void
-  onPaymentChange: (details: any) => void
-  participants: Participant[]
+  onPaymentChange: (details: PaymentDetails) => void
   onParticipantChange: (participants: Participant[]) => void
+  participants: Participant[]
 }
 
 export function SimpleShiftBooking({ 
@@ -159,6 +160,8 @@ export function SimpleShiftBooking({
 
   const renderStep = () => {
     switch (currentStep) {
+      case 'noCredits':
+        return <NoCredits />
       case 'participants':
         return (
           <div className="space-y-6">

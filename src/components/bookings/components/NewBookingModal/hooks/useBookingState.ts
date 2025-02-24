@@ -118,7 +118,11 @@ export function useBookingState(config?: UseBookingStateConfig) {
 
     resetState: useCallback(() => {
       setState(initialState)
-    }, [initialState])
+    }, [initialState]),
+
+    setCurrentStep: useCallback((step: BookingStep) => {
+      safeSetState(prev => ({ currentStep: step }))
+    }, [safeSetState])
   }
 
   // Efecto para sincronizar el tipo de reserva con el paso actual

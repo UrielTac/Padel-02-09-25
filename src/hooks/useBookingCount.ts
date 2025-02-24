@@ -6,9 +6,21 @@ interface UseBookingCountProps {
   empresaId: string
   date: string
   initialData?: BookingCountResponse
+  enabled?: boolean
 }
 
 async function fetchBookingCount(empresaId: string, date: string): Promise<BookingCountResponse> {
+  if (!empresaId || !date) {
+    return {
+      currentCount: 0,
+      limit: 0,
+      remainingBookings: 0,
+      resetTime: new Date().toISOString(),
+      isPro: false,
+      nextResetDate: new Date().toISOString()
+    }
+  }
+
   console.log('📍 Fetching booking count:', { empresaId, date })
   const response = await fetch(`/api/booking-count?empresaId=${empresaId}&date=${date}`)
   
@@ -26,14 +38,14 @@ async function fetchBookingCount(empresaId: string, date: string): Promise<Booki
   return data
 }
 
-export function useBookingCount({ empresaId, date, initialData }: UseBookingCountProps) {
+export function useBookingCount({ empresaId, date, initialData, enabled = true }: UseBookingCountProps) {
   const { data: bookingStatus, isLoading, error } = useQuery({
     queryKey: queryKeys.bookingCount.status(empresaId, date),
     queryFn: () => fetchBookingCount(empresaId, date),
     initialData: initialData as BookingCountResponse,
     gcTime: 1000 * 60 * 5, // Cache por 5 minutos
     staleTime: 5000, // 5 segundos antes de considerar los datos obsoletos
-    enabled: Boolean(empresaId && date),
+    enabled: enabled && Boolean(empresaId && date),
     retry: 2
   })
 

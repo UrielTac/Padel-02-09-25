@@ -13,7 +13,10 @@ export interface DaySchedule {
 }
 
 export interface OpeningHours {
-  [key: string]: DaySchedule
+  schedule: {
+    [key: string]: DaySchedule
+  }
+  timezone: string
 }
 
 export interface BranchFormData {
@@ -23,6 +26,7 @@ export interface BranchFormData {
   manager_id: string
   is_active: boolean
   opening_hours: OpeningHours
+  timezone: string
   settings?: Record<string, any>
 }
 

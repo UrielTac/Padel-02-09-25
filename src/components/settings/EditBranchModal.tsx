@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { TimeSelector } from "@/components/ui/time-selector"
-import { IconPlus, IconTrash, IconLoader, IconBuilding, IconClock, IconMapPin, IconPhone } from "@tabler/icons-react"
+import { IconPlus, IconTrash, IconLoader, IconBuilding, IconClock, IconMapPin, IconPhone, IconUser } from "@tabler/icons-react"
 import { Branch, BranchFormData, BranchSchedule } from "@/types/branch"
 import { toast } from "@/components/ui/use-toast"
 import { motion, AnimatePresence } from "framer-motion"
@@ -44,7 +44,8 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
     phone: '',
     manager_id: '',
     is_active: true,
-    opening_hours: formatScheduleFromDB(null)
+    opening_hours: formatScheduleFromDB(null),
+    timezone: 'UTC'
   })
 
   useEffect(() => {
@@ -56,7 +57,8 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
         phone: branch.phone || '',
         manager_id: branch.manager_id || '',
         is_active: branch.is_active || false,
-        opening_hours: formatScheduleFromDB(branch.opening_hours)
+        opening_hours: formatScheduleFromDB(branch.opening_hours),
+        timezone: branch.timezone || 'UTC'
       })
     }
   }, [branch])
@@ -72,9 +74,20 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
       const formattedHours = formatScheduleForDB(formData.opening_hours)
       console.log('📅 Horarios formateados:', formattedHours)
       
+      // Construir el objeto opening_hours con la estructura correcta
+      const opening_hours = {
+        schedule: formattedHours,
+        timezone: formData.timezone
+      }
+
       const dataToSave: BranchFormData = {
-        ...formData,
-        opening_hours: formattedHours
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        manager_id: formData.manager_id,
+        is_active: formData.is_active,
+        opening_hours: opening_hours,
+        timezone: formData.timezone
       }
 
       console.log('📤 Datos a guardar:', dataToSave)
@@ -277,6 +290,27 @@ export function EditBranchModal({ branch, isOpen, onClose, onSave }: EditBranchM
                         checked={formData.is_active}
                         onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
                       />
+                    </div>
+
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <IconMapPin className="h-4 w-4 flex-shrink-0" />
+                        <span>{branch.address || 'Sin dirección'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <IconPhone className="h-4 w-4 flex-shrink-0" />
+                        <span>{branch.phone || 'Sin teléfono'}</span>
+                      </div>
+                      {branch.manager_id && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <IconUser className="h-4 w-4 flex-shrink-0" />
+                          <span>{branch.manager_id}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <span>Zona Horaria:</span>
+                        <span>{formData.timezone}</span>
+                      </div>
                     </div>
                   </div>
                 </AccordionContent>

@@ -157,34 +157,6 @@ export const branchService = {
         throw new Error('Faltan campos requeridos')
       }
 
-      // Validar y formatear horarios
-      const opening_hours = Object.entries(formData.opening_hours).reduce<OpeningHours>((acc, [day, schedule]) => {
-        if (!schedule || typeof schedule !== 'object') {
-          throw new Error(`Formato inválido para el horario del día ${day}`)
-        }
-
-        // Validar y formatear cada rango de tiempo
-        const timeRanges = Array.isArray(schedule.timeRanges) 
-          ? schedule.timeRanges.map(range => {
-              if (!range.openTime || !range.closeTime) {
-                throw new Error(`Rango de tiempo inválido para el día ${day}`)
-              }
-              return {
-                openTime: range.openTime.trim(),
-                closeTime: range.closeTime.trim()
-              }
-            })
-          : [{ openTime: "08:00", closeTime: "22:00" }]
-
-        return {
-          ...acc,
-          [day]: {
-            isOpen: Boolean(schedule.isOpen),
-            timeRanges
-          }
-        }
-      }, {})
-
       // Preparar datos para Supabase
       const branchData: Partial<Branch> = {
         name: formData.name.trim(),
@@ -192,7 +164,10 @@ export const branchService = {
         phone: formData.phone.trim(),
         manager_id: formData.manager_id,
         is_active: formData.is_active,
-        opening_hours,
+        opening_hours: {
+          schedule: formData.opening_hours.schedule,
+          timezone: formData.timezone
+        },
         settings: formData.settings || {},
         empresa_id: empresaId,
         updated_at: new Date().toISOString()

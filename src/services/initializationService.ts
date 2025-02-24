@@ -30,7 +30,7 @@ export const initializationService = {
       // 2. Obtener sedes
       const { data: branches, error: branchesError } = await supabase
         .from('sedes')
-        .select('*')
+        .select('*, timezone')
         .eq('empresa_id', empresa.id)
         .eq('is_active', true)
         .order('name')
