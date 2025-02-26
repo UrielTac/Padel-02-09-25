@@ -157,7 +157,7 @@ export function CourtsTable() {
   const courts = courtsQuery.data || []
 
   return (
-    <div className="w-full space-y-8 bg-transparent p-4 rounded-lg shadow-sm">
+    <div className="w-full space-y-8 bg-transparent px-6 py-4">
       <div className="flex justify-between items-center">
         <div className="flex-1">
           <h3 className="text-md font-medium text-gray-800">Lista de Pistas</h3>

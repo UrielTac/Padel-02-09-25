@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { format, addMinutes, parseISO, isWithinInterval } from 'date-fns';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
+import { DateTime } from 'luxon';
 import { 
   AvailabilityParams, 
   AvailabilitySlot, 
@@ -27,6 +29,11 @@ interface CustomTimeRange {
   startTime: string;
   endTime: string;
   percentage: number;
+}
+
+interface BranchSchedule {
+  schedule: OpeningHours;
+  timezone: string;
 }
 
 class AvailabilityService {
@@ -85,10 +92,36 @@ class AvailabilityService {
     endTime: string,
     bookings: any[],
     date: Date,
-    courtId: string
+    courtId: string,
+    timezone: string = 'UTC',
+    timeRanges: { openTime: string; closeTime: string; }[] = []
   ): boolean {
     const slotStartMinutes = this.timeToMinutes(startTime);
     const slotEndMinutes = this.timeToMinutes(endTime);
+
+    // Verificar que el slot está dentro de alguno de los rangos de horarios de apertura
+    if (timeRanges.length > 0) {
+      let isWithinOpeningHours = false;
+      
+      for (const range of timeRanges) {
+        const rangeStartMinutes = this.timeToMinutes(range.openTime);
+        const rangeEndMinutes = this.timeToMinutes(range.closeTime);
+        
+        // El slot está disponible si está completamente dentro del rango
+        if (slotStartMinutes >= rangeStartMinutes && slotEndMinutes <= rangeEndMinutes) {
+          isWithinOpeningHours = true;
+          break;
+        }
+      }
+      
+      if (!isWithinOpeningHours) {
+        console.log('AvailabilityService - Slot fuera de horarios de apertura:', {
+          slot: { start: startTime, end: endTime },
+          timeRanges: timeRanges.map(r => `${r.openTime}-${r.closeTime}`)
+        });
+        return false;
+      }
+    }
 
     // Filtrar reservas del mismo día y pista
     const relevantBookings = bookings.filter(booking => 
@@ -98,8 +131,12 @@ class AvailabilityService {
 
     // Verificar si el slot se solapa con alguna reserva
     const hasOverlap = relevantBookings.some(booking => {
-      const bookingStartMinutes = this.timeToMinutes(booking.start_time);
-      const bookingEndMinutes = this.timeToMinutes(booking.end_time);
+      // Convertir los horarios de la reserva a la zona horaria local
+      const localStartTime = this.convertBookingTimeToLocal(booking.start_time, timezone, date);
+      const localEndTime = this.convertBookingTimeToLocal(booking.end_time, timezone, date);
+      
+      const bookingStartMinutes = this.timeToMinutes(localStartTime);
+      const bookingEndMinutes = this.timeToMinutes(localEndTime);
 
       // Un slot está disponible si:
       // 1. Termina antes o en el inicio de la reserva, o
@@ -112,7 +149,10 @@ class AvailabilityService {
       if (overlaps) {
         console.log('AvailabilityService - Solapamiento detectado:', {
           slot: { start: startTime, end: endTime },
-          booking: { start: booking.start_time, end: booking.end_time }
+          booking: { 
+            original: { start: booking.start_time, end: booking.end_time },
+            convertido: { start: localStartTime, end: localEndTime }
+          }
         });
       }
 
@@ -189,14 +229,48 @@ class AvailabilityService {
         .single();
 
       if (error) throw error;
-      if (!branch?.opening_hours) return null;
+      if (!branch?.opening_hours) {
+        console.log('AvailabilityService - No se encontraron horarios para la sede');
+        return null;
+      }
+
+      console.log('AvailabilityService - Datos de horarios obtenidos:', branch.opening_hours);
+      
+      // Detectar formato de horarios
+      let branchSchedule: BranchSchedule;
+      
+      // Verificar si es formato nuevo (con propiedad schedule)
+      if (typeof branch.opening_hours === 'object' && 'schedule' in branch.opening_hours) {
+        console.log('AvailabilityService - Usando formato nuevo de horarios');
+        branchSchedule = branch.opening_hours as BranchSchedule;
+      } else {
+        // Formato antiguo (el objeto es directamente OpeningHours)
+        console.log('AvailabilityService - Usando formato antiguo de horarios');
+        branchSchedule = {
+          schedule: branch.opening_hours as OpeningHours,
+          timezone: branch.settings?.timezone || 'UTC'
+        };
+      }
+      
+      if (!branchSchedule.schedule) {
+        console.log('AvailabilityService - La propiedad schedule no existe en los horarios');
+        return null;
+      }
 
       const dayOfWeek = format(date, 'EEEE').toLowerCase();
-      const schedule = branch.opening_hours[dayOfWeek as keyof OpeningHours];
+      console.log('AvailabilityService - Día de la semana:', dayOfWeek);
+      
+      const schedule = branchSchedule.schedule[dayOfWeek as keyof OpeningHours];
+      console.log('AvailabilityService - Horario del día:', schedule);
 
+      // No convertimos los horarios de apertura/cierre a la zona horaria local
+      // En lugar de esto, mantenemos los horarios originales y convertiremos las reservas
+      // cuando sea necesario compararlas con estos horarios.
+      
       console.log('AvailabilityService - Horarios obtenidos:', {
         dayOfWeek,
-        schedule
+        schedule,
+        timezone: branchSchedule.timezone
       });
 
       return schedule || null;
@@ -206,69 +280,124 @@ class AvailabilityService {
     }
   }
 
+  private adjustTimeForTimezone(time: string, timezone: string, date: Date): string {
+    const [hours, minutes] = time.split(':').map(Number);
+    const dateObj = new Date(date);
+    dateObj.setHours(hours, minutes, 0, 0);
+    
+    // Usar Luxon para una conversión más precisa de zona horaria
+    const utcDateTime = DateTime.fromJSDate(dateObj, { zone: 'UTC' });
+    const localDateTime = utcDateTime.setZone(timezone);
+    
+    // Formatear la hora con Luxon para mayor consistencia
+    return localDateTime.toFormat('HH:mm');
+  }
+
+  /**
+   * Convierte un tiempo en formato HH:mm desde UTC a la zona horaria local.
+   * Utilizamos este método para convertir los horarios de las reservas al comparar con slots.
+   */
+  private convertBookingTimeToLocal(time: string, timezone: string, date: Date): string {
+    const [hours, minutes] = time.split(':').map(Number);
+    const dateObj = new Date(date);
+    dateObj.setHours(hours, minutes, 0, 0);
+    
+    // Las reservas están almacenadas en UTC, convertimos a la zona horaria local
+    const utcDateTime = DateTime.fromJSDate(dateObj, { zone: 'UTC' });
+    const localDateTime = utcDateTime.setZone(timezone);
+    
+    return localDateTime.toFormat('HH:mm');
+  }
+
   private findAvailableRanges(
     timeRanges: { openTime: string; closeTime: string; }[],
     courtBookings: any[],
-    date: Date
+    date: Date,
+    timezone: string = 'UTC'
   ): Array<{ start: string; end: string; }> {
     const ranges: Array<{ start: string; end: string; }> = [];
     
     // Filtrar y ordenar reservas una sola vez
     const sortedBookings = courtBookings
       .filter(booking => booking.date === format(date, 'yyyy-MM-dd'))
-      .sort((a, b) => this.timeToMinutes(a.start_time) - this.timeToMinutes(b.start_time));
+      .sort((a, b) => {
+        // Convertir los horarios de las reservas a la zona horaria local
+        const aStartLocal = this.convertBookingTimeToLocal(a.start_time, timezone, date);
+        const bStartLocal = this.convertBookingTimeToLocal(b.start_time, timezone, date);
+        return this.timeToMinutes(aStartLocal) - this.timeToMinutes(bStartLocal);
+      });
 
+    // Procesar cada rango de horarios por separado
     timeRanges.forEach(range => {
       const rangeStartMinutes = this.timeToMinutes(range.openTime);
       const rangeEndMinutes = this.timeToMinutes(range.closeTime);
+      const rangeBookings: any[] = [];
 
-      // Si no hay reservas, agregar el rango completo
-      if (sortedBookings.length === 0) {
+      // Filtrar las reservas que intersectan con este rango específico
+      for (const booking of sortedBookings) {
+        const bookingStartLocal = this.convertBookingTimeToLocal(booking.start_time, timezone, date);
+        const bookingEndLocal = this.convertBookingTimeToLocal(booking.end_time, timezone, date);
+        
+        const bookingStartMinutes = this.timeToMinutes(bookingStartLocal);
+        const bookingEndMinutes = this.timeToMinutes(bookingEndLocal);
+
+        // Verificar si la reserva intersecta con este rango
+        if (!(bookingEndMinutes <= rangeStartMinutes || bookingStartMinutes >= rangeEndMinutes)) {
+          rangeBookings.push({
+            ...booking,
+            // Guardamos las versiones convertidas para no tener que convertirlas de nuevo
+            startLocal: bookingStartLocal,
+            endLocal: bookingEndLocal,
+            startMinutes: bookingStartMinutes,
+            endMinutes: bookingEndMinutes
+          });
+        }
+      }
+
+      // Si no hay reservas en este rango, agregar el rango completo
+      if (rangeBookings.length === 0) {
         ranges.push({ start: range.openTime, end: range.closeTime });
-        return;
+        return; // Continuar con el siguiente rango
       }
 
       let currentStartMinutes = rangeStartMinutes;
 
-      // Procesar cada reserva
-      for (let i = 0; i < sortedBookings.length; i++) {
-        const booking = sortedBookings[i];
-        const bookingStartMinutes = this.timeToMinutes(booking.start_time);
-        const bookingEndMinutes = this.timeToMinutes(booking.end_time);
-
+      // Procesar cada reserva dentro de este rango
+      for (let i = 0; i < rangeBookings.length; i++) {
+        const booking = rangeBookings[i];
+        
         // Agregar rango antes de la reserva si hay espacio
-        if (currentStartMinutes < bookingStartMinutes) {
-          const rangeSize = bookingStartMinutes - currentStartMinutes;
+        if (currentStartMinutes < booking.startMinutes) {
+          const rangeSize = booking.startMinutes - currentStartMinutes;
           console.log(`AvailabilityService - Evaluando rango antes de reserva:`, {
             start: this.minutesToTime(currentStartMinutes),
-            end: booking.start_time,
+            end: booking.startLocal,
             size: rangeSize
           });
           
           ranges.push({
             start: this.minutesToTime(currentStartMinutes),
-            end: booking.start_time
+            end: booking.startLocal
           });
         }
 
-        currentStartMinutes = bookingEndMinutes;
+        currentStartMinutes = booking.endMinutes;
 
         // Procesar espacio entre reservas
-        if (i < sortedBookings.length - 1) {
-          const nextBooking = sortedBookings[i + 1];
-          const nextBookingStartMinutes = this.timeToMinutes(nextBooking.start_time);
+        if (i < rangeBookings.length - 1) {
+          const nextBooking = rangeBookings[i + 1];
           
-          if (bookingEndMinutes < nextBookingStartMinutes) {
-            const gapSize = nextBookingStartMinutes - bookingEndMinutes;
+          if (booking.endMinutes < nextBooking.startMinutes) {
+            const gapSize = nextBooking.startMinutes - booking.endMinutes;
             console.log(`AvailabilityService - Evaluando espacio entre reservas:`, {
-              start: booking.end_time,
-              end: nextBooking.start_time,
+              start: booking.endLocal,
+              end: nextBooking.startLocal,
               size: gapSize
             });
             
-          ranges.push({
-              start: booking.end_time,
-              end: nextBooking.start_time
+            ranges.push({
+              start: booking.endLocal,
+              end: nextBooking.startLocal
             });
           }
         }
@@ -290,7 +419,7 @@ class AvailabilityService {
       }
     });
 
-    // Filtrar rangos demasiado cortos y fusionar rangos solapados
+    // Filtrar rangos demasiado cortos
     const filteredRanges = ranges.filter(range => {
       const duration = this.timeToMinutes(range.end) - this.timeToMinutes(range.start);
       return duration >= 30;
@@ -301,7 +430,8 @@ class AvailabilityService {
       ranges: filteredRanges
     });
 
-    return this.mergeOverlappingRanges(filteredRanges);
+    // No fusionamos rangos entre diferentes horarios de apertura/cierre
+    return filteredRanges;
   }
 
   private generateTimeSlots(
@@ -309,7 +439,8 @@ class AvailabilityService {
     durationInHours: number,
     court: any,
     bookings: any[] = [],
-    date: Date
+    date: Date,
+    timezone: string = 'UTC'
   ): TimeSlot[] {
     // La duración ya viene en minutos, no necesitamos multiplicar por 60
     const durationInMinutes = Math.round(durationInHours);
@@ -338,7 +469,7 @@ class AvailabilityService {
     );
 
     // Obtener rangos disponibles
-    const availableRanges = this.findAvailableRanges(timeRanges, filteredBookings, date);
+    const availableRanges = this.findAvailableRanges(timeRanges, filteredBookings, date, timezone);
 
     console.log(`AvailabilityService - Rangos disponibles para ${court.name}:`, {
       ranges: availableRanges,
@@ -368,8 +499,16 @@ class AvailabilityService {
         const startTime = this.minutesToTime(currentMinutes);
         const endTime = this.minutesToTime(slotEndMinutes);
 
-        // Verificar disponibilidad del slot
-        const isAvailable = this.isTimeSlotAvailable(startTime, endTime, filteredBookings, date, court.id);
+        // Verificar disponibilidad del slot (pasando el timezone y los horarios de apertura)
+        const isAvailable = this.isTimeSlotAvailable(
+          startTime, 
+          endTime, 
+          filteredBookings, 
+          date, 
+          court.id, 
+          timezone,
+          timeRanges
+        );
         
         if (isAvailable) {
           const price = this.calculatePrice(court, durationInMinutes, startTime, date);
@@ -400,9 +539,43 @@ class AvailabilityService {
   }
 
   private mergeOverlappingRanges(
-    ranges: Array<{ start: string; end: string; }>
+    ranges: Array<{ start: string; end: string; }>,
+    limitByTimeRanges: boolean = false,
+    timeRanges: { openTime: string; closeTime: string; }[] = []
   ): Array<{ start: string; end: string; }> {
     if (ranges.length <= 1) return ranges;
+
+    // Si limitByTimeRanges es true y no hay timeRanges, no fusionar
+    if (limitByTimeRanges && timeRanges.length === 0) {
+      return ranges;
+    }
+
+    // Si limitamos por timeRanges, solo fusionamos rangos dentro del mismo timeRange
+    if (limitByTimeRanges) {
+      const result: Array<{ start: string; end: string; }> = [];
+      
+      // Para cada timeRange, fusionar los rangos que estén dentro
+      timeRanges.forEach(timeRange => {
+        const rangeStartMinutes = this.timeToMinutes(timeRange.openTime);
+        const rangeEndMinutes = this.timeToMinutes(timeRange.closeTime);
+        
+        // Filtrar los rangos que están dentro de este timeRange
+        const rangesInThisTimeRange = ranges.filter(range => {
+          const startMinutes = this.timeToMinutes(range.start);
+          const endMinutes = this.timeToMinutes(range.end);
+          
+          return startMinutes >= rangeStartMinutes && endMinutes <= rangeEndMinutes;
+        });
+        
+        // Fusionar estos rangos
+        if (rangesInThisTimeRange.length > 0) {
+          const mergedRangesInThisTimeRange = this.mergeOverlappingRanges(rangesInThisTimeRange);
+          result.push(...mergedRangesInThisTimeRange);
+        }
+      });
+      
+      return result;
+    }
 
     // Ordenar rangos por tiempo de inicio
     const sortedRanges = [...ranges].sort((a, b) => 
@@ -494,12 +667,40 @@ class AvailabilityService {
   public async findAvailableSlots(params: AvailabilityParams): Promise<AvailabilitySlot[]> {
     console.log('AvailabilityService - findAvailableSlots - params:', params);
     try {
+      // Obtener la sede para acceder a su zona horaria primero
+      const { data: branch, error: branchError } = await supabase
+        .from('sedes')
+        .select('opening_hours, settings')
+        .eq('id', params.branchId)
+        .single();
+      
+      if (branchError || !branch?.opening_hours) {
+        console.error('Error al obtener información de la sede:', branchError);
+        return [];
+      }
+      
+      // Extraer la zona horaria de la sede
+      let timezone = 'UTC';
+      if (typeof branch.opening_hours === 'object') {
+        if ('timezone' in branch.opening_hours) {
+          timezone = (branch.opening_hours as BranchSchedule).timezone;
+        } else if (branch.settings?.timezone) {
+          timezone = branch.settings.timezone;
+        }
+      }
+      
+      console.log('AvailabilityService - Zona horaria de la sede:', timezone);
+      
+      // Obtener el horario ya ajustado a la zona horaria de la sede
       const schedule = await this.getBranchSchedule(params.branchId, params.date);
       
       if (!schedule || !schedule.isOpen) {
         console.log('AvailabilityService - Sede cerrada en la fecha seleccionada');
         return [];
       }
+
+      console.log('AvailabilityService - Horarios de la sede:', 
+        schedule.timeRanges.map(r => `${r.openTime}-${r.closeTime}`));
 
       const courts = await this.getCourts({ 
         courtType: params.courtType,
@@ -516,12 +717,15 @@ class AvailabilityService {
       for (const court of courts) {
         // Convertir duración de horas a minutos
         const durationInMinutes = params.duration * 60;
-        const slots = this.generateTimeSlots(schedule.timeRanges, durationInMinutes, court, bookings, params.date);
+        
+        // Los slots ya se generan con horarios en la zona horaria de la sede
+        const slots = this.generateTimeSlots(schedule.timeRanges, durationInMinutes, court, bookings, params.date, timezone);
         console.log(`AvailabilityService - Slots generados para ${court.name}:`, slots);
 
         // Procesar cada slot generado para esta pista
         for (const timeSlot of slots) {
-          if (this.isTimeSlotAvailable(timeSlot.start, timeSlot.end, bookings, params.date, court.id)) {
+          if (this.isTimeSlotAvailable(timeSlot.start, timeSlot.end, bookings, params.date, court.id, timezone)) {
+            // Ya no necesitamos convertir los horarios, ya están en la zona horaria correcta
             const slotId = this.generateSlotId(court.id, format(params.date, 'yyyy-MM-dd'), timeSlot.start);
             
             const hold = this.holdReservations.get(slotId);
@@ -579,6 +783,8 @@ class AvailabilityService {
     const range = TIME_RANGES[timeOfDay as keyof typeof TIME_RANGES];
     
     return slots.filter(slot => {
+      // Los horarios de los slots están en UTC, igual que los rangos definidos en TIME_RANGES
+      // No es necesario convertir aquí, ya que la comparación es consistente
       const slotTime = slot.startTime;
       return slotTime >= range.start && slotTime <= range.end;
     });

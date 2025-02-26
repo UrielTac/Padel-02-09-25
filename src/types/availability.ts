@@ -31,14 +31,19 @@ export interface HoldReservation {
   expiresAt: Date;
 }
 
+export interface BranchSchedule {
+  schedule: OpeningHours;
+  timezone: string;
+}
+
 export interface OpeningHours {
-  monday?: DaySchedule;
-  tuesday?: DaySchedule;
-  wednesday?: DaySchedule;
-  thursday?: DaySchedule;
-  friday?: DaySchedule;
-  saturday?: DaySchedule;
-  sunday?: DaySchedule;
+  monday: DaySchedule;
+  tuesday: DaySchedule;
+  wednesday: DaySchedule;
+  thursday: DaySchedule;
+  friday: DaySchedule;
+  saturday: DaySchedule;
+  sunday: DaySchedule;
 }
 
 export interface DaySchedule {

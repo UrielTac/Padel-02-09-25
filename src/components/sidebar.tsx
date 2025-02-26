@@ -92,9 +92,24 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 const menuItems = [
   {
     title: "Reservas",
-    href: "/admin/dashboard/bookings",
     icon: Calendar,
-    exact: true
+    exact: true,
+    hasSubMenu: true,
+    href: "/admin/dashboard/bookings",
+    subItems: [
+      {
+        title: "Reservaciones",
+        href: "/admin/dashboard/bookings/reservations",
+      },
+      {
+        title: "Clases",
+        href: "/admin/dashboard/bookings/classes",
+      },
+      {
+        title: "Pistas",
+        href: "/admin/dashboard/bookings/courts",
+      }
+    ]
   },
   {
     title: "Usuarios",
@@ -341,42 +356,26 @@ function SidebarFooter() {
 
 function MobileNav() {
   const pathname = usePathname()
-  const router = useRouter()
-  const handleSignOut = useSignOut()
-
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
+  
   return (
-    <div className="flex h-full flex-col bg-gray-50/10">
+    <div className="h-full flex flex-col">
       <div className="pt-3">
         <SidebarHeader />
       </div>
       <ScrollArea className="flex-1">
         <nav className="flex flex-col gap-1 px-3 mt-6">
           {menuItems.map((item) => (
-            <Link 
-              key={item.href} 
-              href={item.href}
-              className={cn(
-                "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
-                "border border-transparent",
-                "group",
-                isRouteActive(pathname, item.href)
-                  ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                  : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                item.exact ? "exact-match" : "partial-match"
-              )}
-            >
-              <item.icon 
-                className={cn(
-                  "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-                  "group-hover:scale-110",
-                  item.title === "Links" && "-scale-x-100"
-                )} 
-              />
-              {item.title}
-              {isRouteActive(pathname, item.href) && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-              )}
-            </Link>
+            <MenuItem
+              key={item.href}
+              item={item}
+              isActive={isRouteActive(pathname, item.href)}
+              isExpanded={expandedItem === item.title}
+              onToggle={() => {
+                setExpandedItem(expandedItem === item.title ? null : item.title)
+              }}
+              pathname={pathname}
+            />
           ))}
         </nav>
       </ScrollArea>
@@ -474,8 +473,93 @@ function SettingsView({
   )
 }
 
+function MenuItem({ 
+  item, 
+  isActive, 
+  isExpanded, 
+  onToggle,
+  pathname 
+}: { 
+  item: typeof menuItems[0]
+  isActive: boolean
+  isExpanded: boolean
+  onToggle: () => void
+  pathname: string
+}) {
+  // Verificar si algún subítem está activo
+  const hasActiveSubItem = item.subItems?.some(subItem => 
+    isRouteActive(pathname, subItem.href)
+  ) ?? false
+
+  // Un ítem principal solo está activo si no tiene subítems activos
+  const isMainItemActive = isActive && !hasActiveSubItem
+
+  return (
+    <div className="flex flex-col">
+      <button
+        onClick={onToggle}
+        className={cn(
+          "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
+          "border border-transparent",
+          "group w-full",
+          isMainItemActive
+            ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+            : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
+          item.exact ? "exact-match" : "partial-match"
+        )}
+      >
+        <item.icon 
+          className={cn(
+            "w-3.5 h-3.5 transition-transform duration-200 ease-out",
+            "group-hover:scale-110",
+            item.title === "Links" && "-scale-x-100"
+          )} 
+        />
+        <span className="flex-1 text-left">{item.title}</span>
+        {item.hasSubMenu && (
+          <ChevronDown
+            className={cn(
+              "w-4 h-4 transition-transform duration-200",
+              isExpanded && "rotate-180"
+            )}
+          />
+        )}
+        {isMainItemActive && (
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+        )}
+      </button>
+      
+      {item.hasSubMenu && (
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-200 ease-in-out",
+            isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
+          )}
+        >
+          <div className="pl-9 pr-3 py-1 space-y-1">
+            {item.subItems?.map((subItem) => (
+              <Link
+                key={subItem.href}
+                href={subItem.href}
+                className={cn(
+                  "flex items-center px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200",
+                  "text-gray-500 hover:text-gray-900 hover:bg-white/80",
+                  isRouteActive(pathname, subItem.href) && "bg-white text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                )}
+              >
+                {subItem.title}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function SidebarContent() {
   const pathname = usePathname()
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
   
   return (
     <>
@@ -485,31 +569,16 @@ function SidebarContent() {
       <ScrollArea className="flex-1">
         <nav className="flex flex-col gap-1 px-3 mt-6">
           {menuItems.map((item) => (
-            <Link 
-              key={item.href} 
-              href={item.href}
-              className={cn(
-                "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
-                "border border-transparent",
-                "group",
-                isRouteActive(pathname, item.href)
-                  ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                  : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                item.exact ? "exact-match" : "partial-match"
-              )}
-            >
-              <item.icon 
-                className={cn(
-                  "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-                  "group-hover:scale-110",
-                  item.title === "Links" && "-scale-x-100"
-                )} 
-              />
-              {item.title}
-              {isRouteActive(pathname, item.href) && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-              )}
-            </Link>
+            <MenuItem
+              key={item.href}
+              item={item}
+              isActive={isRouteActive(pathname, item.href)}
+              isExpanded={expandedItem === item.title}
+              onToggle={() => {
+                setExpandedItem(expandedItem === item.title ? null : item.title)
+              }}
+              pathname={pathname}
+            />
           ))}
         </nav>
       </ScrollArea>
@@ -522,38 +591,27 @@ function SidebarContent() {
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { currentBranch, setCurrentBranch } = useBranchContext()
-  const { branches } = useBranches()
   const [isVisible, setIsVisible] = useState(true)
   const [showSettings, setShowSettings] = useState(false)
   const [activeSettingsTab, setActiveSettingsTab] = useState("company")
   const [previousPath, setPreviousPath] = useState<string | null>(null)
+  const [expandedItem, setExpandedItem] = useState<string | null>(null)
   const handleSignOut = useSignOut()
   const { user } = useAuth()
-  const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
     setIsVisible(!shouldHideSidebar(pathname))
   }, [pathname])
 
-  // Si el sidebar debe ocultarse, no renderizamos nada
   if (!isVisible) {
     return null
   }
 
-  const handleBranchSelect = (branch: Branch) => {
-    console.log('🔄 Seleccionando sede:', branch)
-    setCurrentBranch(branch)
-  }
-
   const toggleSettings = () => {
     if (!showSettings) {
-      // Guardamos la ruta actual antes de mostrar configuración
       setPreviousPath(pathname)
-      // Redirigimos a la configuración con la pestaña "empresa" activa
       router.push('/admin/dashboard/settings?tab=company')
     } else {
-      // Volvemos a la ruta anterior
       if (previousPath) {
         router.push(previousPath)
       }
@@ -586,104 +644,15 @@ export function Sidebar({ className }: SidebarProps) {
         )}
       >
         <div className="relative h-full">
-          {/* Contenido principal */}
           <div 
             className={cn(
               "absolute inset-0 flex flex-col transition-transform duration-300 ease-in-out",
               showSettings ? "-translate-x-full" : "translate-x-0"
             )}
           >
-            <div className="pt-3">
-              <SidebarHeader />
-            </div>
-            <ScrollArea className="flex-1">
-              <nav className="flex flex-col gap-1 px-3 mt-6">
-                {menuItems.map((item) => (
-                  <Link 
-                    key={item.href} 
-                    href={item.href}
-                    className={cn(
-                      "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
-                      "border border-transparent",
-                      "group",
-                      isRouteActive(pathname, item.href)
-                        ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-                        : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                      item.exact ? "exact-match" : "partial-match"
-                    )}
-                  >
-                    <item.icon 
-                      className={cn(
-                        "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-                        "group-hover:scale-110",
-                        item.title === "Links" && "-scale-x-100"
-                      )} 
-                    />
-                    {item.title}
-                    {isRouteActive(pathname, item.href) && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-                    )}
-                  </Link>
-                ))}
-              </nav>
-            </ScrollArea>
-            <PromoCard />
-            <div className="mt-auto border-t border-slate-200/25">
-              {/* Opciones de configuración y salida */}
-              <div className="p-3 space-y-1">
-                <button 
-                  onClick={toggleSettings}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl w-full",
-                    "text-gray-500 hover:text-gray-900",
-                    "hover:bg-white hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                    "transition-all duration-200",
-                    "group text-[14px] font-medium"
-                  )}
-                >
-                  <Settings className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
-                  Configuración
-                </button>
-
-                <button 
-                  onClick={handleSignOut}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-4 py-2 rounded-xl",
-                    "text-gray-500 hover:text-red-600",
-                    "hover:bg-white hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-                    "transition-all duration-200",
-                    "group text-[14px] font-medium"
-                  )}
-                >
-                  <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
-                  Cerrar sesión
-                </button>
-              </div>
-
-              {/* Información del usuario */}
-              <div className="px-3 py-3">
-                <div className={cn(
-                  "flex items-center gap-3 px-4 py-2.5 rounded-xl",
-                  "bg-white/20 backdrop-blur-sm",
-                  "border border-slate-200/60",
-                  "shadow-[inset_0_0_1px_rgba(0,0,0,0.02)]",
-                  "hover:bg-white/30 transition-colors duration-200"
-                )}>
-                  <div className={cn(
-                    "h-8 w-8 rounded-full",
-                    "bg-black text-white",
-                    "flex items-center justify-center",
-                    "shadow-[0_2px_3px_rgba(0,0,0,0.1)]"
-                  )}>
-                    <span className="text-xs font-medium">GC</span>
-                  </div>
-                  <span className="text-[13px] font-medium text-gray-600">George Clooney</span>
-                </div>
-              </div>
-            </div>
+            <SidebarContent />
           </div>
 
-          {/* Vista de configuración */}
           <div 
             className={cn(
               "absolute inset-0 transition-transform duration-300 ease-in-out",

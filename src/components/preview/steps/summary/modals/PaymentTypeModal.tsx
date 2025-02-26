@@ -52,6 +52,68 @@ export function PaymentTypeModal({
     }
   }, [isOpen, empresaId, isConnected, isLoading, error, stripeAccountId]);
 
+  // Detección automática de selección de garantía desde localStorage
+  useEffect(() => {
+    if (isOpen) {
+      // Verificar si hay una marca en localStorage para seleccionar garantía automáticamente
+      const shouldAutoSelectGuarantee = window.localStorage.getItem('auto_select_guarantee') === 'true';
+      const timestamp = window.localStorage.getItem('guarantee_selection_timestamp');
+      
+      // Verificar que la marca no sea muy antigua (menos de 30 segundos)
+      const isTimestampValid = timestamp && (Date.now() - parseInt(timestamp)) < 30000;
+      
+      if (shouldAutoSelectGuarantee && isTimestampValid) {
+        console.log('[PaymentTypeModal] Detectada selección automática de garantía');
+        
+        // Encontrar el tipo de pago "guarantee"
+        const guaranteeType = FILTERED_PAYMENT_TYPES.find(type => type.id === 'guarantee');
+        
+        if (guaranteeType) {
+          console.log('[PaymentTypeModal] Procesando selección automática de garantía');
+          // Simular la selección del tipo garantía
+          setSelectedType(guaranteeType);
+          
+          // Verificar la conexión con Stripe y proceder si todo está bien
+          if (isLoading) {
+            const toastId = toast.loading('Verificando conexión con Stripe...').toString();
+            setVerifyingToast(toastId);
+          } else if (error) {
+            toast.error('Error al verificar la conexión con Stripe');
+            // Limpiar localStorage
+            window.localStorage.removeItem('auto_select_guarantee');
+            window.localStorage.removeItem('guarantee_selection_timestamp');
+          } else if (!isConnected) {
+            toast.error('El club debe configurar Stripe para aceptar garantías');
+            // Limpiar localStorage
+            window.localStorage.removeItem('auto_select_guarantee');
+            window.localStorage.removeItem('guarantee_selection_timestamp');
+          } else {
+            // Si todo está bien, proceder con la selección automática
+            console.log('[PaymentTypeModal] Selección automática exitosa, cerrando modal');
+            onClose();
+            onSelect('guarantee');
+            
+            // Disparar un evento custom para notificar que se completó la selección
+            // Emitir el evento tanto en document como en window para garantizar compatibilidad
+            document.dispatchEvent(new CustomEvent('guarantee-selection-completed'));
+            window.dispatchEvent(new CustomEvent('guarantee-selection-completed'));
+            
+            // Mostrar el modal de tarjeta
+            if (onShowCardModal) {
+              onShowCardModal();
+            } else {
+              toast.error('Error: No se puede mostrar el formulario de tarjeta');
+            }
+            
+            // Limpiar localStorage
+            window.localStorage.removeItem('auto_select_guarantee');
+            window.localStorage.removeItem('guarantee_selection_timestamp');
+          }
+        }
+      }
+    }
+  }, [isOpen, isConnected, isLoading, error, onClose, onSelect, onShowCardModal]);
+
   // Limpiar toast al cerrar el modal
   useEffect(() => {
     if (!isOpen && verifyingToast) {
@@ -108,6 +170,11 @@ export function PaymentTypeModal({
       // Si todo está bien, proceder
       onClose();
       onSelect(type.id);
+      
+      // Disparar evento de selección completada para ambos contextos
+      document.dispatchEvent(new CustomEvent('guarantee-selection-completed'));
+      window.dispatchEvent(new CustomEvent('guarantee-selection-completed'));
+      
       if (onShowCardModal) {
         onShowCardModal();
       } else {

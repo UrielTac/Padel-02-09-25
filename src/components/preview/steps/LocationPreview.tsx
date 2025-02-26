@@ -3,7 +3,7 @@ import { LocationStepField, LocationStepSettings } from "@/components/steps/loca
 import { PreviewContainer } from "../layout/PreviewContainer";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { NavigationButtons } from "../layout/NavigationButtons";
 import { MapPin, Check, Loader2, Clock } from "lucide-react";
 import { useLocationBranches } from "@/hooks/use-location-branches";
@@ -24,6 +24,40 @@ interface LocationPreviewProps {
   isPublicView?: boolean;
   slug?: string;
 }
+
+// Componente memoizado para el título y descripción
+const PageHeader = memo(({ 
+  theme,
+  title,
+  description
+}: { 
+  theme: 'light' | 'dark';
+  title: string;
+  description: string;
+}) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 20 }} 
+    animate={{ opacity: 1, y: 0 }} 
+    transition={{ duration: 0.4 }} 
+    className="space-y-2"
+  > 
+    <div className="flex items-center justify-between">
+      <h1 className={cn(
+        "text-2xl font-semibold",
+        theme === 'dark' ? "text-white" : "text-gray-900" 
+      )}> 
+        {title}
+      </h1>
+    </div>
+    
+    <p className={cn(
+      "text-sm",
+      theme === 'dark' ? "text-gray-400" : "text-gray-500" 
+    )}> 
+      {description}
+    </p> 
+  </motion.div>
+));
 
 export function LocationPreview({ 
   field, 
@@ -159,162 +193,144 @@ export function LocationPreview({
         )}
         <div className={cn(
           "flex-1",
-          viewType === "mobile" && isPublicView && "pt-8 pb-24"
+          viewType === "mobile" && "pt-16"
         )}>
-          <div className="pb-24">
-            <div className="pb-4">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
-                className="text-center space-y-1"
-              >
-                <h1 className={cn(
-                  "text-lg font-semibold transition-colors",
-                  theme === 'dark' ? "text-white" : "text-gray-900"
-                )}>
-                  {field.title || "Seleccionar Sucursal"}
-                </h1>
+          <div className="pb-6">
+            <PageHeader 
+              theme={theme}
+              title="¿Dónde quieres jugar?"
+              description="Selecciona la sede más cercana para tu partido de pádel"
+            />
+          </div>
+
+          <div className="space-y-3 pb-24">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
                 <p className={cn(
-                  "text-sm transition-colors px-6",
+                  "text-sm",
+                  theme === 'dark' ? "text-red-400" : "text-red-500"
+                )}>
+                  {getErrorMessage()}
+                </p>
+              </div>
+            ) : isEmpty ? (
+              <div className="text-center py-8">
+                <p className={cn(
+                  "text-sm",
                   theme === 'dark' ? "text-gray-400" : "text-gray-500"
                 )}>
-                  {field.description || "Elige la sucursal más cercana a tu ubicación"}
+                  {!empresaId 
+                    ? "No se pudo identificar la empresa" 
+                    : "No hay sedes disponibles"}
                 </p>
-              </motion.div>
-            </div>
-
-            <div className="pt-4">
-              <div className="space-y-3 px-4">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-                  </div>
-                ) : error ? (
-                  <div className="text-center py-8">
-                    <p className={cn(
-                      "text-sm",
-                      theme === 'dark' ? "text-red-400" : "text-red-500"
-                    )}>
-                      {getErrorMessage()}
-                    </p>
-                  </div>
-                ) : isEmpty ? (
-                  <div className="text-center py-8">
-                    <p className={cn(
-                      "text-sm",
-                      theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                    )}>
-                      {!empresaId 
-                        ? "No se pudo identificar la empresa" 
-                        : "No hay sucursales disponibles"}
-                    </p>
-                  </div>
-                ) : (
-                  branches.map((branch, index) => {
-                    const isSelected = selectedLocation === branch.id;
-                    
-                    return (
-                      <motion.button
-                        key={branch.id}
-                        onClick={() => setSelectedLocation(branch.id)}
-                        className={cn(
-                          "w-full h-auto text-sm font-medium rounded-xl p-3",
-                          "transition-all duration-200 ease-in-out",
-                          theme === 'dark' 
-                            ? isSelected
-                              ? "bg-zinc-800 hover:bg-neutral-800 text-white"
-                              : "bg-neutral-900 hover:bg-neutral-800 text-gray-200"
-                            : isSelected
-                              ? "bg-gray-100 hover:bg-gray-200 text-gray-900"
-                              : "bg-gray-50 hover:bg-gray-100 text-gray-800"
-                        )}
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ 
-                          opacity: 1,
-                          scale: 1,
-                          transition: { delay: index * 0.1 }
-                        }}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex-1 min-w-0 text-left">
-                            <h3 className={cn(
-                              "font-medium text-sm transition-colors mb-1",
-                              theme === 'dark' ? "text-white" : "text-gray-900"
-                            )}>
-                              {branch.name}
-                            </h3>
-                            <div className="space-y-0.5">
-                              {settings.showAddress && branch.address && (
-                                <p className={cn(
-                                  "text-[11px] transition-colors text-left",
-                                  theme === 'dark' ? "text-gray-400" : "text-gray-500"
-                                )}>
-                                  {branch.address}
-                                </p>
-                              )}
-                              {settings.showSchedule && branch.opening_hours && (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="h-3 w-3 text-gray-400" />
-                                  <p className={cn(
-                                    "text-[10px] transition-colors text-left",
-                                    theme === 'dark' ? "text-gray-500" : "text-gray-500"
-                                  )}>
-                                    {formatScheduleRange(branch.opening_hours)}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center">
-                            {isSelected && (
-                              <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 300,
-                                  damping: 20
-                                }}
-                                className={cn(
-                                  "rounded-full flex items-center justify-center",
-                                  theme === 'dark' 
-                                    ? "bg-white" 
-                                    : "bg-black",
-                                  "h-5 w-5"
-                                )}
-                              >
-                                <motion.div
-                                  initial={{ scale: 0 }}
-                                  animate={{ scale: 1 }}
-                                  transition={{
-                                    type: "spring",
-                                    stiffness: 300,
-                                    damping: 20,
-                                    delay: 0.1
-                                  }}
-                                >
-                                  <Check 
-                                    className={cn(
-                                      "h-3 w-3",
-                                      theme === 'dark' 
-                                        ? "text-black" 
-                                        : "text-white"
-                                    )} 
-                                    strokeWidth={2.5}
-                                  />
-                                </motion.div>
-                              </motion.div>
-                            )}
-                          </div>
-                        </div>
-                      </motion.button>
-                    );
-                  })
-                )}
               </div>
-            </div>
+            ) : (
+              branches.map((branch, index) => {
+                const isSelected = selectedLocation === branch.id;
+                
+                return (
+                  <motion.button
+                    key={branch.id}
+                    onClick={() => setSelectedLocation(branch.id)}
+                    className={cn(
+                      "w-full h-auto text-sm font-medium rounded-xl p-3",
+                      "transition-all duration-200 ease-in-out",
+                      theme === 'dark' 
+                        ? isSelected
+                          ? "bg-zinc-800 hover:bg-neutral-800 text-white"
+                          : "bg-neutral-900 hover:bg-neutral-800 text-gray-200"
+                        : isSelected
+                          ? "bg-gray-100 hover:bg-gray-200 text-gray-900"
+                          : "bg-gray-50 hover:bg-gray-100 text-gray-800"
+                    )}
+                    initial={{ opacity: 0, scale: 0.97 }}
+                    animate={{ 
+                      opacity: 1,
+                      scale: 1,
+                      transition: { delay: index * 0.1 }
+                    }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0 text-left">
+                        <h3 className={cn(
+                          "font-medium text-sm transition-colors mb-1",
+                          theme === 'dark' ? "text-white" : "text-gray-900"
+                        )}>
+                          {branch.name}
+                        </h3>
+                        <div className="space-y-0.5">
+                          {settings.showAddress && branch.address && (
+                            <p className={cn(
+                              "text-[11px] transition-colors text-left",
+                              theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                            )}>
+                              {branch.address}
+                            </p>
+                          )}
+                          {settings.showSchedule && branch.opening_hours && (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-3 w-3 text-gray-400" />
+                              <p className={cn(
+                                "text-[10px] transition-colors text-left",
+                                theme === 'dark' ? "text-gray-500" : "text-gray-500"
+                              )}>
+                                {formatScheduleRange(branch.opening_hours)}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center">
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 20
+                            }}
+                            className={cn(
+                              "rounded-full flex items-center justify-center",
+                              theme === 'dark' 
+                                ? "bg-white" 
+                                : "bg-black",
+                              "h-5 w-5"
+                            )}
+                          >
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 20,
+                                delay: 0.1
+                              }}
+                            >
+                              <Check 
+                                className={cn(
+                                  "h-3 w-3",
+                                  theme === 'dark' 
+                                    ? "text-black" 
+                                    : "text-white"
+                                )} 
+                                strokeWidth={2.5}
+                              />
+                            </motion.div>
+                          </motion.div>
+                        )}
+                      </div>
+                    </div>
+                  </motion.button>
+                );
+              })
+            )}
           </div>
         </div>
       </div>
