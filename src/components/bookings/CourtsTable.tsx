@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import type { Court } from "@/types/court"
 import { cn } from "@/lib/utils"
 import { useCourts } from "@/hooks/useCourts"
+import Image from "next/image"
 
 const getCourtDescription = (court: Court) => {
   const descriptions: string[] = []
@@ -47,6 +48,7 @@ export function CourtsTable() {
   const [isNewCourtModalOpen, setIsNewCourtModalOpen] = useState(false)
   const [editingCourt, setEditingCourt] = useState<Court | undefined>()
   const [popoverOpen, setPopoverOpen] = useState<Record<string, boolean>>({})
+  const [searchTerm, setSearchTerm] = useState('')
 
   // Query optimizada
   const courtsQuery = useCourts({ 
@@ -155,49 +157,49 @@ export function CourtsTable() {
   const courts = courtsQuery.data || []
 
   return (
-    <div className="w-full">
-      {/* Header */}
-      <div className="p-4 flex justify-between items-center">
-        <div className="flex items-center">
-          <h3 className="text-xl font-medium">Lista de Pistas</h3>
+    <div className="w-full space-y-8 bg-transparent p-4 rounded-lg shadow-sm">
+      <div className="flex justify-between items-center">
+        <div className="flex-1">
+          <h3 className="text-md font-medium text-gray-800">Lista de Pistas</h3>
+          <p className="text-sm text-gray-600">Administra las pistas disponibles para tus clientes.</p>
         </div>
 
-        <Button 
-          onClick={() => setIsNewCourtModalOpen(true)}
-          disabled={isLoading}
-          className="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 flex items-center text-sm"
-        >
-          <IconPlus className="h-5 w-5 mr-2" />
-          Nueva Pista
-        </Button>
+        {/* Buscador alineado a la derecha */}
+        <input
+          type="text"
+          placeholder="Buscar pistas..."
+          className="border border-gray-200 rounded-md p-2 ml-2 text-xs opacity-80 focus:outline-none focus:ring-0"
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
-      {/* Lista de Pistas */}
-      <div className="px-4 pb-4">
+      {/* Lista de Pistas - Asegurarse de que esté dentro del flujo normal */}
+      <div className="grid grid-cols-1">
         {courts.length === 0 ? (
-          <div className="text-center py-10">
+          <div className="text-left">
             <p className="text-gray-500">No hay pistas registradas</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {courts.map((court) => (
+            {courts.filter(court => court.name.toLowerCase().includes(searchTerm.toLowerCase())).map((court) => (
               <div
                 key={court.id}
                 onClick={() => handleCourtClick(court)}
                 className={cn(
-                  "flex items-center justify-between p-4 rounded-lg border bg-white",
-                  "hover:border-black transition-colors cursor-pointer"
+                  "flex items-center justify-between p-3 rounded-lg border bg-white",
+                  "hover:bg-gray-50 transition-colors cursor-pointer",
+                  "border-gray-200"
                 )}
               >
                 <div className="space-y-1">
-                  <h4 className="text-base font-medium">{court.name}</h4>
-                  <p className="text-sm text-gray-500">
+                  <h4 className="text-sm font-medium text-gray-800">{court.name}</h4>
+                  <p className="text-xs text-gray-600">
                     {getCourtDescription(court)}
                   </p>
                 </div>
 
                 <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                  <span className="text-sm text-gray-500 mr-2">
+                  <span className="text-sm text-gray-500 mr-2 font-light">
                     {court.is_active ? 'Activa' : 'Suspendida'}
                   </span>
                   <Popover 
@@ -241,6 +243,16 @@ export function CourtsTable() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="text-center">
+        <Button 
+          onClick={() => setIsNewCourtModalOpen(true)}
+          disabled={isLoading}
+          className="text-sm text-gray-600 font-light"
+        >
+          Agregar Nueva Pista
+        </Button>
       </div>
 
       {/* Modal */}

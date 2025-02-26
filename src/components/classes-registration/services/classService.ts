@@ -277,7 +277,7 @@ export class ClassService {
         `)
         .eq('empresa_id', empresaId)
         .eq('status', 'active')
-        .gte('start_date', new Date().toISOString().split('T')[0])
+        .or(`and(is_recurring.eq.false,start_date.gte.${new Date().toISOString().split('T')[0]}),and(is_recurring.eq.true,or(end_date.is.null,end_date.gte.${new Date().toISOString().split('T')[0]}))`)
 
       if (error) throw error
 

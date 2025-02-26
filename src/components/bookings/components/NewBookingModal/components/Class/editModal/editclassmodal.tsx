@@ -142,7 +142,7 @@ export function EditClassModal({ isOpen, onClose, classData, onSuccess }: EditCl
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
           />
           <motion.div
             initial={{ x: "100%", opacity: 0.5 }}

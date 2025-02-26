@@ -11,6 +11,8 @@ import { PackageDetails } from "./components/PackageDetails"
 import { PackagePaymentMethods } from "./components/PackagePaymentMethods"
 import { PackageConfirmationStep } from "./components/PackageConfirmationStep"
 import type { EditPackageModalProps, EditPackageStep, PackageDetails as IPackageDetails, PackagePaymentConfig } from "./types"
+import { usePackages } from "@/hooks/usePackages"
+import { useAuth } from '@/contexts/AuthContext'
 
 const DEFAULT_USER_ID = process.env.NEXT_PUBLIC_DEFAULT_USER_ID
 
@@ -27,11 +29,15 @@ export function EditPackageModal({ isOpen, onClose, packageData, onSuccess }: Ed
     name: packageData.name,
     classCount: packageData.class_count,
     price: packageData.price,
-    expirationDays: packageData.expiration_days
+    expirationDays: packageData.expiration_days,
+    branchIds: packageData.branch_ids || []
   })
   const [packagePayment, setPackagePayment] = useState<PackagePaymentConfig>({
     paymentMethods: packageData.available_payment_methods as ('stripe' | 'transfer')[]
   })
+
+  const { data: packages, refetch: refetchPackages } = usePackages();
+  const { user } = useAuth();
 
   // Manejar montaje/desmontaje
   useEffect(() => {
@@ -50,7 +56,8 @@ export function EditPackageModal({ isOpen, onClose, packageData, onSuccess }: Ed
         name: packageData.name,
         classCount: packageData.class_count,
         price: packageData.price,
-        expirationDays: packageData.expiration_days
+        expirationDays: packageData.expiration_days,
+        branchIds: packageData.branch_ids || []
       })
       setPackagePayment({
         paymentMethods: packageData.available_payment_methods as ('stripe' | 'transfer')[]
@@ -63,22 +70,45 @@ export function EditPackageModal({ isOpen, onClose, packageData, onSuccess }: Ed
       setIsSubmitting(true)
       const supabase = createSupabaseClient()
 
-      // Obtener el ID de usuario predeterminado del entorno
-      const defaultUserId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID
+      // Obtener el ID de usuario del contexto
+      const userId = user?.id
 
-      if (!defaultUserId) {
-        throw new Error('ID de usuario predeterminado no configurado')
+      if (!userId) {
+        throw new Error('No se encontró el ID del usuario autenticado')
       }
 
-      // Obtener el empresa_id asociado al usuario predeterminado
+      // Obtener el empresa_id asociado al usuario autenticado
       const { data: empresaData, error: empresaError } = await supabase
         .from('empresas')
         .select('id')
-        .eq('auth_user_id', defaultUserId)
+        .eq('auth_user_id', userId)
         .single()
 
       if (empresaError || !empresaData) {
-        throw new Error('No se encontró una empresa asociada al usuario predeterminado')
+        throw new Error('No se encontró una empresa asociada al usuario')
+      }
+
+      // Verificar el ID del paquete
+      console.log('Actualizando paquete con ID:', packageData.id)
+
+      // Validar que todos los campos requeridos estén presentes
+      if (!packageDetails.name) {
+        throw new Error('El nombre del paquete es obligatorio.')
+      }
+      if (packageDetails.classCount <= 0) {
+        throw new Error('El número de clases debe ser mayor que 0.')
+      }
+      if (packageDetails.price < 0) {
+        throw new Error('El precio no puede ser negativo.')
+      }
+      if (packageDetails.expirationDays <= 0) {
+        throw new Error('Los días de expiración deben ser mayores que 0.')
+      }
+      if (packageDetails.branchIds.length === 0) {
+        throw new Error('Se debe seleccionar al menos una sucursal.')
+      }
+      if (packagePayment.paymentMethods.length === 0) {
+        throw new Error('Se debe seleccionar al menos un método de pago.')
       }
 
       // Actualizar el paquete
@@ -89,16 +119,21 @@ export function EditPackageModal({ isOpen, onClose, packageData, onSuccess }: Ed
           class_count: packageDetails.classCount,
           price: packageDetails.price,
           expiration_days: packageDetails.expirationDays,
+          branch_ids: packageDetails.branchIds,
           available_payment_methods: packagePayment.paymentMethods,
           updated_at: new Date().toISOString()
         })
         .eq('id', packageData.id)
         .eq('empresa_id', empresaData.id)
 
+      // Verificar si hubo un error en la actualización
       if (packageError) {
         console.error('Error detallado al actualizar paquete:', packageError)
         throw new Error('Error al actualizar el paquete: ' + packageError.message)
       }
+
+      // Refrescar los paquetes después de la actualización
+      await refetchPackages()
 
       setIsUpdated(true)
       toast.success('Paquete actualizado exitosamente')
@@ -183,7 +218,7 @@ export function EditPackageModal({ isOpen, onClose, packageData, onSuccess }: Ed
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
           />
           <motion.div
             initial={{ x: "100%", opacity: 0.5 }}

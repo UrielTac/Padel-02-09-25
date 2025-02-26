@@ -8,12 +8,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { MultiSelect } from '@/components/ui/multi-select';
+import { useBranchContext } from '@/contexts/BranchContext';
 
 interface PackageDetails {
   name: string
   classCount: number
   price: number
   expirationDays: number
+  branchIds: string[]
 }
 
 interface PackageDetailsProps {
@@ -28,26 +31,30 @@ export function PackageDetails({
     name: '', 
     classCount: 1,
     price: 0,
-    expirationDays: 30
+    expirationDays: 30,
+    branchIds: []
   }, 
   onChange,
   onValidationChange,
   mode = 'create'
 }: PackageDetailsProps) {
+  const { branches } = useBranchContext();
+
   useEffect(() => {
     const isValid = details.name.trim().length > 0 && 
                    details.classCount > 0 && 
                    details.price > 0 && 
-                   details.expirationDays > 0
-    onValidationChange?.(isValid)
-  }, [details, onValidationChange])
+                   details.expirationDays > 0 && 
+                   details.branchIds.length > 0;
+    onValidationChange?.(isValid);
+  }, [details, onValidationChange]);
 
   const handleChange = (field: keyof PackageDetails, value: any) => {
     if (onChange) {
       onChange({
         ...details,
         [field]: value
-      })
+      });
     }
   }
 
@@ -210,6 +217,17 @@ export function PackageDetails({
           />
           <span className="text-sm text-gray-500 whitespace-nowrap">días</span>
         </div>
+      </div>
+
+      {/* Selección de sucursales */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-gray-700">Sucursales</label>
+        <MultiSelect
+          value={details.branchIds}
+          onChange={(selected) => handleChange('branchIds', selected)}
+          options={branches.map(branch => ({ id: branch.id, name: branch.name }))}
+          placeholder="Seleccionar sucursales"
+        />
       </div>
 
       {/* Mensaje de validación */}

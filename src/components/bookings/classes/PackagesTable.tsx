@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { NewPackageModal } from "../components/NewPackageModal/NewPackageModal"
 import { EditPackageModal } from "../components/NewPackageModal/EditPackageModal"
 import { createSupabaseClient } from '@/lib/supabase'
+import Image from "next/image"
 
 const supabase = createSupabaseClient()
 
@@ -67,33 +68,24 @@ export function PackagesTable() {
 
   return (
     <div className="w-full space-y-8">
-      {/* Header de Paquetes */}
-      <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 space-y-6">
-        <div className="space-y-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-medium text-gray-900">Lista de Paquetes</h3>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <IconInfoCircle className="w-4 h-4 text-gray-400 hover:text-gray-600 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-sm">Gestiona los paquetes de sesiones disponibles</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+      {/* Header de Paquetes - Actualizado */}
+      <div className="space-y-6 bg-transparent p-4 rounded-lg shadow-sm">
+        <div className="flex items-start gap-4">
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <h3 className="text-md font-medium text-gray-800">Lista de Paquetes</h3>
+              </div>
+              <Button 
+                onClick={() => setIsNewPackageModalOpen(true)}
+                variant="outline"
+                className="px-4 py-2 bg-white hover:bg-gray-50 rounded-md border border-gray-200"
+              >
+                Crear Paquete
+              </Button>
             </div>
-
-            <Button 
-              onClick={() => setIsNewPackageModalOpen(true)}
-              variant="outline"
-              className="px-4 py-2 bg-white hover:bg-gray-50 rounded-md border border-gray-200"
-            >
-              Crear Paquete
-            </Button>
+            <p className="text-xs text-gray-600">Administra los paquetes de sesiones para tus clientes y crea planes de suscripción a clases para una mejor experiencia.</p>
           </div>
-          <p className="text-sm text-gray-500">Administra los paquetes de sesiones para tus clientes</p>
         </div>
 
         {/* Lista de Paquetes */}
@@ -108,7 +100,7 @@ export function PackagesTable() {
                 <div
                   key={packageItem.id}
                   className={cn(
-                    "flex items-center justify-between p-4 rounded-lg",
+                    "flex items-center justify-between p-2 rounded-lg",
                     "bg-white hover:bg-gray-50",
                     "border border-gray-200 hover:border-gray-300",
                     "transition-all duration-200",
@@ -118,14 +110,14 @@ export function PackagesTable() {
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-base font-medium text-gray-900">{packageItem.name}</h4>
+                      <h4 className="text-md font-medium text-gray-800">{packageItem.name}</h4>
                       {packageItem.tag && (
-                        <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                        <span className="text-xs text-blue-800">
                           {packageItem.tag}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-xs text-gray-600">
                       {packageItem.class_count} {packageItem.class_count === 1 ? 'sesión' : 'sesiones'} • 
                       Expira en {packageItem.expiration_days} días • 
                       ${packageItem.price}
@@ -139,45 +131,18 @@ export function PackagesTable() {
                         if (!open) setPopoverOpen(prev => ({ ...prev, [packageItem.id]: false }))
                       }}
                     >
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className={cn(
-                                  "h-8 w-8 p-0",
-                                  packageItem.status === 'inactive' 
-                                    ? "text-gray-600 hover:text-gray-700 hover:bg-gray-50" 
-                                    : "text-gray-600 hover:text-gray-700 hover:bg-gray-50"
-                                )}
-                              >
-                                {packageItem.status === 'inactive' ? (
-                                  <IconEyeOff className="h-4 w-4" />
-                                ) : (
-                                  <IconEye className="h-4 w-4" />
-                                )}
-                                <span className="sr-only">
-                                  {packageItem.status === 'inactive' ? 'Mostrar paquete' : 'Ocultar paquete'}
-                                </span>
-                              </Button>
-                            </PopoverTrigger>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>{packageItem.status === 'inactive' ? 'Mostrar paquete' : 'Ocultar paquete'}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
+                      <PopoverTrigger asChild>
+                        <button
+                          className="p-1.5 text-gray-500 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors"
+                        >
+                          <IconEye className="w-4 h-4" />
+                          <span className="sr-only">{packageItem.isActive ? 'Ocultar paquete' : 'Mostrar paquete'}</span>
+                        </button>
+                      </PopoverTrigger>
                       <PopoverContent className="w-auto p-3" align="end">
                         <div className="text-sm">
-                          <p>¿Desea {packageItem.status === 'inactive' ? 'mostrar' : 'ocultar'} este paquete?</p>
-                          <p className="text-gray-500 text-xs mt-1">
-                            {packageItem.status === 'inactive' 
-                              ? 'El paquete volverá a estar visible para los usuarios' 
-                              : 'El paquete no será visible para nuevos usuarios pero se mantendrá activo para los usuarios actuales'}
-                          </p>
+                          <p>¿Desea {packageItem.isActive ? 'ocultar' : 'mostrar'} este paquete?</p>
+                          <p className="text-gray-500 text-xs mt-1">{packageItem.isActive ? 'El paquete no será visible para nuevos usuarios.' : 'El paquete volverá a estar visible para los usuarios.'}</p>
                           <div className="flex justify-end gap-2 mt-2">
                             <Button
                               variant="ghost"
@@ -186,7 +151,7 @@ export function PackagesTable() {
                                 try {
                                   await updatePackageStatus(
                                     packageItem.id, 
-                                    packageItem.status === 'inactive' ? 'active' : 'inactive'
+                                    packageItem.isActive ? 'inactive' : 'active'
                                   )
                                   setPopoverOpen(prev => ({ ...prev, [packageItem.id]: false }))
                                 } catch (error: any) {
@@ -203,35 +168,6 @@ export function PackagesTable() {
                             >
                               Cancelar
                             </Button>
-                          </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button
-                          className="p-1.5 text-gray-500 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors"
-                        >
-                          <IconTrash className="w-4 h-4" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-3" align="end">
-                        <div className="text-sm">
-                          <p>¿Está seguro que desea eliminar este paquete?</p>
-                          <p className="text-gray-500 text-xs mt-1">Esta acción no se puede deshacer</p>
-                          <div className="flex justify-end gap-2 mt-2">
-                            <button 
-                              className="px-2 py-1 text-xs bg-red-100 text-red-600 rounded-md hover:bg-red-200"
-                              onClick={() => handleDeletePackage(packageItem.id)}
-                            >
-                              Eliminar
-                            </button>
-                            <button 
-                              className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
-                              onClick={() => setPopoverOpen(prev => ({ ...prev, [packageItem.id]: false }))}>
-                              Cancelar
-                            </button>
                           </div>
                         </div>
                       </PopoverContent>
