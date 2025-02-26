@@ -11,6 +11,7 @@ import type { AuthView } from '../types/registration'
 import type { ReactNode } from 'react'
 import type { Database } from '@/types/supabase'
 import { vinculacionService } from '@/services/vinculacionService'
+import { useBookingCount } from '@/hooks/useBookingCount'
 
 // Definir el tipo AuthUser localmente basado en nuestro sistema
 interface AuthUser {
@@ -25,7 +26,7 @@ interface AuthUser {
 
 type EmpresaRow = Database['public']['Tables']['empresas']['Row']
 
-type Step = 'auth' | 'package' | 'class' | 'session' | 'summary' | 'payment' | 'confirmation'
+type Step = 'auth' | 'package' | 'class' | 'session' | 'summary' | 'payment' | 'confirmation' | 'noCredits'
 
 interface RegistrationState {
   step: Step
@@ -141,6 +142,13 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
   const [isCheckingVinculacion, setIsCheckingVinculacion] = useState(false)
   const [hasCheckedVinculacion, setHasCheckedVinculacion] = useState(false)
 
+  // Verificar créditos disponibles
+  const { canMakeBooking, remainingBookings, isPro } = useBookingCount({ 
+    empresaId: organization?.id || '', 
+    date: new Date().toISOString().split('T')[0],
+    enabled: !!organization?.id
+  })
+
   // Verificar vinculación cuando el usuario está autenticado
   useEffect(() => {
     if (!user?.id || !organization?.id || hasCheckedVinculacion || isCheckingVinculacion) {
@@ -195,23 +203,42 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
 
       // Solo cambiamos el paso si el usuario está autenticado
       if (user) {
-        // Iniciamos en el paso de paquetes por defecto
-        dispatch({ type: 'SET_STEP', payload: 'package' })
+        // Si es PRO, siempre permitimos el acceso
+        // Si es FREE, verificamos los créditos disponibles
+        if (!isPro && remainingBookings <= 0) {
+          dispatch({ type: 'SET_STEP', payload: 'noCredits' })
+        } else {
+          // Iniciamos en el paso de paquetes por defecto
+          dispatch({ type: 'SET_STEP', payload: 'package' })
+        }
       }
       
       setHasInitialized(true)
     }
-  }, [isLoadingAuth, user, hasInitialized])
+  }, [isLoadingAuth, user, hasInitialized, isPro, remainingBookings])
 
   // Efecto para mantener el estado cuando cambiamos de URL
   useEffect(() => {
     if (organization && !isLoading && hasInitialized) {
-      // Solo actualizamos el paso si estamos en auth y el usuario está autenticado
-      if (state.step === 'auth' && state.isAuthenticated) {
+      // Si es PRO, permitimos el acceso
+      // Si es FREE, verificamos los créditos
+      if (!isPro && remainingBookings <= 0) {
+        dispatch({ type: 'SET_STEP', payload: 'noCredits' })
+      } else if (state.step === 'auth' && state.isAuthenticated) {
         dispatch({ type: 'SET_STEP', payload: 'class' })
       }
     }
-  }, [organization, isLoading, state.step, state.isAuthenticated, hasInitialized])
+  }, [organization, isLoading, state.step, state.isAuthenticated, hasInitialized, isPro, remainingBookings])
+
+  // Agregamos un efecto para manejar cambios en el estado PRO
+  useEffect(() => {
+    if (hasInitialized && organization) {
+      // Si la empresa se convierte en PRO, salimos del paso noCredits
+      if (isPro && state.step === 'noCredits') {
+        dispatch({ type: 'SET_STEP', payload: 'package' })
+      }
+    }
+  }, [isPro, hasInitialized, organization, state.step])
 
   const setAuthView = useCallback((view: AuthView) => {
     dispatch({ type: 'SET_AUTH_VIEW', payload: view })

@@ -8,6 +8,7 @@ import { SessionStep } from './SessionStep'
 import { SummaryStep } from './SummaryStep'
 import { PaymentStep } from './PaymentStep'
 import { ConfirmationStep } from './ConfirmationStep'
+import { NoCreditsClass } from './noCreditsClass'
 import { LoadingSpinner } from '../shared/LoadingSpinner'
 import { cn } from '@/lib/utils'
 
@@ -44,6 +45,7 @@ export function StepRenderer() {
       )}>
         {/* Contenedor del contenido del paso */}
         <AnimatePresence mode="wait">
+          {state.step === 'noCredits' && <NoCreditsClass />}
           {state.step === 'package' && <PackageSelectionStep organization={organization} />}
           {state.step === 'class' && <ClassSelectionStep />}
           {state.step === 'session' && <SessionStep />}

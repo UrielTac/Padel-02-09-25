@@ -12,6 +12,7 @@ import type { Step } from './types/registration'
 import { useRouter } from 'next/navigation'
 import { LinkService } from './services/linkService'
 import { cn } from '@/lib/utils'
+import { NoCreditsClass } from './steps/noCreditsClass'
 
 const linkService = new LinkService()
 
@@ -175,13 +176,38 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
 
   const stepConfig = getStepConfig(state.step)
 
+  // Si estamos en el paso de noCredits, mostramos ese componente
+  if (state.step === 'noCredits') {
+    return (
+      <div className={cn(
+        "relative min-h-screen",
+        "w-full",
+        "flex flex-col",
+        "overflow-hidden"
+      )}>
+        <div className={cn(
+          "flex-1",
+          "overflow-y-auto scrollbar-none"
+        )}>
+          <NoCreditsClass />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={cn(
       "relative min-h-screen",
       "w-full",
-      "flex flex-col"
+      "flex flex-col",
+      "overflow-hidden"
     )}>
-      <StepRenderer />
+      <div className={cn(
+        "flex-1",
+        "overflow-y-auto scrollbar-none"
+      )}>
+        <StepRenderer />
+      </div>
       <StepNavigation
         onNext={stepConfig.onNext}
         onBack={stepConfig.onBack}
