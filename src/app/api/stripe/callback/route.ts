@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 // Inicializar Stripe con la clave secreta
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-01-27.acacia',
   typescript: true,
 })
 
@@ -27,29 +29,50 @@ export async function GET(request: Request) {
     const error = searchParams.get('error')
     const errorDescription = searchParams.get('error_description')
     const state = searchParams.get('state')
+    const origin = searchParams.get('state')?.split(':')[1] || 'onboarding'
+
+    // Determinar la URL de redirección basada en el origen
+    const redirectUrl = origin === 'settings' 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/admin/dashboard/settings?tab=integrations` 
+      : `${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding`
+
+    // Crear cliente de Supabase con el contexto de la solicitud
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+
+    // Obtener la sesión actual
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      console.error('❌ No se encontró sesión activa:', sessionError)
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding?error=no_auth`
+      )
+    }
+
+    const userId = session.user.id
 
     console.log('📍 Parámetros recibidos:', { 
       code: code ? '***' : null,
       error,
       errorDescription,
-      state
+      state,
+      userId: userId ? '***' : null
     })
 
     // Si el usuario decidió volver voluntariamente, no lo tratamos como error
     if (error === 'access_denied' && errorDescription?.includes('user denied')) {
       console.log('📍 Usuario decidió volver voluntariamente')
-      // Redirigimos al paso de Integraciones (paso 2)
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?step=2`)
+      return NextResponse.redirect(redirectUrl)
     }
 
     if (error) {
       console.error('❌ Error en la autorización de Stripe:', error)
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=${error}&step=2`)
+      return NextResponse.redirect(`${redirectUrl}?error=${error}`)
     }
 
     if (!code) {
       console.error('❌ No se recibió código de autorización')
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=missing_code&step=2`)
+      return NextResponse.redirect(`${redirectUrl}?error=missing_code`)
     }
 
     // Intercambiar el código por el token de acceso
@@ -76,17 +99,19 @@ export async function GET(request: Request) {
       const account = await stripe.accounts.retrieve(connectedAccountId)
 
       // Obtener el ID de la empresa basado en el auth_user_id
-      console.log('📍 Buscando empresa del usuario')
+      console.log('📍 Buscando empresa del usuario:', userId)
       const { data: empresa, error: empresaError } = await supabase
         .from('empresas')
         .select('id')
-        .eq('auth_user_id', process.env.NEXT_PUBLIC_DEFAULT_USER_ID!)
+        .eq('auth_user_id', userId)
         .single()
 
       if (empresaError || !empresa) {
         console.error('❌ Error al obtener la empresa:', empresaError)
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=empresa_not_found&step=2`)
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding?error=empresa_not_found`)
       }
+
+      console.log('✅ Empresa encontrada:', empresa.id)
 
       // Primero eliminamos cualquier conexión existente
       console.log('📍 Eliminando conexiones existentes')
@@ -110,16 +135,16 @@ export async function GET(request: Request) {
           account_status: account.charges_enabled ? 'active' : 'pending',
           charges_enabled: account.charges_enabled,
           payouts_enabled: account.payouts_enabled,
-          requirements: account.requirements || null
+          requirements: JSON.stringify(account.requirements || null)
         })
 
       if (dbError) {
         console.error('❌ Error al guardar en Supabase:', dbError)
-        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=database_error&step=2`)
+        return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding?error=database_error`)
       }
 
       console.log('✅ Conexión guardada exitosamente')
-      return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/onboarding?success=true&step=2`)
+      return NextResponse.redirect(`${redirectUrl}?success=true`)
 
     } catch (stripeError: any) {
       console.error('❌ Error en la autenticación de Stripe:', {
@@ -130,13 +155,13 @@ export async function GET(request: Request) {
       
       const errorMessage = encodeURIComponent(stripeError.message || 'Error en la autenticación')
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=${errorMessage}&step=2`
+        `${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding?error=${errorMessage}`
       )
     }
   } catch (error: any) {
     console.error('❌ Error general en el callback:', error)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?error=unexpected_error&step=2`
+      `${process.env.NEXT_PUBLIC_APP_URL}/admin/onboarding?error=unexpected_error`
     )
   }
 }

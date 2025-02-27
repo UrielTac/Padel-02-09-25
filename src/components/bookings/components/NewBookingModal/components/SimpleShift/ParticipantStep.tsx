@@ -51,75 +51,57 @@ export function ParticipantStep({
   }
 
   return (
-    <div className="space-y-6">
-      {/* Lista de participantes seleccionados */}
-      <div className="space-y-3">
-        {participants.map(participant => (
-          <motion.div
-            key={participant.id}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className={cn(
-              "flex items-center justify-between",
-              "p-3 rounded-lg",
-              "bg-gray-50 border border-gray-100"
-            )}
-          >
-            <div>
-              <p className="font-medium text-sm">{participant.fullName}</p>
-              {participant.email && (
-                <p className="text-xs text-gray-500">{participant.email}</p>
-              )}
-            </div>
-            <button
-              onClick={() => onParticipantRemove(participant.id)}
-              className="text-red-500 hover:text-red-600 text-sm"
-            >
-              Eliminar
-            </button>
-          </motion.div>
-        ))}
-      </div>
-
+    <div className="space-y-5">
       {/* Buscador */}
       <div className="space-y-4">
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Buscar participante..."
-          className={cn(
-            "w-full px-3 py-2",
-            "rounded-lg",
-            "border border-gray-200",
-            "focus:outline-none focus:ring-2 focus:ring-gray-200",
-            "transition-all duration-200"
-          )}
-        />
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gray-900">
+            Agregar participante
+          </h3>
+          <p className="text-xs text-gray-500">
+            Busca y selecciona los participantes que asistirán a la reserva
+          </p>
+        </div>
+        <div className="relative">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar participante..."
+            className={cn(
+              "w-full px-3 py-1.5",
+              "text-sm text-gray-900 placeholder:text-gray-400",
+              "bg-transparent",
+              "rounded-lg",
+              "border border-gray-200/75",
+              "focus:outline-none focus:border-gray-300",
+              "transition-all duration-200"
+            )}
+          />
+        </div>
 
         {/* Resultados de búsqueda */}
         {searchTerm.length >= 2 && (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {isLoading ? (
-              <p className="text-sm text-gray-500">Buscando...</p>
+              <p className="text-xs text-gray-500">Buscando...</p>
             ) : searchResults?.length === 0 ? (
-              <p className="text-sm text-gray-500">No se encontraron resultados</p>
+              <p className="text-xs text-gray-500">No se encontraron resultados</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {searchResults?.map(result => (
                   <button
                     key={result.id}
                     onClick={() => handleParticipantSelect(result)}
                     className={cn(
                       "w-full text-left",
-                      "p-3 rounded-lg",
-                      "bg-white border border-gray-200",
+                      "px-3 py-2 rounded-lg",
+                      "text-sm text-gray-600",
                       "hover:bg-gray-50",
                       "transition-colors duration-200"
                     )}
                   >
-                    <p className="font-medium text-sm">
+                    <p className="font-medium">
                       {`${result.first_name} ${result.last_name}`.trim()}
                     </p>
                     {result.email && (
@@ -131,6 +113,53 @@ export function ParticipantStep({
             )}
           </div>
         )}
+      </div>
+
+      {/* Lista de participantes seleccionados */}
+      <div className="space-y-3">
+        <div className="space-y-0.5">
+          <h3 className="text-xs font-medium text-gray-600">
+            Participantes seleccionados
+          </h3>
+          <p className="text-xs text-gray-400">
+            {participants.length === 0 
+              ? 'No hay participantes seleccionados'
+              : participants.length === 1
+                ? '1 participante seleccionado'
+                : `${participants.length} participantes seleccionados`
+            }
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          {participants.map(participant => (
+            <motion.div
+              key={participant.id}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className={cn(
+                "flex items-center justify-between py-1.5",
+                "group transition-colors duration-200"
+              )}
+            >
+              <div>
+                <p className="text-sm text-gray-600">{participant.fullName}</p>
+                {participant.email && (
+                  <p className="text-xs text-gray-400">{participant.email}</p>
+                )}
+              </div>
+              <button
+                onClick={() => onParticipantRemove(participant.id)}
+                className={cn(
+                  "text-xs text-gray-400 opacity-0 group-hover:opacity-100",
+                  "hover:text-red-500 transition-all duration-200"
+                )}
+              >
+                Eliminar
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   )

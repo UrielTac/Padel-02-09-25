@@ -62,18 +62,10 @@ const SESSION_CHECK_KEY = 'last_session_check'
 function shouldCheckSession(): boolean {
   if (typeof window === 'undefined') return true
   
-  const lastCheck = localStorage.getItem(SESSION_CHECK_KEY)
   const storedSession = localStorage.getItem(AUTH_CONFIG.admin.storage.keys.session)
   
-  // Si no hay sesión almacenada, siempre verificar
-  if (!storedSession) return true
-  
-  // Si no hay último check, verificar
-  if (!lastCheck) return true
-  
-  // Verificar el tiempo transcurrido
-  const timeSinceLastCheck = Date.now() - parseInt(lastCheck)
-  return timeSinceLastCheck > AUTH_SESSION_CHECK_INTERVAL
+  // Solo verificar si no hay sesión almacenada
+  return !storedSession
 }
 
 // Función para actualizar el timestamp de la última verificación

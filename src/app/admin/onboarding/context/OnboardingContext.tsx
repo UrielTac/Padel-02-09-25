@@ -102,54 +102,14 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
       const success = searchParams.get('success')
       const error = searchParams.get('error')
       const errorDescription = searchParams.get('error_description')
-      const step = searchParams.get('step')
       
       if (success === 'true') {
-        try {
-          // Marcar el paso de Integración como completado
-          await completeStep(2) // 2 es el índice del paso de Integración
-          
-          // Actualizar el estado local
-          setCompletedSteps(prev => {
-            const newSteps = [...prev]
-            // Marcar como completados los pasos anteriores (0 y 1) y el actual (2)
-            newSteps[0] = true
-            newSteps[1] = true
-            newSteps[2] = true
-            return newSteps
-          })
-          
-          setCurrentStep(3) // Avanzamos al siguiente paso
-          setIsStripeConnected(true)
-          router.replace('/onboarding')
-        } catch (error) {
-          console.error('Error al completar el paso de Integración:', error)
-          toast.error('Error al actualizar el progreso del onboarding')
-        }
-      } else if (error === 'access_denied' && errorDescription?.includes('user denied')) {
-        // Si el usuario volvió voluntariamente, restauramos los pasos anteriores
-        setCompletedSteps(prev => {
-          const newSteps = [...prev]
-          // Marcar como completados solo los pasos anteriores (0 y 1)
-          newSteps[0] = true
-          newSteps[1] = true
-          return newSteps
-        })
-        setCurrentStep(2)
-        router.replace('/onboarding')
-      } else if (error && !step) {
-        console.error('Error en la conexión de Stripe:', error)
-      } else if (step) {
-        const stepNumber = parseInt(step)
-        setCurrentStep(stepNumber)
-        // Restaurar los pasos completados hasta el paso actual
-        setCompletedSteps(prev => {
-          const newSteps = [...prev]
-          for (let i = 0; i < stepNumber; i++) {
-            newSteps[i] = true
-          }
-          return newSteps
-        })
+        setIsStripeConnected(true)
+      }
+      
+      // Si hay parámetros de Stripe, limpiar la URL
+      if (success || error) {
+        router.replace('/admin/onboarding')
       }
     }
 
@@ -191,6 +151,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
           setCompletedSteps(prev => 
             prev.map((_, index) => index <= currentStepIndex)
           )
+          // Actualizar el paso actual basado en el onboarding de la empresa
+          setCurrentStep(currentStepIndex + 1)
         }
       } catch (error) {
         console.error('Error al cargar el estado del onboarding:', error)

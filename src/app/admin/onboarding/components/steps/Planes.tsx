@@ -36,6 +36,7 @@ interface Plan {
   prices: {
     monthly: number
     quarterly: number
+    annually: number
   }
   description: string
   extraInfo?: {
@@ -53,54 +54,39 @@ const plans: Plan[] = [
     name: "Free",
     prices: {
       monthly: 0,
-      quarterly: 0
+      quarterly: 0,
+      annually: 0
     },
     description: "Perfecto para empezar a gestionar tu club",
-    extraInfo: {
-      title: "Plan Básico",
-      subtitle: "Prueba gratuita sin límite de tiempo",
-      tooltip: "Sin necesidad de tarjeta de crédito"
-    },
     features: [
-      { name: "1 sede", included: true },
+      { name: "Hasta tres sedes", included: true },
       { name: "Hasta 5 pistas", included: true },
-      { name: "20 reservas diarias", included: true },
-      { name: "Panel de administración", included: true },
-      { name: "Hasta 100 usuarios registrados", included: true },
-      { name: "Soporte por email", included: true },
-      { name: "Link de reserva", included: true },
-      { name: "Personalización", included: false },
+      { name: "200 reservas mensuales", included: true },
+      { name: "Actualizaciones de software continuas", included: false },
     ],
   },
   {
     name: "Pro",
     prices: {
-      monthly: 24.70,
-      quarterly: 69.69
+      monthly: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price,
+      quarterly: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price,
+      annually: PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY.price
     },
-    description: "Todo lo que necesitas para escalar tu negocio",
-
+    description: "Lo que necesitas para escalar tu negocio",
     isPopular: true,
     features: [
-      { name: "Pistas ilimitadas", included: true },
       { name: "Reservas ilimitadas", included: true },
-      { name: "Panel de administración", included: true },
-      { name: "Usuarios ilimitados", included: true },
-      { name: "Soporte por email y teléfono", included: true },
-      { name: "Link de reserva personalizado", included: true },
+      { name: "Sin límite de pistas", included: true },
+      { name: "Nuevas actualizaciones como Torneo, Membresías, etc.", included: true },
+      { name: "Soporte prioritario 24/7", included: true },
     ],
-    upcomingFeatures: [
-      "Nuevos estilos del formulario de reserva",
-      "Vista de estadísticas avanzadas",
-      "Módulo de torneos"
-    ]
   },
 ]
 
 export function Planes() {
   const { completeAndAdvance, formData } = useOnboarding()
   const { user, updateUserMetadata } = useAuth()
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly'>('quarterly')
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'quarterly' | 'annually'>('quarterly')
   const [showSuccessPayment, setShowSuccessPayment] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<'Free' | 'Pro'>()
   const { toast } = useToast()
@@ -149,15 +135,30 @@ export function Planes() {
       
       // Calculamos la fecha de expiración
       const expiresAt = new Date()
-      if (billingPeriod === 'monthly') {
-        expiresAt.setMonth(expiresAt.getMonth() + 1)
-      } else {
-        expiresAt.setMonth(expiresAt.getMonth() + 3)
+      switch (billingPeriod) {
+        case 'monthly':
+          expiresAt.setMonth(expiresAt.getMonth() + 1)
+          break
+        case 'quarterly':
+          expiresAt.setMonth(expiresAt.getMonth() + 3)
+          break
+        case 'annually':
+          expiresAt.setFullYear(expiresAt.getFullYear() + 1)
+          break
       }
 
-      const paymentAmount = billingPeriod === 'monthly' 
-        ? PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price
-        : PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price
+      const paymentAmount = (() => {
+        switch (billingPeriod) {
+          case 'monthly':
+            return PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price
+          case 'quarterly':
+            return PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_QUARTERLY.price
+          case 'annually':
+            return PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_ANNUALLY.price
+          default:
+            return PAYPAL_CONFIG.SUBSCRIPTION_PLANS.PRO_MONTHLY.price
+        }
+      })()
 
       // Crear la suscripción con todos los datos de PayPal
       const subscription = await subscriptionService.updatePayPalDetails({
@@ -181,7 +182,7 @@ export function Planes() {
         await updateUserMetadata({
           plan_type: 'PRO',
           plan_updated_at: new Date().toISOString(),
-          empresa_id: empresaId // Asegurarnos de que el empresa_id esté en los metadatos
+          empresa_id: empresaId
         })
 
         console.log('✅ Plan y suscripción actualizados exitosamente')
@@ -222,17 +223,19 @@ export function Planes() {
       transition={{ duration: 0.3 }}
       className="p-4 md:p-6"
     >
-      <div className="space-y-6 max-w-[1400px] mx-auto">
+      <div className="space-y-8 max-w-[1200px] mx-auto">
         {/* Header Section */}
-        <div className="text-center px-4 md:px-6 pb-4">
-          <h2 className="text-2xl font-semibold tracking-tight mb-1.5">
-            Elige tu plan
-          </h2>
-          <p className="text-sm text-muted-foreground/80 max-w-md mx-auto mb-4">
-            Selecciona el plan que mejor se adapte a tus necesidades. ¡Comienza gratis!
-          </p>
+        <div className="text-center space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-medium">
+              Elige tu plan
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Selecciona el plan que mejor se adapte a tus necesidades
+            </p>
+          </div>
           
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center">
             <SelectOption 
               value={billingPeriod}
               onValueChange={setBillingPeriod}
@@ -241,125 +244,90 @@ export function Planes() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-[1200px] mx-auto px-2 md:px-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-[900px] mx-auto">
           {plans.map((plan) => (
             <Card 
               key={plan.name}
               className={cn(
-                "relative bg-background p-4 md:p-6",
-                plan.isPopular && "shadow-lg ring-1 ring-border/50",
-                plan.prices.monthly === 0 && "border border-border",
+                "flex flex-col h-full p-6",
+                plan.isPopular && "ring-1 ring-primary",
                 selectedPlan === plan.name && "ring-2 ring-primary",
                 plan.name === "Pro" ? "order-first md:order-last" : "order-last md:order-first"
               )}
             >
-              {plan.isPopular && billingPeriod === 'quarterly' && (
-                <div className="absolute -top-3 left-4 md:left-6 inline-flex items-center rounded-full bg-black px-3 py-1 text-xs text-white">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  10% de descuento
-                </div>
-              )}
-
-              {/* Plan Content */}
-              <div className="flex flex-col h-full">
-                <div className="mb-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{plan.name}</h3>
-                    {plan.extraInfo && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Info className="h-4 w-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent>{plan.extraInfo.tooltip}</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-
-                  <div className="mt-2 flex items-baseline">
-                    {plan.prices[billingPeriod] === 0 ? (
-                      <span className="text-2xl font-bold">Gratis</span>
-                    ) : (
-                      <>
-                        {billingPeriod === 'quarterly' && plan.prices.monthly > 0 && (
-                          <span className="text-lg line-through text-muted-foreground/70 mr-2">
-                            {(plan.prices.monthly * 3).toFixed(2)}€
-                          </span>
-                        )}
-                        <span className="text-3xl font-bold">{plan.prices[billingPeriod]}€</span>
-                        <span className="ml-1 text-sm text-muted-foreground">
-                          /{billingPeriod === 'monthly' ? 'mes' : 'trimestre'}
-                        </span>
-                      </>
-                    )}
-                  </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground">
+              {/* Plan Header */}
+              <div className="space-y-4 mb-8">
+                <div>
+                  <h3 className="text-lg font-medium">{plan.name}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
                     {plan.description}
                   </p>
                 </div>
 
-                <div className="mb-4">
-                  {plan.name === 'Free' ? (
-                    <Button 
-                      className="w-full"
-                      variant="outline"
-                      onClick={() => handleSelectPlan('Free')}
-                    >
-                      Comenzar gratis
-                    </Button>
+                <div className="pt-4 border-t">
+                  {plan.prices[billingPeriod] === 0 ? (
+                    <div className="text-2xl font-medium">Gratis</div>
                   ) : (
-                    <PayPalSubscriptionButton
-                      planType={billingPeriod}
-                      onSuccess={handlePayPalSuccess}
-                      onError={handlePayPalError}
-                    />
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-medium">
+                        {plan.prices[billingPeriod]}€
+                      </span>
+                      <span className="text-sm text-muted-foreground">
+                        /{billingPeriod === 'monthly' ? 'mes' : billingPeriod === 'quarterly' ? 'trimestre' : 'año'}
+                      </span>
+                    </div>
                   )}
                 </div>
+              </div>
 
-                <div className="space-y-2">
+              {/* Features */}
+              <div className="flex-grow">
+                <div className="space-y-3">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm">
-                      {feature.included ? (
-                        <Check className="h-3.5 w-3.5 text-primary" />
-                      ) : (
-                        <X className="h-3.5 w-3.5 text-muted-foreground/50" />
+                    <div 
+                      key={index} 
+                      className={cn(
+                        "text-sm flex items-center justify-between",
+                        feature.included 
+                          ? "text-muted-foreground" 
+                          : "text-muted-foreground/40"
                       )}
+                    >
                       <span className={cn(
-                        !feature.included && "text-muted-foreground"
-                      )}>
-                        {feature.name}
-                      </span>
-                    </li>
+                        feature.included ? "" : "text-muted-foreground/40"
+                      )}>{feature.name}</span>
+                      {!feature.included && (
+                        <span className="text-xs text-muted-foreground/60 ml-2">(Pro)</span>
+                      )}
+                    </div>
                   ))}
                 </div>
+              </div>
 
-                {plan.upcomingFeatures && (
-                  <div className="mt-4 pt-3 border-t border-border/50">
-                    <p className="text-xs font-medium mb-2">
-                      Próximas actualizaciones:
-                    </p>
-                    <ul className="space-y-1.5">
-                      {plan.upcomingFeatures.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <div className="h-1 w-1 rounded-full bg-gray-500"></div>
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+              {/* Action Button */}
+              <div className="pt-8">
+                {plan.name === 'Free' ? (
+                  <Button 
+                    className="w-full"
+                    variant={plan.isPopular ? "default" : "outline"}
+                    onClick={() => handleSelectPlan('Free')}
+                  >
+                    Comenzar gratis
+                  </Button>
+                ) : (
+                  <PayPalSubscriptionButton
+                    planType={billingPeriod}
+                    onSuccess={handlePayPalSuccess}
+                    onError={handlePayPalError}
+                  />
                 )}
               </div>
             </Card>
           ))}
         </div>
 
-        <p className="text-xs text-center text-muted-foreground px-4 md:px-0">
+        <p className="text-xs text-center text-muted-foreground">
           Todos los precios incluyen IVA. Puedes cancelar o cambiar tu plan en cualquier momento.
-          {" "}
-          <span className="font-medium">
-            El plan gratuito no requiere tarjeta de crédito.
-          </span>
         </p>
       </div>
     </motion.div>

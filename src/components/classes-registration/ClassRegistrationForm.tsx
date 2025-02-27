@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { LinkService } from './services/linkService'
 import { cn } from '@/lib/utils'
 import { NoCreditsClass } from './steps/noCreditsClass'
+import { LoadingState } from './shared/LoadingState'
 
 const linkService = new LinkService()
 
@@ -54,12 +55,11 @@ export function ClassRegistrationForm({ selectedClassId }: ClassRegistrationForm
   if (isLoading || isLoadingClasses) {
     return (
       <StepContainer stepId="loading" centered>
-        <div className="text-center space-y-4">
-          <LoadingSpinner />
-          <p className="text-sm text-gray-500">
-            Cargando información...
-          </p>
-        </div>
+        <LoadingState 
+          message="Cargando información..." 
+          fullScreen={false}
+          className="py-8" 
+        />
       </StepContainer>
     )
   }

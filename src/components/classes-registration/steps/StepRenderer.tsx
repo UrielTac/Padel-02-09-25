@@ -11,12 +11,20 @@ import { ConfirmationStep } from './ConfirmationStep'
 import { NoCreditsClass } from './noCreditsClass'
 import { LoadingSpinner } from '../shared/LoadingSpinner'
 import { cn } from '@/lib/utils'
+import { useBookingCount } from '@/hooks/useBookingCount'
 
 export function StepRenderer() {
-  const { state, organization, isLoading } = useClassRegistration()
+  const { state, organization, isLoading: isLoadingContext } = useClassRegistration()
 
-  // Si estamos cargando o no hay organización, mostramos el spinner
-  if (isLoading || !organization) {
+  // Obtener el estado de los créditos
+  const { isLoading: isLoadingBookingCount } = useBookingCount({ 
+    empresaId: organization?.id || '', 
+    date: new Date().toISOString().split('T')[0],
+    enabled: !!organization?.id
+  })
+
+  // Mostrar loading mientras se carga el contexto o los créditos
+  if (isLoadingContext || isLoadingBookingCount || !organization) {
     return (
       <div className={cn(
         "w-full h-full",

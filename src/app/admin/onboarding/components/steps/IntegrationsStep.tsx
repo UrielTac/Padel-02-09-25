@@ -90,6 +90,10 @@ export function IntegrationsStep() {
   const [connectedEmail, setConnectedEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const searchParams = useSearchParams()
+  const [status, setStatus] = useState<string>("")
+  const [accountId, setAccountId] = useState<string>("")
+  const [charges_enabled, setChargesEnabled] = useState<boolean>(false)
+  const [payouts_enabled, setPayoutsEnabled] = useState<boolean>(false)
 
   // Verificar el estado de conexión al cargar el componente
   useEffect(() => {
@@ -102,6 +106,10 @@ export function IntegrationsStep() {
         if (response.data.email) {
           setConnectedEmail(response.data.email)
         }
+        setStatus(response.data.status)
+        setAccountId(response.data.accountId)
+        setChargesEnabled(response.data.charges_enabled)
+        setPayoutsEnabled(response.data.payouts_enabled)
       } catch (error) {
         console.error("Error al verificar la conexión de Stripe:", error)
         setIsConnected(false)
@@ -161,10 +169,6 @@ export function IntegrationsStep() {
   }
 
   const handleContinue = () => {
-    if (!isConnected) {
-      toast.error("Debes conectar tu cuenta de Stripe antes de continuar")
-      return
-    }
     completeAndAdvance(2)
   }
 
@@ -236,25 +240,37 @@ export function IntegrationsStep() {
           {/* Estado de la conexión */}
           <div className="space-y-4">
             {isConnected ? (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">Estado de la cuenta</p>
+              <div className="bg-gray-50 rounded-lg p-6 space-y-6">
+                <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <div className="h-1.5 w-1.5 rounded-full bg-gray-400" />
                     <p className="text-sm text-gray-600">
-                      Cuenta conectada: <span className="font-medium">{connectedEmail}</span>
+                      {connectedEmail}
                     </p>
                   </div>
+                  <div className="space-y-2">
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Estado de cuenta: <span className="text-gray-900">{status === 'active' ? 'Activa' : status === 'pending' ? 'Pendiente' : 'Inactiva'}</span>
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        ID de cuenta: <span className="text-gray-900 font-mono">{accountId}</span>
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Cobros habilitados: <span className="text-gray-900">{charges_enabled ? 'Sí' : 'No'}</span>
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm text-gray-600">
+                        Pagos habilitados: <span className="text-gray-900">{payouts_enabled ? 'Sí' : 'No'}</span>
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDisconnectDialog(true)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Desconectar cuenta
-                </Button>
               </div>
             ) : (
               <Button
@@ -280,9 +296,8 @@ export function IntegrationsStep() {
           <Button
             onClick={handleContinue}
             className="px-8"
-            disabled={!isConnected}
           >
-            Continuar
+            {isConnected ? "Continuar" : "Lo haré luego"}
           </Button>
         </div>
 

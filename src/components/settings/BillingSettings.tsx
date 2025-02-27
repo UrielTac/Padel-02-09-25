@@ -13,6 +13,9 @@ import { useToast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useOrganization } from "@/contexts/OrganizationContext"
 import { motion } from "framer-motion"
+import { StripeDisconnectWarning } from "@/components/ui/stripe-disconnect-warning"
+import { stripeConnectionService } from '@/services/stripeConnectionService'
+import { useQueryClient } from "@tanstack/react-query"
 
 interface BillingConfig {
   mercadoPagoConnected: boolean
@@ -44,11 +47,13 @@ export function BillingSettings() {
   const { user } = useAuth()
   const { organization } = useOrganization()
   const { toast } = useToast()
+  const [showDisconnectWarning, setShowDisconnectWarning] = useState(false)
   const [config, setConfig] = useState<BillingConfig>({
     mercadoPagoConnected: false,
     bankAccountConnected: false
   })
   const [showBankModal, setShowBankModal] = useState(false)
+  const queryClient = useQueryClient()
 
   // Consulta para obtener la información de la cuenta de Stripe
   const { data: stripeConnection, isLoading: isLoadingStripe } = useQuery<StripeConnection>({
@@ -69,14 +74,15 @@ export function BillingSettings() {
         const data = await response.json()
         console.log('✅ Datos de conexión Stripe recibidos:', data)
         
-        if (!data) {
+        // Si no hay datos o la conexión no existe, retornamos null
+        if (!data || !data.id) {
           return null
         }
         
         return data
       } catch (error) {
         console.error('❌ Error fetching Stripe connection:', error)
-        throw error
+        return null // En caso de error, retornamos null
       }
     },
     enabled: !!organization?.id
@@ -100,20 +106,20 @@ export function BillingSettings() {
         return
       }
 
-      const response = await fetch('/api/stripe/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          empresa_id: organization.id
-        })
+      // Construir la URL de autorización
+      const params = new URLSearchParams({
+        response_type: 'code',
+        client_id: process.env.NEXT_PUBLIC_STRIPE_CLIENT_ID!,
+        scope: 'read_write',
+        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/stripe/callback`,
+        'stripe_user[country]': 'AR',
+        'stripe_user[business_type]': 'company',
+        'stripe_user[product_description]': 'Reservas deportivas',
+        state: 'origin:settings', // Indicar que venimos de settings
       })
 
-      if (!response.ok) throw new Error('Error al conectar con Stripe')
-
-      const data = await response.json()
-      window.location.href = data.url
+      const connectUrl = `https://connect.stripe.com/oauth/authorize?${params.toString()}`
+      window.location.href = connectUrl
     } catch (error) {
       toast({
         title: "Error",
@@ -125,16 +131,27 @@ export function BillingSettings() {
 
   const handleStripeDisconnect = async () => {
     try {
-      const response = await fetch(`/api/stripe/disconnect/${stripeConnection?.id}`, {
-        method: 'DELETE'
-      })
+      if (!stripeConnection?.id) {
+        throw new Error('No hay conexión de Stripe para desconectar')
+      }
 
-      if (!response.ok) throw new Error('Error al desconectar Stripe')
+      // Usar el servicio para eliminar la conexión
+      const success = await stripeConnectionService.deleteConnection(stripeConnection.id)
+
+      if (!success) {
+        throw new Error('Error al desconectar Stripe')
+      }
 
       toast({
         title: "Éxito",
         description: "Cuenta de Stripe desconectada correctamente"
       })
+      
+      // Cerrar el diálogo de confirmación
+      setShowDisconnectWarning(false)
+
+      // Invalidar la consulta para actualizar la UI
+      await queryClient.invalidateQueries({ queryKey: ['stripeConnection'] })
     } catch (error) {
       toast({
         title: "Error",
@@ -168,41 +185,51 @@ export function BillingSettings() {
             </div>
           ) : (
             <>
-              <p className="text-sm text-gray-500 mb-2 leading-relaxed">
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
                 {stripeConnection 
                   ? "Tu cuenta de Stripe está conectada y lista para procesar pagos."
                   : "Conecta Stripe para procesar pagos con tarjeta y más métodos."}
               </p>
 
-              {stripeConnection && (
-                <div className="space-y-1 text-sm">
-                  <p className="text-gray-600">
-                    Cuenta: {stripeConnection.stripe_account_email}
-                  </p>
-                  <p className="text-gray-600">
-                    Estado: {stripeConnection.account_status}
-                  </p>
-                  {hasPendingRequirements && (
-                    <div className="text-amber-600">
-                      <p>Requisitos pendientes: {stripeConnection.account_details?.requirements?.currently_due?.length}</p>
-                      <Button
-                        variant="link"
-                        className="h-auto p-0 text-amber-600 hover:text-amber-700"
-                        onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
-                      >
-                        Completar requisitos →
-                      </Button>
-                    </div>
-                  )}
+              {stripeConnection ? (
+                <div className="space-y-3">
+                  <div className="space-y-1 text-sm">
+                    <p className="text-gray-600">
+                      Cuenta: {stripeConnection.stripe_account_email}
+                    </p>
+                    <p className="text-gray-600">
+                      Estado: {stripeConnection.account_status}
+                    </p>
+                    {hasPendingRequirements && (
+                      <div className="text-amber-600">
+                        <p>Requisitos pendientes: {stripeConnection.account_details?.requirements?.currently_due?.length}</p>
+                        <Button
+                          variant="link"
+                          className="h-auto p-0 text-amber-600 hover:text-amber-700"
+                          onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+                        >
+                          Completar requisitos →
+                        </Button>
+                      </div>
+                    )}
+                  </div>
 
                   <Button 
-                    className="mt-2 text-black font-medium p-0 h-auto"
                     variant="link"
-                    onClick={handleStripeDisconnect}
+                    className="h-auto p-0 text-gray-900 hover:text-gray-700 transition-colors"
+                    onClick={() => setShowDisconnectWarning(true)}
                   >
-                    Desconectar
+                    Desconectar cuenta
                   </Button>
                 </div>
+              ) : (
+                <Button 
+                  variant="link"
+                  className="h-auto p-0 text-gray-900 hover:text-gray-700 transition-colors"
+                  onClick={handleStripeConnect}
+                >
+                  Conectar con Stripe
+                </Button>
               )}
             </>
           )}
@@ -239,6 +266,12 @@ export function BillingSettings() {
           </div>
         </div>
       </div>
+
+      <StripeDisconnectWarning 
+        show={showDisconnectWarning}
+        onConfirm={handleStripeDisconnect}
+        onCancel={() => setShowDisconnectWarning(false)}
+      />
 
       <NewBankAccountModal 
         open={showBankModal}

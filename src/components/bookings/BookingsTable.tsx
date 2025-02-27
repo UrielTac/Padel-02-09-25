@@ -358,7 +358,7 @@ export function BookingsTable() {
         isOpen={showSimpleShiftModal}
         onClose={handleSimpleShiftModalClose}
         selection={selection}
-        onBookingCreated={refetch}
+        onBookingCreated={handleRefresh}
       />
 
       <ViewBookingModal

@@ -7,7 +7,7 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { usePackages } from "../hooks/usePackages"
 import type { Database } from "@/types/supabase"
-import { IconTrash, IconInfoCircle, IconEye, IconEyeOff } from "@tabler/icons-react"
+import { IconEye, IconEyeOff } from "@tabler/icons-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { NewPackageModal } from "../components/NewPackageModal/NewPackageModal"
 import { EditPackageModal } from "../components/NewPackageModal/EditPackageModal"
@@ -16,32 +16,50 @@ import Image from "next/image"
 
 const supabase = createSupabaseClient()
 
+type Package = Database['public']['Tables']['packages']['Row']
+type PackageStatus = 'active' | 'inactive' | 'archived'
+
 export function PackagesTable() {
   const [isNewPackageModalOpen, setIsNewPackageModalOpen] = useState(false)
-  const [editingPackage, setEditingPackage] = useState<Database['public']['Tables']['packages']['Row'] | null>(null)
+  const [editingPackage, setEditingPackage] = useState<Package | null>(null)
   const [popoverOpen, setPopoverOpen] = useState<Record<string, boolean>>({})
   
   const { 
     data: packages = [], 
     isLoading, 
-    error, 
-    updatePackageStatus,
+    error,
     refetch: refetchPackages 
   } = usePackages({
     enabled: true
   })
 
-  const handleDeletePackage = async (packageId: string) => {
+  const updatePackageStatus = async (packageId: string, newStatus: PackageStatus) => {
     try {
-      await updatePackageStatus(packageId, 'archived')
-      setPopoverOpen(prev => ({ ...prev, [packageId]: false }))
+      const { error } = await supabase
+        .from('packages')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', packageId)
+
+      if (error) throw error
+
+      toast.success(
+        newStatus === 'active' 
+          ? 'Paquete visible para los usuarios'
+          : 'Paquete oculto para los usuarios'
+      )
+
       await refetchPackages()
     } catch (error: any) {
-      // El error ya es manejado por updatePackageStatus
+      console.error('Error al actualizar el estado del paquete:', error)
+      toast.error('Error al actualizar el paquete')
+      throw error
     }
   }
 
-  const handlePackageClick = (packageItem: Database['public']['Tables']['packages']['Row']) => {
+  const handlePackageClick = (packageItem: Package) => {
     setEditingPackage(packageItem)
   }
 
@@ -104,17 +122,23 @@ export function PackagesTable() {
                     "bg-white hover:bg-gray-50",
                     "border border-gray-200 hover:border-gray-300",
                     "transition-all duration-200",
-                    "cursor-pointer"
+                    "cursor-pointer",
+                    packageItem.status === 'inactive' && "opacity-60"
                   )}
                   onClick={() => handlePackageClick(packageItem)}
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-md font-medium text-gray-800">{packageItem.name}</h4>
+                      <h4 className="text-md font-medium text-gray-800">
+                        {packageItem.name}
+                      </h4>
                       {packageItem.tag && (
                         <span className="text-xs text-blue-800">
                           {packageItem.tag}
                         </span>
+                      )}
+                      {packageItem.status === 'inactive' && (
+                        <span className="text-xs text-gray-500">(Oculto)</span>
                       )}
                     </div>
                     <p className="text-xs text-gray-600">
@@ -128,21 +152,37 @@ export function PackagesTable() {
                     <Popover 
                       open={popoverOpen[packageItem.id]} 
                       onOpenChange={(open) => {
-                        if (!open) setPopoverOpen(prev => ({ ...prev, [packageItem.id]: false }))
+                        setPopoverOpen(prev => ({ ...prev, [packageItem.id]: open }))
                       }}
                     >
                       <PopoverTrigger asChild>
                         <button
-                          className="p-1.5 text-gray-500 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors"
+                          className={cn(
+                            "p-1.5 rounded-md transition-colors",
+                            packageItem.status === 'active'
+                              ? "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                              : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                          )}
                         >
-                          <IconEye className="w-4 h-4" />
-                          <span className="sr-only">{packageItem.isActive ? 'Ocultar paquete' : 'Mostrar paquete'}</span>
+                          {packageItem.status === 'active' ? (
+                            <IconEye className="w-4 h-4" />
+                          ) : (
+                            <IconEyeOff className="w-4 h-4" />
+                          )}
+                          <span className="sr-only">
+                            {packageItem.status === 'active' ? 'Ocultar paquete' : 'Mostrar paquete'}
+                          </span>
                         </button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-3" align="end">
                         <div className="text-sm">
-                          <p>¿Desea {packageItem.isActive ? 'ocultar' : 'mostrar'} este paquete?</p>
-                          <p className="text-gray-500 text-xs mt-1">{packageItem.isActive ? 'El paquete no será visible para nuevos usuarios.' : 'El paquete volverá a estar visible para los usuarios.'}</p>
+                          <p>¿Desea {packageItem.status === 'active' ? 'ocultar' : 'mostrar'} este paquete?</p>
+                          <p className="text-gray-500 text-xs mt-1">
+                            {packageItem.status === 'active' 
+                              ? 'El paquete no será visible para nuevos usuarios.' 
+                              : 'El paquete volverá a estar visible para los usuarios.'
+                            }
+                          </p>
                           <div className="flex justify-end gap-2 mt-2">
                             <Button
                               variant="ghost"
@@ -151,7 +191,7 @@ export function PackagesTable() {
                                 try {
                                   await updatePackageStatus(
                                     packageItem.id, 
-                                    packageItem.isActive ? 'inactive' : 'active'
+                                    packageItem.status === 'active' ? 'inactive' : 'active'
                                   )
                                   setPopoverOpen(prev => ({ ...prev, [packageItem.id]: false }))
                                 } catch (error: any) {

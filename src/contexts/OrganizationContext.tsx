@@ -5,11 +5,17 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createSupabaseClient } from '@/lib/supabase'
 import type { Database } from '@/types/supabase'
 
+type PlanType = 'FREE' | 'PRO';
+
 type Organization = {
   id: string;
   name: string;
   business_name: string | null;
   auth_user_id: string;
+  email: string | null;
+  phone: string | null;
+  country: string | null;
+  plan_type: PlanType;
 }
 
 // Definir el tipo para el estado de la cuenta Stripe
@@ -37,12 +43,7 @@ interface StripeConnectionRow {
 }
 
 interface OrganizationContextType {
-  organization: {
-    id: string;
-    name: string;
-    business_name: string | null;
-    auth_user_id: string;
-  } | null;
+  organization: Organization | null;
   stripeConnection: {
     stripe_account_id: string;
     charges_enabled: boolean;
@@ -133,14 +134,26 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
       const { data: org, error: orgError } = await supabase
         .from('empresas')
-        .select('id, name, business_name, auth_user_id')
+        .select('id, name, business_name, auth_user_id, email, phone, country, plan_type')
         .eq('id', empresaId)
         .single();
 
       if (orgError) throw orgError;
       if (!org) throw new Error('No se encontró la empresa');
 
-      setOrganization(org);
+      // Asegurarnos de que todos los campos requeridos estén presentes
+      const organizationData: Organization = {
+        id: org.id,
+        name: org.name,
+        business_name: org.business_name,
+        auth_user_id: org.auth_user_id || '',
+        email: org.email,
+        phone: org.phone,
+        country: org.country,
+        plan_type: (org.plan_type || 'FREE') as PlanType
+      };
+
+      setOrganization(organizationData);
       setError(null);
       setIsLoading(false);
       updateLastOrganizationCheck();

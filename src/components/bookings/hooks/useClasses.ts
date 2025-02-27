@@ -6,6 +6,7 @@ import type { Database } from '@/types/supabase'
 import { useCurrentEmpresa } from '@/hooks/useCurrentEmpresa'
 import { queryKeys } from '@/config/query-keys'
 import { keepPreviousData } from '@tanstack/react-query'
+import { useCallback } from 'react'
 
 interface UseClassesProps {
   branchId?: string
@@ -128,11 +129,36 @@ export function useClasses({ branchId }: UseClassesProps = {}) {
     gcTime: 1000 * 60 * 30, // 30 minutos
   })
 
+  // Función para actualizar el caché después de crear/editar una clase
+  const updateClassesCache = useCallback((newClass: ClassWithLink) => {
+    if (!empresa?.id) return
+
+    queryClient.setQueryData<ClassWithLink[]>(
+      queryKeys.classes.list({ branchId, empresaId: empresa.id }),
+      old => {
+        if (!old) return [newClass]
+        // Si la clase ya existe, la actualizamos, si no, la agregamos al inicio
+        const exists = old.some(c => c.id === newClass.id)
+        if (exists) {
+          return old.map(c => c.id === newClass.id ? newClass : c)
+        }
+        return [newClass, ...old]
+      }
+    )
+  }, [empresa?.id, branchId, queryClient])
+
+  // Función para invalidar y refrescar los datos
+  const invalidateClasses = useCallback(async () => {
+    if (!empresa?.id) return
+    await queryClient.invalidateQueries({
+      queryKey: queryKeys.classes.list({ empresaId: empresa.id })
+    })
+  }, [empresa?.id, queryClient])
+
   // Prefetch de la siguiente página o datos relacionados
   const prefetchRelatedData = async () => {
     if (!empresa?.id) return
 
-    // Ejemplo: Prefetch de todas las clases si estamos viendo una sede específica
     if (branchId) {
       await queryClient.prefetchQuery({
         queryKey: queryKeys.classes.list({ empresaId: empresa.id }),
@@ -145,5 +171,7 @@ export function useClasses({ branchId }: UseClassesProps = {}) {
     ...query,
     prefetchRelatedData,
     data: query.data || [],
+    updateClassesCache,
+    invalidateClasses
   }
 } 

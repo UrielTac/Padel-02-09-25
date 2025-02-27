@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/supabase'
+import { cookies } from 'next/headers'
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 
 // Cliente normal para empresas
 const supabase = createClient<Database>(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: false
+    }
+  }
 )
 
 // Cliente con service role para stripe_connections
@@ -23,113 +30,84 @@ const serviceClient = createClient<Database>(
   }
 )
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const defaultUserId = process.env.NEXT_PUBLIC_DEFAULT_USER_ID;
-    if (!defaultUserId) {
-      console.error('❌ NEXT_PUBLIC_DEFAULT_USER_ID no está definido');
-      return NextResponse.json(
-        { error: 'Configuración de usuario no válida' },
-        { status: 400 }
-      );
+    console.log('📍 Verificando estado de conexión Stripe')
+
+    // Crear cliente de Supabase con el contexto de la solicitud
+    const supabase = createRouteHandlerClient<Database>({ cookies })
+
+    // Obtener la sesión actual
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+    if (sessionError || !session) {
+      console.error('❌ No se encontró sesión activa:', sessionError)
+      return NextResponse.json({ 
+        connected: false,
+        error: 'No autenticado'
+      })
     }
 
-    console.log('📍 Verificando conexión de Stripe para usuario:', defaultUserId);
+    const userId = session.user.id
 
-    // Primero obtenemos la empresa del usuario
+    // Obtener la empresa del usuario actual
     const { data: empresa, error: empresaError } = await supabase
       .from('empresas')
-      .select('id, name, auth_user_id')
-      .eq('auth_user_id', defaultUserId)
-      .single();
+      .select('id')
+      .eq('auth_user_id', userId)
+      .single()
 
-    if (empresaError) {
-      console.error('❌ Error al consultar la empresa:', empresaError);
-      return NextResponse.json(
-        { error: 'Empresa no encontrada' },
-        { status: 404 }
-      );
+    if (empresaError || !empresa) {
+      console.error('❌ Error al obtener la empresa:', empresaError)
+      return NextResponse.json({ 
+        connected: false,
+        error: 'Empresa no encontrada'
+      })
     }
 
-    if (!empresa) {
-      console.error('❌ No se encontró empresa para el usuario:', defaultUserId);
-      return NextResponse.json(
-        { error: 'Empresa no encontrada para el usuario' },
-        { status: 404 }
-      );
-    }
+    console.log('✅ Empresa encontrada:', empresa.id)
 
-    console.log('✅ Empresa encontrada:', {
-      id: empresa.id,
-      name: empresa.name,
-      auth_user_id: empresa.auth_user_id
-    });
-
-    // Consulta SQL directa para debug
-    const { data: rawConnections, error: rawError } = await serviceClient
+    // Buscar la conexión de Stripe para esta empresa
+    const { data: connection, error: connectionError } = await supabase
       .from('stripe_connections')
       .select('*')
-      .eq('empresa_id', empresa.id);
+      .eq('empresa_id', empresa.id)
+      .single()
 
-    console.log('🔍 Debug SQL:', {
-      sql: `SELECT * FROM stripe_connections WHERE empresa_id = '${empresa.id}'`,
-      raw_result: rawConnections,
-      raw_error: rawError
-    });
-
-    // Consulta principal
-    const { data: stripeConnections, error: stripeError } = await serviceClient
-      .from('stripe_connections')
-      .select('*')
-      .eq('empresa_id', empresa.id);
-
-    // Debug detallado
-    console.log('🔍 Debug de conexión Stripe:', {
-      empresa_id: empresa.id,
-      empresa_id_length: empresa.id?.length,
-      empresa_id_type: typeof empresa.id,
-      found_connections: stripeConnections?.length || 0,
-      error: stripeError,
-      service_role_key_length: process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0
-    });
-
-    if (stripeError) {
-      console.error('❌ Error al consultar stripe_connections:', stripeError);
-      return NextResponse.json(
-        { error: 'Error al verificar la conexión con Stripe' },
-        { status: 500 }
-      );
+    if (connectionError) {
+      console.error('❌ Error al verificar la conexión:', connectionError)
+      return NextResponse.json({ 
+        connected: false,
+        error: 'Error al verificar la conexión'
+      })
     }
 
-    if (!stripeConnections?.length) {
-      console.log('❌ No se encontró conexión de Stripe para la empresa:', empresa.id);
-      return NextResponse.json({
-        stripeAccountId: null,
-        isConnected: false,
-        reason: 'no_connection_found'
-      });
+    // Si no hay conexión
+    if (!connection) {
+      console.log('ℹ️ No se encontró conexión de Stripe para la empresa:', empresa.id)
+      return NextResponse.json({ 
+        connected: false 
+      })
     }
 
-    const stripeConnection = stripeConnections[0];
-    console.log('✅ Conexión Stripe encontrada:', {
-      id: stripeConnection.id,
-      stripeAccountId: stripeConnection.stripe_account_id,
-      chargesEnabled: stripeConnection.charges_enabled,
-      accountStatus: stripeConnection.account_status
-    });
+    console.log('✅ Conexión encontrada para la empresa:', empresa.id)
 
-    const response = {
-      stripeAccountId: stripeConnection.stripe_account_id,
-      isConnected: Boolean(stripeConnection.stripe_account_id && stripeConnection.charges_enabled),
-      accountStatus: stripeConnection.account_status
-    };
+    // Retornar el estado de la conexión
+    return NextResponse.json({
+      connected: true,
+      email: connection.stripe_account_email,
+      accountId: connection.stripe_account_id,
+      status: connection.account_status,
+      charges_enabled: connection.charges_enabled,
+      payouts_enabled: connection.payouts_enabled,
+      requirements: connection.requirements
+    })
 
-    return NextResponse.json(response);
   } catch (error) {
-    console.error('❌ Error general al obtener el estado de la conexión:', error);
-    return NextResponse.json(
-      { error: 'Error al verificar la conexión con Stripe' },
-      { status: 500 }
-    );
+    console.error('❌ Error general al verificar conexión:', error)
+    return NextResponse.json({ 
+      connected: false,
+      error: 'Error interno del servidor'
+    })
   }
 } 

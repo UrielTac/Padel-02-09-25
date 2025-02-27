@@ -30,6 +30,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useRentalContext } from "@/contexts/RentalContext"
 import { useBookingCount } from '@/hooks/useBookingCount'
 import NoCredits from "./components/SimpleShift/noCredits"
+import { CongratsStep } from './components/SimpleShift/CongratsStep'
+import { ConfirmationStep } from './components/SimpleShift/ConfirmationStep'
 
 interface TimeSelection {
   startTime: string
@@ -81,12 +83,14 @@ interface SimpleShiftBookingModalProps {
   isOpen: boolean
   onClose: () => void
   selection: Selection
+  onBookingCreated?: () => void
 }
 
 export function SimpleShiftBookingModal({ 
   isOpen, 
   onClose,
-  selection
+  selection,
+  onBookingCreated
 }: SimpleShiftBookingModalProps) {
   const queryClient = useQueryClient()
   const [mounted, setMounted] = useState(false)
@@ -121,7 +125,7 @@ export function SimpleShiftBookingModal({
   const { canMakeBooking } = useBookingCount({ 
     empresaId: organization?.id || '', 
     date: selectedDate?.toISOString().split('T')[0] || '',
-    enabled: !!organization?.id && !!selectedDate
+    enabled: !!organization?.id && !!selectedDate && isOpen
   })
 
   const {
@@ -139,6 +143,8 @@ export function SimpleShiftBookingModal({
     disableTypeSelection: true,
     initialStep: 'participants'
   })
+
+  const [isBookingCreated, setIsBookingCreated] = useState(false);
 
   useEffect(() => {
     setMounted(true)
@@ -188,27 +194,6 @@ export function SimpleShiftBookingModal({
     }
   }, [currentStep, participants.length])
 
-  // Efecto para reset cuando se cierra el modal
-  useEffect(() => {
-    let isMounted = true;
-
-    if (!isOpen && isMounted) {
-      // Usar un timeout para asegurar que el reset ocurra después de la animación
-      const timeoutId = setTimeout(() => {
-        if (isMounted) {
-          resetState();
-          setParticipants([]);
-          setIsStepValid(false);
-        }
-      }, 300); // Tiempo de la animación de cierre
-
-      return () => {
-        clearTimeout(timeoutId);
-        isMounted = false;
-      };
-    }
-  }, [isOpen, resetState]);
-
   // Memoizar cálculos de precios
   const calculatedPrices = useMemo(() => {
     if (!selection || !courts.length) return { courtPrice: 0, rentalPrice: rentalItemsPrice, total: 0 };
@@ -228,56 +213,6 @@ export function SimpleShiftBookingModal({
       total
     };
   }, [selection, courts, rentalItemsPrice]);
-
-  // Efecto optimizado para actualizar payment details
-  useEffect(() => {
-    if (!selection) return;
-
-    const { total: newTotal } = calculatedPrices;
-    if (Math.abs(newTotal - paymentDetails.totalAmount) <= 0.01) return;
-
-    let newDeposit = paymentDetails.deposit;
-    if (paymentDetails.paymentStatus === 'completed') {
-      newDeposit = newTotal;
-    } else if (paymentDetails.deposit === 0 || paymentDetails.deposit > newTotal) {
-      newDeposit = Math.ceil(newTotal * 0.3);
-    }
-
-    const newPaymentDetails: PaymentDetails = {
-      ...paymentDetails,
-      totalAmount: newTotal,
-      deposit: newDeposit,
-      courtPrice: calculatedPrices.courtPrice,
-      rentalItemsPrice: calculatedPrices.rentalPrice
-    };
-
-    setPaymentDetails(newPaymentDetails);
-  }, [selection, calculatedPrices, paymentDetails]);
-
-  // Efecto para confirmar la reserva
-  useEffect(() => {
-    if (currentStep === 'confirmation' && !isProcessing && selection && selectedDate && timeSelection) {
-      setIsProcessing(true)
-      handleConfirmBooking()
-        .catch(error => {
-          console.error('Error al confirmar la reserva:', error)
-          toast.error(error.message || 'Error al crear la reserva')
-        })
-        .finally(() => {
-          setIsProcessing(false)
-        })
-    }
-  }, [currentStep, isProcessing, selection, selectedDate, timeSelection])
-
-  // Función para calcular el precio total de los rentals
-  const calculateRentalTotalPrice = useCallback((rentals: RentalSelection[]) => {
-    const total = rentals.reduce((total, rental) => {
-      if (!rental.quantity || !rental.pricePerUnit) return total
-      return total + (rental.quantity * rental.pricePerUnit)
-    }, 0)
-    console.log('Calculando precio total de rentals:', { rentals, total })
-    return total
-  }, [])
 
   const handleConfirmBooking = useCallback(async () => {
     if (!selection || !selectedDate || !timeSelection) {
@@ -324,13 +259,69 @@ export function SimpleShiftBookingModal({
       });
       
       toast.success('Reserva creada exitosamente');
-      onClose();
+      onBookingCreated?.();
     } catch (error: any) {
       console.error('Error al crear la reserva:', error);
       toast.error(error.message || 'Error al crear la reserva');
       handleBack();
     }
-  }, [selection, selectedDate, timeSelection, calculatedPrices, paymentDetails, participants, rentals, selectedCourts, currentBranch?.id, organization?.id]);
+  }, [selection, selectedDate, timeSelection, calculatedPrices, paymentDetails, participants, rentals, selectedCourts, currentBranch?.id, organization?.id, onBookingCreated]);
+
+  // Efecto para reset cuando se cierra el modal
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isOpen && isMounted) {
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          resetState();
+          setParticipants([]);
+          setIsStepValid(false);
+          setIsBookingCreated(false); // Reset el estado de creación
+        }
+      }, 300);
+
+      return () => {
+        clearTimeout(timeoutId);
+        isMounted = false;
+      };
+    }
+  }, [isOpen, resetState]);
+
+  // Efecto optimizado para actualizar payment details
+  useEffect(() => {
+    if (!selection) return;
+
+    const { total: newTotal } = calculatedPrices;
+    if (Math.abs(newTotal - paymentDetails.totalAmount) <= 0.01) return;
+
+    let newDeposit = paymentDetails.deposit;
+    if (paymentDetails.paymentStatus === 'completed') {
+      newDeposit = newTotal;
+    } else if (paymentDetails.deposit === 0 || paymentDetails.deposit > newTotal) {
+      newDeposit = Math.ceil(newTotal * 0.3);
+    }
+
+    const newPaymentDetails: PaymentDetails = {
+      ...paymentDetails,
+      totalAmount: newTotal,
+      deposit: newDeposit,
+      courtPrice: calculatedPrices.courtPrice,
+      rentalItemsPrice: calculatedPrices.rentalPrice
+    };
+
+    setPaymentDetails(newPaymentDetails);
+  }, [selection, calculatedPrices, paymentDetails]);
+
+  // Función para calcular el precio total de los rentals
+  const calculateRentalTotalPrice = useCallback((rentals: RentalSelection[]) => {
+    const total = rentals.reduce((total, rental) => {
+      if (!rental.quantity || !rental.pricePerUnit) return total
+      return total + (rental.quantity * rental.pricePerUnit)
+    }, 0)
+    console.log('Calculando precio total de rentals:', { rentals, total })
+    return total
+  }, [])
 
   const handleBackAction = () => {
     if (currentStep === 'participants') {
@@ -342,10 +333,23 @@ export function SimpleShiftBookingModal({
 
   const handleContinueAction = async () => {
     if (currentStep === 'confirmation') {
-      // Solo cerramos el modal cuando el usuario hace clic en Aceptar
-      onClose()
+      if (!isProcessing && !isBookingCreated) {
+        setIsProcessing(true);
+        try {
+          await handleConfirmBooking();
+          setIsBookingCreated(true);
+          setCurrentStep('congrats'); // Cambiamos al paso de felicitación
+        } catch (error) {
+          console.error('Error al confirmar la reserva:', error);
+          toast.error((error as Error).message || 'Error al crear la reserva');
+        } finally {
+          setIsProcessing(false);
+        }
+      }
+    } else if (currentStep === 'congrats') {
+      onClose(); // Cerrar el modal en el paso de felicitación
     } else {
-      handleContinue()
+      handleContinue();
     }
   }
 
@@ -366,7 +370,7 @@ export function SimpleShiftBookingModal({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+              className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
             />
             <motion.div
               initial={{ x: "100%", opacity: 0.5 }}
@@ -408,7 +412,7 @@ export function SimpleShiftBookingModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
           />
           <motion.div
             initial={{ x: "100%", opacity: 0.5 }}
@@ -433,22 +437,51 @@ export function SimpleShiftBookingModal({
               <ModalHeader 
                 currentStep={currentStep}
                 selectedBookingType="simple_shift"
+                show={currentStep !== 'congrats'}
               />
 
               <div className="flex-1 overflow-y-auto">
-                <SimpleShiftBooking
-                  currentStep={currentStep}
-                  selectedCourts={selectedCourts}
-                  timeSelection={timeSelection}
-                  onCourtSelect={setSelectedCourts}
-                  onTimeSelect={setTimeSelection}
-                  onValidationChange={setIsStepValid}
-                  onPaymentChange={setPaymentDetails}
-                  onParticipantChange={setParticipants}
-                  participants={participants}
-                  startTime={timeSelection?.startTime}
-                  endTime={timeSelection?.endTime}
-                />
+                {currentStep === 'congrats' ? (
+                  <CongratsStep
+                    selectedDate={selectedDate || new Date()}
+                    selectedCourts={selectedCourts}
+                    courts={courts}
+                    totalAmount={calculatedPrices.total}
+                    rentals={rentals}
+                  />
+                ) : currentStep === 'confirmation' ? (
+                  <ConfirmationStep
+                    selectedDate={selectedDate || new Date()}
+                    selectedCourts={selectedCourts}
+                    courts={courts}
+                    timeSelection={timeSelection || { startTime: '', endTime: '' }}
+                    participants={participants}
+                    rentals={rentals}
+                    paymentDetails={{
+                      totalAmount: calculatedPrices.total,
+                      deposit: paymentDetails.deposit,
+                      courtPrice: calculatedPrices.courtPrice,
+                      rentalItemsPrice: calculatedPrices.rentalPrice,
+                      paymentStatus: paymentDetails.paymentStatus,
+                      paymentMethod: paymentDetails.paymentMethod,
+                      isPaid: paymentDetails.isPaid,
+                      manualPrice: paymentDetails.manualPrice
+                    }}
+                    items={items}
+                  />
+                ) : (
+                  <SimpleShiftBooking
+                    currentStep={currentStep}
+                    selectedCourts={selectedCourts}
+                    timeSelection={timeSelection}
+                    onCourtSelect={setSelectedCourts}
+                    onTimeSelect={setTimeSelection}
+                    onValidationChange={setIsStepValid}
+                    onPaymentChange={setPaymentDetails}
+                    onParticipantChange={setParticipants}
+                    participants={participants}
+                  />
+                )}
               </div>
 
               <ModalFooter
@@ -456,6 +489,13 @@ export function SimpleShiftBookingModal({
                 onBack={handleBackAction}
                 onContinue={handleContinueAction}
                 isValid={isStepValid}
+                continueText={
+                  currentStep === 'confirmation' ? 'Crear Reserva' : 
+                  currentStep === 'congrats' ? 'Cerrar' : 
+                  'Continuar'
+                }
+                isSubmitting={isProcessing}
+                show={currentStep !== 'congrats'}
               />
             </div>
           </motion.div>

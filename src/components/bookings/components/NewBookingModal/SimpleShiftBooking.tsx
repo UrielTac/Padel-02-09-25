@@ -5,6 +5,7 @@ import { ParticipantStep } from "./components/SimpleShift/ParticipantStep"
 import { RentalStep } from "./components/SimpleShift/RentalStep"
 import { PaymentStep } from "./components/SimpleShift/PaymentStep"
 import { ConfirmationStep } from "./components/SimpleShift/ConfirmationStep"
+import { CongratsStep } from "./components/SimpleShift/CongratsStep"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import type { TimeSelection, Participant } from "./types"
@@ -164,12 +165,12 @@ export function SimpleShiftBooking({
         return <NoCredits />
       case 'participants':
         return (
-          <div className="space-y-6">
+          <div className="space-y-10">
             {/* Resumen de la reserva */}
-            <div className="bg-white rounded-lg overflow-hidden border border-gray-200">
+            <div>
               <button
                 onClick={() => setIsDetailsOpen(prev => !prev)}
-                className="w-full px-5 py-3.5 flex items-center justify-between bg-white transition-colors duration-200"
+                className="w-full text-left flex items-center justify-between transition-colors duration-200"
               >
                 <div>
                   <h3 className="text-sm font-medium text-gray-800 tracking-[-0.01em]">
@@ -198,16 +199,16 @@ export function SimpleShiftBooking({
                       duration: 0.2,
                       ease: [0.4, 0, 0.2, 1]
                     }}
-                    className="overflow-hidden border-t border-gray-100"
+                    className="overflow-hidden"
                   >
-                    <div className="divide-y divide-gray-100">
+                    <div className="space-y-3 mt-4">
                       {/* Horario */}
-                      <div className="px-5 py-3 flex justify-between items-center bg-white">
+                      <div className="flex justify-between items-center">
                         <span className="text-xs font-medium text-gray-500 tracking-[-0.01em]">
                           Horario
                         </span>
                         <div className="flex items-center">
-                          <span className="px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-700 rounded border border-gray-200/75 tracking-[-0.01em]">
+                          <span className="text-xs font-medium text-gray-700 tracking-[-0.01em]">
                             {timeSelection?.startTime} - {timeSelection?.endTime}
                             <span className="text-gray-400 ml-1">
                               ({formatDuration(timeSelection?.duration)})
@@ -217,7 +218,7 @@ export function SimpleShiftBooking({
                       </div>
 
                       {/* Pistas */}
-                      <div className="px-5 py-3 flex justify-between items-center bg-white">
+                      <div className="flex justify-between items-center">
                         <span className="text-xs font-medium text-gray-500 tracking-[-0.01em]">
                           {selectedCourts.length > 1 ? 'Pistas seleccionadas' : 'Pista seleccionada'}
                         </span>
@@ -227,7 +228,7 @@ export function SimpleShiftBooking({
                             return (
                               <span 
                                 key={courtId}
-                                className="px-2 py-0.5 text-[11px] font-medium bg-gray-50 text-gray-700 rounded border border-gray-200/75 tracking-[-0.01em]"
+                                className="text-xs font-medium text-gray-700 tracking-[-0.01em]"
                               >
                                 {court?.name || `Pista ${index + 1}`}
                               </span>
@@ -239,6 +240,11 @@ export function SimpleShiftBooking({
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* Línea divisora sutil */}
+            <div className="flex justify-center">
+              <div className="w-16 h-px bg-gray-200/75" />
             </div>
             
             <ParticipantStep
@@ -280,6 +286,16 @@ export function SimpleShiftBooking({
             totalAmount={total}
             rentals={rentals}
             sampleRentalItems={[]}
+          />
+        )
+      case 'congrats':
+        return (
+          <CongratsStep
+            selectedDate={selectedDate || new Date()}
+            selectedCourts={selectedCourts}
+            courts={courts}
+            totalAmount={total}
+            rentals={rentals}
           />
         )
       default:

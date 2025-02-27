@@ -143,7 +143,7 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
   const [hasCheckedVinculacion, setHasCheckedVinculacion] = useState(false)
 
   // Verificar créditos disponibles
-  const { canMakeBooking, remainingBookings, isPro } = useBookingCount({ 
+  const { canMakeBooking, remainingBookings, isPro, isLoading: isLoadingBookingCount } = useBookingCount({ 
     empresaId: organization?.id || '', 
     date: new Date().toISOString().split('T')[0],
     enabled: !!organization?.id
@@ -184,14 +184,9 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
     setHasCheckedVinculacion(false)
   }, [user?.id, organization?.id])
 
-  // Memoizamos el valor de isLoading
-  const isLoading = useMemo(() => {
-    return isLoadingAuth || (orgLoading && !organization) || isCheckingVinculacion
-  }, [isLoadingAuth, orgLoading, organization, isCheckingVinculacion])
-
   // Modificamos el efecto de inicialización para mantener el paso inicial
   useEffect(() => {
-    if (!isLoadingAuth && !hasInitialized) {
+    if (!isLoadingAuth && !isLoadingBookingCount && !hasInitialized) {
       // Actualizamos el estado de autenticación
       dispatch({
         type: 'SET_AUTH_STATUS',
@@ -203,42 +198,49 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
 
       // Solo cambiamos el paso si el usuario está autenticado
       if (user) {
-        // Si es PRO, siempre permitimos el acceso
-        // Si es FREE, verificamos los créditos disponibles
-        if (!isPro && remainingBookings <= 0) {
-          dispatch({ type: 'SET_STEP', payload: 'noCredits' })
-        } else {
+        // Si es PRO o tiene créditos disponibles, permitimos el acceso
+        if (isPro || remainingBookings > 0) {
           // Iniciamos en el paso de paquetes por defecto
           dispatch({ type: 'SET_STEP', payload: 'package' })
+        } else {
+          // Solo mostramos noCredits si NO es PRO y NO tiene créditos
+          dispatch({ type: 'SET_STEP', payload: 'noCredits' })
         }
       }
       
       setHasInitialized(true)
     }
-  }, [isLoadingAuth, user, hasInitialized, isPro, remainingBookings])
+  }, [isLoadingAuth, isLoadingBookingCount, user, hasInitialized, isPro, remainingBookings])
 
   // Efecto para mantener el estado cuando cambiamos de URL
   useEffect(() => {
-    if (organization && !isLoading && hasInitialized) {
-      // Si es PRO, permitimos el acceso
-      // Si es FREE, verificamos los créditos
-      if (!isPro && remainingBookings <= 0) {
+    if (organization && !isLoadingAuth && !isLoadingBookingCount && hasInitialized) {
+      // Si es PRO o tiene créditos disponibles, permitimos el acceso
+      if (isPro || remainingBookings > 0) {
+        if (state.step === 'auth' && state.isAuthenticated) {
+          dispatch({ type: 'SET_STEP', payload: 'class' })
+        }
+      } else {
+        // Solo mostramos noCredits si NO es PRO y NO tiene créditos
         dispatch({ type: 'SET_STEP', payload: 'noCredits' })
-      } else if (state.step === 'auth' && state.isAuthenticated) {
-        dispatch({ type: 'SET_STEP', payload: 'class' })
       }
     }
-  }, [organization, isLoading, state.step, state.isAuthenticated, hasInitialized, isPro, remainingBookings])
+  }, [organization, isLoadingAuth, isLoadingBookingCount, state.step, state.isAuthenticated, hasInitialized, isPro, remainingBookings])
 
-  // Agregamos un efecto para manejar cambios en el estado PRO
+  // Agregamos un efecto para manejar cambios en el estado PRO o créditos
   useEffect(() => {
-    if (hasInitialized && organization) {
-      // Si la empresa se convierte en PRO, salimos del paso noCredits
-      if (isPro && state.step === 'noCredits') {
+    if (hasInitialized && organization && !isLoadingBookingCount) {
+      // Si la empresa se convierte en PRO o recupera créditos, salimos del paso noCredits
+      if ((isPro || remainingBookings > 0) && state.step === 'noCredits') {
         dispatch({ type: 'SET_STEP', payload: 'package' })
       }
     }
-  }, [isPro, hasInitialized, organization, state.step])
+  }, [isPro, remainingBookings, hasInitialized, organization, state.step, isLoadingBookingCount])
+
+  // Memoizamos el valor de isLoading
+  const isLoadingValue = useMemo(() => {
+    return isLoadingAuth || (orgLoading && !organization) || isCheckingVinculacion || isLoadingBookingCount
+  }, [isLoadingAuth, orgLoading, organization, isCheckingVinculacion, isLoadingBookingCount])
 
   const setAuthView = useCallback((view: AuthView) => {
     dispatch({ type: 'SET_AUTH_VIEW', payload: view })
@@ -301,7 +303,7 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
     state,
     dispatch,
     organization,
-    isLoading,
+    isLoading: isLoadingValue,
     setAuthView,
     goToStep,
     selectClass,
@@ -309,7 +311,7 @@ function ClientSideProvider({ children, empresaId }: ClassRegistrationProviderPr
     deselectSession,
     empresaId,
     user
-  }), [state, organization, isLoading, setAuthView, goToStep, selectClass, selectSession, deselectSession, empresaId, user])
+  }), [state, organization, isLoadingValue, setAuthView, goToStep, selectClass, selectSession, deselectSession, empresaId, user])
 
   // Solo renderizamos el contenido cuando la inicialización está completa
   if (!hasInitialized || isLoadingAuth) {

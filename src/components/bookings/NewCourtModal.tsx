@@ -195,7 +195,7 @@ export function NewCourtModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
             transition={{ 
               duration: 0.3,
               ease: "easeInOut"

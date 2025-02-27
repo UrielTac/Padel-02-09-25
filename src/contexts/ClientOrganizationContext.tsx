@@ -13,7 +13,48 @@ interface ClientOrganizationContextType {
   error: Error | null
 }
 
+interface CompanyLink {
+  empresa_id: string
+}
+
 const ClientOrganizationContext = createContext<ClientOrganizationContextType | undefined>(undefined)
+
+// Clave para el caché del link de empresa
+const COMPANY_LINK_CACHE_KEY = 'company_link_cache'
+const COMPANY_LINK_CACHE_DURATION = 1000 * 60 * 60 // 1 hora
+
+// Funciones de caché para el link de empresa
+function getCachedCompanyLink(empresaId: string): CompanyLink | null {
+  try {
+    const cache = localStorage.getItem(COMPANY_LINK_CACHE_KEY)
+    if (!cache) return null
+
+    const { data, timestamp, id } = JSON.parse(cache)
+    const isExpired = Date.now() - timestamp > COMPANY_LINK_CACHE_DURATION
+    
+    if (isExpired || id !== empresaId) {
+      localStorage.removeItem(COMPANY_LINK_CACHE_KEY)
+      return null
+    }
+
+    return data as CompanyLink
+  } catch {
+    return null
+  }
+}
+
+function setCachedCompanyLink(empresaId: string, data: CompanyLink) {
+  try {
+    const cache = {
+      data,
+      timestamp: Date.now(),
+      id: empresaId
+    }
+    localStorage.setItem(COMPANY_LINK_CACHE_KEY, JSON.stringify(cache))
+  } catch {
+    // Si hay error al guardar en caché, simplemente lo ignoramos
+  }
+}
 
 export function ClientOrganizationProvider({ children, empresaId }: { children: React.ReactNode, empresaId?: string }) {
   const supabase = createSupabaseClient()
@@ -21,9 +62,16 @@ export function ClientOrganizationProvider({ children, empresaId }: { children: 
   // Primero, buscar el empresa_id usando el slug
   const { data: companyLink, isLoading: isLoadingLink, error: linkError } = useQuery({
     queryKey: ['companyLink', empresaId],
-    queryFn: async () => {
+    queryFn: async (): Promise<CompanyLink | null> => {
       try {
         if (!empresaId) return null
+
+        // Intentar obtener del caché primero
+        const cachedLink = getCachedCompanyLink(empresaId)
+        if (cachedLink) {
+          console.log('✅ Link encontrado en caché:', cachedLink)
+          return cachedLink
+        }
 
         console.log('🔍 Buscando link de empresa con slug:', empresaId)
         const { data: link, error: linkError } = await supabase
@@ -33,20 +81,33 @@ export function ClientOrganizationProvider({ children, empresaId }: { children: 
           .eq('is_active', true)
           .single()
 
-        if (linkError) throw linkError
+        if (linkError) {
+          // Solo logueamos errores que no sean de "no resultados"
+          if (linkError.code !== 'PGRST116') {
+            console.error('❌ Error al buscar link:', linkError)
+          }
+          throw linkError
+        }
         
         if (!link) {
           throw new Error('No se encontró el link de la empresa')
         }
 
-        console.log('✅ Link encontrado:', link)
+        // Guardar en caché
+        setCachedCompanyLink(empresaId, link)
+        console.log('✅ Link encontrado y cacheado:', link)
         return link
       } catch (error) {
-        console.error('❌ Error al buscar link:', error)
+        // Solo logueamos errores que no sean de "no resultados"
+        if ((error as any)?.code !== 'PGRST116') {
+          console.error('❌ Error al buscar link:', error)
+        }
         throw error
       }
     },
-    enabled: !!empresaId
+    enabled: !!empresaId,
+    gcTime: COMPANY_LINK_CACHE_DURATION, // Tiempo de caché para garbage collection
+    staleTime: COMPANY_LINK_CACHE_DURATION // Tiempo antes de considerar los datos obsoletos
   })
 
   // Luego, buscar la información de la empresa usando el empresa_id

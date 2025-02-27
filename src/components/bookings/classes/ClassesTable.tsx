@@ -117,19 +117,6 @@ export function ClassesTable() {
       <div className="space-y-6 bg-transparent p-4 rounded-lg shadow-sm">
         {/* Header de Clases */}
         <div className="flex items-start gap-4">
-          {/* Imagen decorativa */}
-          <div className="relative w-24 h-24">
-            <Image
-              src="/images/Miroodles - No credits.png"
-              alt="Decorative Miroodles"
-              layout="responsive"
-              width={96}
-              height={96}
-              className="object-contain"
-              priority
-            />
-          </div>
-
           <div className="flex-1 space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

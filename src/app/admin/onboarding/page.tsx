@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { OnboardingProvider } from './context/OnboardingContext'
 import { OnboardingSteps } from './components/OnboardingSteps'
 import { StepsList } from './components/StepsList'
 import { FAQDialog } from './components/FAQ'
@@ -53,52 +52,50 @@ export default function OnboardingPage() {
   const [showFAQ, setShowFAQ] = useState(false)
 
   return (
-    <OnboardingProvider>
-      <div className="min-h-screen bg-white">
-        {/* Barra lateral - Solo visible en desktop */}
-        <div className="fixed top-0 bottom-0 w-96 bg-gray-50 p-8 border-r border-gray-200 hidden md:flex md:flex-col">
-          <div className="mb-12">
-            <h2 className="text-gray-900 text-xl font-semibold mb-2">Configuración Inicial</h2>
-            <p className="text-gray-500 text-sm">Complete los siguientes pasos para configurar su cuenta.</p>
-          </div>
-          
-          <nav className="flex-1">
-            <StepsList />
-          </nav>
-
-          <div className="mt-auto pt-6">
-            <Button 
-              variant="ghost" 
-              className={cn(
-                "text-sm text-gray-500",
-                "hover:text-gray-900 hover:bg-gray-100",
-                "transition-colors"
-              )}
-              onClick={() => setShowFAQ(true)}
-            >
-              <HelpCircle className="w-4 h-4 mr-2" />
-              Ayuda
-            </Button>
-          </div>
+    <div className="min-h-screen bg-white">
+      {/* Barra lateral - Solo visible en desktop */}
+      <div className="fixed top-0 bottom-0 w-96 bg-gray-50 p-8 border-r border-gray-200 hidden md:flex md:flex-col">
+        <div className="mb-12">
+          <h2 className="text-gray-900 text-xl font-semibold mb-2">Configuración Inicial</h2>
+          <p className="text-gray-500 text-sm">Complete los siguientes pasos para configurar su cuenta.</p>
         </div>
+        
+        <nav className="flex-1">
+          <StepsList />
+        </nav>
 
-        {/* Contenido principal */}
-        <div className="flex flex-col min-h-screen md:pl-96">
-          <MobileHeader />
-          <main className="flex-1 flex items-center justify-center bg-white">
-            <div className="w-full">
-              <OnboardingSteps />
-            </div>
-          </main>
+        <div className="mt-auto pt-6">
+          <Button 
+            variant="ghost" 
+            className={cn(
+              "text-sm text-gray-500",
+              "hover:text-gray-900 hover:bg-gray-100",
+              "transition-colors"
+            )}
+            onClick={() => setShowFAQ(true)}
+          >
+            <HelpCircle className="w-4 h-4 mr-2" />
+            Ayuda
+          </Button>
         </div>
-
-        <FAQDialog 
-          open={showFAQ} 
-          onOpenChange={setShowFAQ} 
-        />
-
-        <OnboardingDialog />
       </div>
-    </OnboardingProvider>
+
+      {/* Contenido principal */}
+      <div className="flex flex-col min-h-screen md:pl-96">
+        <MobileHeader />
+        <main className="flex-1 flex items-center justify-center bg-white">
+          <div className="w-full">
+            <OnboardingSteps />
+          </div>
+        </main>
+      </div>
+
+      <FAQDialog 
+        open={showFAQ} 
+        onOpenChange={setShowFAQ} 
+      />
+
+      <OnboardingDialog />
+    </div>
   )
 } 

@@ -1,17 +1,22 @@
 import { motion } from "framer-motion"
+import { cn } from "@/lib/utils"
 import type { BookingStep, BookingType } from "../types"
 
 interface ModalHeaderProps {
   currentStep: BookingStep
   selectedBookingType?: BookingType
   isClassCreated?: boolean
+  show?: boolean
 }
 
 export function ModalHeader({ 
   currentStep, 
   selectedBookingType,
-  isClassCreated = false
+  isClassCreated = false,
+  show = true
 }: ModalHeaderProps) {
+  if (!show) return null;
+
   const getStepTitle = () => {
     // Primero manejamos el caso de simple_shift
     if (selectedBookingType === 'simple_shift') {
@@ -87,7 +92,7 @@ export function ModalHeader({
     <motion.div
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="p-6 border-b"
+      className="p-6"
     >
       <motion.h2 
         initial={{ y: 10, opacity: 0 }}

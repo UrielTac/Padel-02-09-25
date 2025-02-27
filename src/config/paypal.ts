@@ -1,5 +1,5 @@
 interface SubscriptionPlan {
-  plan_id: string | undefined
+  plan_id: string
   price: number
 }
 
@@ -18,20 +18,14 @@ if (!process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID) {
   console.error('PayPal Client ID no está configurado en las variables de entorno');
 }
 
-if (!process.env.NEXT_PUBLIC_PAYPAL_MONTHLY_PLAN_ID || 
-    !process.env.NEXT_PUBLIC_PAYPAL_QUARTERLY_PLAN_ID ||
-    !process.env.NEXT_PUBLIC_PAYPAL_ANNUAL_PLAN_ID) {
-  console.error('Los IDs de los planes de PayPal no están configurados en las variables de entorno');
-}
-
 export const PAYPAL_CONFIG: PayPalConfig = {
   SUBSCRIPTION_PLANS: {
     PRO_MONTHLY: {
-      plan_id: process.env.NEXT_PUBLIC_PAYPAL_MONTHLY_PLAN_ID,
+      plan_id: 'P-955286686J182661EM53OPXY',
       price: 24.70
     },
     PRO_QUARTERLY: {
-      plan_id: process.env.NEXT_PUBLIC_PAYPAL_QUARTERLY_PLAN_ID,
+      plan_id: 'P-63U48172X4193282XM53OQ5Y',
       price: 69.69
     },
     PRO_ANNUALLY: {

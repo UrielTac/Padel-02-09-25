@@ -14,6 +14,7 @@ import type { Database } from "@/types/supabase"
 import useOrganization from '@/hooks/useOrganization'
 import { useBranches } from '@/hooks/useBranches'
 import { useCurrentEmpresa } from '@/hooks/useCurrentEmpresa'
+import { useClasses } from '../../hooks/useClasses'
 
 interface NewBookingModalProps {
   isOpen: boolean
@@ -35,6 +36,7 @@ export function NewBookingModal({
   const { currentBranch } = useBranches()
   const { empresa } = useCurrentEmpresa()
   const { organizationId } = useOrganization()
+  const { updateClassesCache, invalidateClasses } = useClasses({ branchId: currentBranch?.id })
   
   // Inicializar el estado de reserva con configuración memoizada
   const bookingState = useBookingState({
@@ -92,35 +94,35 @@ export function NewBookingModal({
   // Función para crear la clase en Supabase
   const createClass = async () => {
     try {
-      setIsSubmitting(true);
+      setIsSubmitting(true)
 
       // Validar que tengamos una sede seleccionada
       if (!currentBranch?.id) {
-        throw new Error('Debes seleccionar una sede para crear la clase');
+        throw new Error('Debes seleccionar una sede para crear la clase')
       }
 
       // Validar que tengamos una empresa
       if (!empresa?.id) {
-        throw new Error('No se encontró la empresa asociada');
+        throw new Error('No se encontró la empresa asociada')
       }
 
       // Validar datos requeridos
       if (!classDetails.visibility) {
-        throw new Error('La visibilidad de la clase es requerida');
+        throw new Error('La visibilidad de la clase es requerida')
       }
 
       if (!bookingState.scheduleConfig.startDate) {
-        throw new Error('La fecha de inicio es requerida');
+        throw new Error('La fecha de inicio es requerida')
       }
 
       // Validar que haya al menos un time slot con precio
       if (!bookingState.scheduleConfig.timeSlots.length) {
-        throw new Error('Debes agregar al menos un horario');
+        throw new Error('Debes agregar al menos un horario')
       }
 
-      const firstTimeSlot = bookingState.scheduleConfig.timeSlots[0];
+      const firstTimeSlot = bookingState.scheduleConfig.timeSlots[0]
       if (!firstTimeSlot.price || firstTimeSlot.price <= 0) {
-        throw new Error('El precio por sesión debe ser mayor a 0');
+        throw new Error('El precio por sesión debe ser mayor a 0')
       }
 
       // Preparar la configuración del horario
@@ -134,7 +136,7 @@ export function NewBookingModal({
           instructors: slot.instructors || [],
           courtIds: slot.courtIds || []
         }))
-      };
+      }
 
       const classData: Database['public']['Tables']['classes']['Insert'] = {
         name: classDetails.name,
@@ -154,30 +156,46 @@ export function NewBookingModal({
         created_by: empresa.auth_user_id,
         min_students: 1,
         status: 'active'
-      };
+      }
 
       const { data, error } = await supabase
         .from('classes')
         .insert(classData)
-        .select('id')
-        .single();
+        .select('*, empresa:empresa_id (id, name, company_links (slug))')
+        .single()
 
       if (error) {
-        console.error('Error completo:', error);
-        throw new Error(`Error al insertar la clase: ${error.message}`);
+        console.error('Error completo:', error)
+        throw new Error(`Error al insertar la clase: ${error.message}`)
       }
 
-      toast.success('Clase creada exitosamente');
-      return data.id;
+      // Procesar la clase para agregarla al caché
+      const now = new Date()
+      const newClass = {
+        ...data,
+        isExpired: !data.is_recurring && data.start_date && new Date(data.start_date) < now,
+        shareableLink: data.empresa?.company_links?.[0]?.slug 
+          ? `${window.location.origin}/clases/${data.empresa.company_links[0].slug}/${data.id}`
+          : null
+      }
+
+      // Actualizar el caché con la nueva clase
+      updateClassesCache(newClass)
+      
+      // Invalidar queries para asegurar datos frescos
+      await invalidateClasses()
+
+      toast.success('Clase creada exitosamente')
+      return data.id
 
     } catch (error) {
-      console.error('Error detallado al crear la clase:', error);
-      toast.error(error instanceof Error ? error.message : 'Error al crear la clase');
-      throw error;
+      console.error('Error detallado al crear la clase:', error)
+      toast.error(error instanceof Error ? error.message : 'Error al crear la clase')
+      throw error
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   // Modificar handleContinue para saltar el paso de disponibilidad
   const handleContinueWithSave = useCallback(async () => {

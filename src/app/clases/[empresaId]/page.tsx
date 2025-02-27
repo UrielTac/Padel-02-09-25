@@ -5,17 +5,14 @@ import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClassRegistrationProvider } from '@/components/classes-registration'
+import { LoadingState } from '@/components/classes-registration/shared/LoadingState'
 
 // Importación dinámica del contenido principal
 const ClassesContent = dynamic(
   () => import('@/components/classes-registration/ClassesContent').then(mod => mod.ClassesContent),
   {
     ssr: false,
-    loading: () => (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Cargando...</div>
-      </div>
-    )
+    loading: () => <LoadingState />
   }
 )
 
@@ -41,11 +38,7 @@ export default function ClassesPage({ params }: ClassesPageProps) {
 
   // Mostrar loading mientras se valida la autenticación
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse">Cargando...</div>
-      </div>
-    )
+    return <LoadingState message="Preparando sesión..." />
   }
 
   // Si no hay usuario, no mostrar nada (la redirección se manejará en el useEffect)
@@ -55,11 +48,7 @@ export default function ClassesPage({ params }: ClassesPageProps) {
 
   return (
     <ClassRegistrationProvider empresaId={params.empresaId}>
-      <Suspense fallback={
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="animate-pulse">Cargando...</div>
-        </div>
-      }>
+      <Suspense fallback={<LoadingState />}>
         <ClassesContent empresaId={params.empresaId} />
       </Suspense>
     </ClassRegistrationProvider>

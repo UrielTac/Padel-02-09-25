@@ -44,7 +44,17 @@ const TIME_COLUMN_STYLES = {
   flex: `0 0 ${TIME_COLUMN_WIDTH}px`,
   boxSizing: 'border-box' as const,
   overflow: 'hidden' as const,
-  whiteSpace: 'nowrap' as const
+  whiteSpace: 'nowrap' as const,
+  position: 'sticky' as const,
+  left: 0,
+  zIndex: Z_LAYERS.STICKY_HEADER
+}
+
+// Estilos para las columnas de las pistas
+const COURT_COLUMN_STYLES = {
+  minWidth: "150px",
+  boxSizing: 'border-box' as const,
+  width: '100%'
 }
 
 export function TableBody({
@@ -62,7 +72,7 @@ export function TableBody({
   getCourtColumnWidth
 }: TableBodyProps) {
   return (
-    <table className="w-full border-collapse relative">
+    <table className="w-full border-collapse relative table-fixed">
       <colgroup>
         <col style={TIME_COLUMN_STYLES} />
         {visibleCourts.map(court => (
@@ -70,8 +80,7 @@ export function TableBody({
             key={court.id} 
             style={{ 
               width: getCourtColumnWidth(),
-              minWidth: "150px",
-              boxSizing: 'border-box'
+              ...COURT_COLUMN_STYLES
             }} 
           />
         ))}

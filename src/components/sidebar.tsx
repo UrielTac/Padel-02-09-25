@@ -212,26 +212,16 @@ function SidebarHeader() {
     <>
       <Popover>
         <PopoverTrigger asChild>
-          <div className="flex items-center gap-2 p-4 cursor-pointer hover:bg-accent rounded-lg transition-colors">
-            <div className="h-9 w-9 shrink-0 rounded-lg bg-black flex items-center justify-center">
-              <span className="text-white text-sm font-bold">
-                {isLoading ? (
-                  <IconLoader className="h-3.5 w-3.5 animate-spin" />
-                ) : isError ? (
-                  'ERR'
-                ) : currentBranch ? (
-                  getInitials(currentBranch.name)
-                ) : (
-                  'N/A'
-                )}
-              </span>
+          <div className="relative p-4">
+            <div className="flex items-center justify-between gap-2 cursor-pointer hover:bg-accent rounded-lg transition-colors px-4 py-2">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-[15px] font-medium truncate">
+                  {isLoading ? 'Cargando...' : isError ? 'Error al cargar sucursales' : truncateText(currentBranch?.name || 'Sin sucursal')}
+                </h3>
+              </div>
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-gray-500 transition-transform duration-200 group-hover:scale-110" />
             </div>
-            <div className="flex-1 min-w-0 pl-4">
-              <h3 className="text-[15px] font-medium truncate">
-                {isLoading ? 'Cargando...' : isError ? 'Error al cargar sucursales' : truncateText(currentBranch?.name || 'Sin sucursal')}
-              </h3>
-            </div>
-            <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-px bg-gray-200/75" />
           </div>
         </PopoverTrigger>
         <PopoverContent className="w-[240px] p-2" align="start" side="right">
@@ -258,9 +248,6 @@ function SidebarHeader() {
                     currentBranch?.id === branch.id && "bg-accent"
                   )}
                 >
-                  <div className="h-8 w-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-xs font-medium">{getInitials(branch.name)}</span>
-                  </div>
                   <span className="font-medium truncate">{branch.name}</span>
                 </button>
               ))
@@ -292,8 +279,10 @@ function SidebarFooter() {
   const router = useRouter()
   const pathname = usePathname()
   const handleSignOut = useSignOut()
+  const [showSettings, setShowSettings] = useState(false)
 
   const handleConfigClick = () => {
+    setShowSettings(true)
     router.push('/admin/dashboard/settings?tab=company')
   }
 
@@ -328,27 +317,6 @@ function SidebarFooter() {
           <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
           Cerrar sesión
         </button>
-      </div>
-
-      {/* Información del usuario */}
-      <div className="px-3 py-3">
-        <div className={cn(
-          "flex items-center gap-3 px-4 py-2.5 rounded-xl",
-          "bg-white/20 backdrop-blur-sm",
-          "border border-slate-200/60",
-          "shadow-[inset_0_0_1px_rgba(0,0,0,0.02)]",
-          "hover:bg-white/30 transition-colors duration-200"
-        )}>
-          <div className={cn(
-            "h-8 w-8 rounded-full",
-            "bg-black text-white",
-            "flex items-center justify-center",
-            "shadow-[0_2px_3px_rgba(0,0,0,0.1)]"
-          )}>
-            <span className="text-xs font-medium">GC</span>
-          </div>
-          <span className="text-[13px] font-medium text-gray-600">George Clooney</span>
-        </div>
       </div>
     </div>
   )
@@ -414,6 +382,10 @@ function SettingsView({
   const router = useRouter()
   const searchParams = useSearchParams()
 
+  const handleBack = () => {
+    router.push('/admin/dashboard/bookings/reservations')
+  }
+
   const handleTabChange = (value: string) => {
     onTabChange(value)
     const params = new URLSearchParams(searchParams.toString())
@@ -425,7 +397,7 @@ function SettingsView({
     <div className="h-full flex flex-col">
       <div className="p-4">
         <button
-          onClick={onBack}
+          onClick={handleBack}
           className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-lg",
             "text-gray-500 hover:text-gray-900",
@@ -494,40 +466,59 @@ function MenuItem({
   // Un ítem principal solo está activo si no tiene subítems activos
   const isMainItemActive = isActive && !hasActiveSubItem
 
+  const commonClasses = cn(
+    "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
+    "border border-transparent",
+    "group w-full",
+    isMainItemActive
+      ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+      : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
+    item.exact ? "exact-match" : "partial-match"
+  )
+
   return (
     <div className="flex flex-col">
-      <button
-        onClick={onToggle}
-        className={cn(
-          "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
-          "border border-transparent",
-          "group w-full",
-          isMainItemActive
-            ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-            : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-          item.exact ? "exact-match" : "partial-match"
-        )}
-      >
-        <item.icon 
-          className={cn(
-            "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-            "group-hover:scale-110",
-            item.title === "Links" && "-scale-x-100"
-          )} 
-        />
-        <span className="flex-1 text-left">{item.title}</span>
-        {item.hasSubMenu && (
+      {item.hasSubMenu ? (
+        <button
+          onClick={onToggle}
+          className={commonClasses}
+        >
+          <item.icon 
+            className={cn(
+              "w-3.5 h-3.5 transition-transform duration-200 ease-out",
+              "group-hover:scale-110",
+              item.title === "Links" && "-scale-x-100"
+            )} 
+          />
+          <span className="flex-1 text-left">{item.title}</span>
           <ChevronDown
             className={cn(
               "w-4 h-4 transition-transform duration-200",
               isExpanded && "rotate-180"
             )}
           />
-        )}
-        {isMainItemActive && (
-          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-        )}
-      </button>
+          {isMainItemActive && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+          )}
+        </button>
+      ) : (
+        <Link
+          href={item.href}
+          className={commonClasses}
+        >
+          <item.icon 
+            className={cn(
+              "w-3.5 h-3.5 transition-transform duration-200 ease-out",
+              "group-hover:scale-110",
+              item.title === "Links" && "-scale-x-100"
+            )} 
+          />
+          <span className="flex-1 text-left">{item.title}</span>
+          {isMainItemActive && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+          )}
+        </Link>
+      )}
       
       {item.hasSubMenu && (
         <div
@@ -543,7 +534,8 @@ function MenuItem({
                 href={subItem.href}
                 className={cn(
                   "flex items-center px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200",
-                  "text-gray-500 hover:text-gray-900 hover:bg-white/80",
+                  "text-gray-500",
+                  item.title !== "Reservas" && "hover:text-gray-900 hover:bg-white/80",
                   isRouteActive(pathname, subItem.href) && "bg-white text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 )}
               >
@@ -601,6 +593,15 @@ export function Sidebar({ className }: SidebarProps) {
 
   useEffect(() => {
     setIsVisible(!shouldHideSidebar(pathname))
+  }, [pathname])
+
+  useEffect(() => {
+    // Detectar cuando estamos en la página de configuración
+    if (pathname === '/admin/dashboard/settings') {
+      setShowSettings(true)
+    } else {
+      setShowSettings(false)
+    }
   }, [pathname])
 
   if (!isVisible) {

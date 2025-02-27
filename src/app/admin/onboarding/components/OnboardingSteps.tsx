@@ -14,9 +14,8 @@ import { PayPalProvider } from "@/components/providers/paypal-provider"
 export function OnboardingSteps() {
   const { 
     currentStep, 
-    completedSteps, 
+    completedSteps,
     setCurrentBranchId, 
-    canAccessStep,
     steps,
     setCurrentStep 
   } = useOnboarding()
@@ -55,15 +54,8 @@ export function OnboardingSteps() {
   }
 
   const renderStep = () => {
-    if (isOnboardingComplete || currentStep > 3) {
+    if (isOnboardingComplete) {
       return <FinalStep />
-    }
-
-    if (!canAccessStep(currentStep)) {
-      const nextAvailableStep = steps.findIndex((_, index) => canAccessStep(index))
-      if (nextAvailableStep !== -1) {
-        setCurrentStep(nextAvailableStep)
-      }
     }
 
     switch (currentStep) {

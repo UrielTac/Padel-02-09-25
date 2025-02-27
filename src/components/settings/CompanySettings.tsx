@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { PlanInfo } from './PlanInfo'
@@ -8,12 +8,14 @@ import { useToast } from "@/components/ui/use-toast"
 import { ExternalLink } from "lucide-react"
 import { useAuth } from "@/contexts/AuthContext"
 import { useBookingCount } from '@/hooks/useBookingCount'
+import { useOrganization } from "@/contexts/OrganizationContext"
 
 interface CompanyData {
   name: string
-  email: string
-  phone: string
-  website: string
+  email: string | null
+  phone: string | null
+  business_name: string | null
+  country: string | null
 }
 
 const PAYPAL_SUBSCRIPTION_PORTAL = 'https://www.paypal.com/myaccount/autopay/connect/'
@@ -21,6 +23,7 @@ const PAYPAL_SUBSCRIPTION_PORTAL = 'https://www.paypal.com/myaccount/autopay/con
 export function CompanySettings() {
   const { toast } = useToast()
   const { user } = useAuth()
+  const { organization } = useOrganization()
   const today = new Date().toISOString().split('T')[0]
   
   // Reutilizamos el hook que ya tenemos para verificar el plan
@@ -33,11 +36,25 @@ export function CompanySettings() {
   })
 
   const [formData, setFormData] = useState<CompanyData>({
-    name: "Padel Club",
-    email: "info@padelclub.com",
-    phone: "+34 123 456 789",
-    website: "www.padelclub.com"
+    name: organization?.name || "",
+    email: organization?.email || "",
+    phone: organization?.phone || "",
+    business_name: organization?.business_name || "",
+    country: organization?.country || ""
   })
+
+  // Actualizar formData cuando organization cambie
+  useEffect(() => {
+    if (organization) {
+      setFormData({
+        name: organization.name,
+        email: organization.email,
+        phone: organization.phone,
+        business_name: organization.business_name,
+        country: organization.country
+      })
+    }
+  }, [organization])
 
   const handleInputChange = (field: keyof CompanyData, value: string) => {
     setFormData(prev => ({
@@ -98,136 +115,70 @@ export function CompanySettings() {
 
       {/* Información de la empresa */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xl font-medium">Información de la Empresa</h3>
-        </div>
+        <div className="p-0 mt-4">
+          <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+            Información general de tu empresa y datos de contacto.
+          </p>
 
-        <div className="max-w-[800px] space-y-6">
-          {/* Información básica */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm text-gray-600">
-                  Nombre de la empresa
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: Padel Club"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg",
-                    "border border-gray-200 bg-white",
-                    "focus:outline-none focus:border-gray-300",
-                    "transition-colors duration-200",
-                    "placeholder:text-gray-400",
-                    "text-sm"
-                  )}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm text-gray-600">
-                  Correo electrónico
-                </label>
-                <input
-                  type="email"
-                  placeholder="Ej: info@padelclub.com"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg",
-                    "border border-gray-200 bg-white",
-                    "focus:outline-none focus:border-gray-300",
-                    "transition-colors duration-200",
-                    "placeholder:text-gray-400",
-                    "text-sm"
-                  )}
-                />
-              </div>
+          <div className="space-y-4 text-sm">
+            <div className="space-y-1">
+              <p className="text-gray-500">Nombre de la empresa</p>
+              <p className="text-gray-600">{formData.name || "—"}</p>
             </div>
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm text-gray-600">
-                  Teléfono
-                </label>
-                <input
-                  type="tel"
-                  placeholder="Ej: +34 123 456 789"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg",
-                    "border border-gray-200 bg-white",
-                    "focus:outline-none focus:border-gray-300",
-                    "transition-colors duration-200",
-                    "placeholder:text-gray-400",
-                    "text-sm"
-                  )}
-                />
-              </div>
+            <div className="space-y-1">
+              <p className="text-gray-500">Nombre comercial</p>
+              <p className="text-gray-600">{formData.business_name || "—"}</p>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm text-gray-600">
-                  Sitio web
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: www.padelclub.com"
-                  value={formData.website}
-                  onChange={(e) => handleInputChange('website', e.target.value)}
-                  className={cn(
-                    "w-full px-3 py-2 rounded-lg",
-                    "border border-gray-200 bg-white",
-                    "focus:outline-none focus:border-gray-300",
-                    "transition-colors duration-200",
-                    "placeholder:text-gray-400",
-                    "text-sm"
-                  )}
-                />
-              </div>
+            <div className="space-y-1">
+              <p className="text-gray-500">Correo electrónico</p>
+              <p className="text-gray-600">{formData.email || "—"}</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-gray-500">Teléfono</p>
+              <p className="text-gray-600">{formData.phone || "—"}</p>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-gray-500">País</p>
+              <p className="text-gray-600">{formData.country || "—"}</p>
             </div>
           </div>
 
           {/* Botones de acción */}
-          <div className="flex justify-start pt-2">
-            <Button 
-              onClick={handleSave}
-              className="bg-black hover:bg-gray-800 text-white transition-colors shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-            >
-              Guardar cambios
-            </Button>
+          <div className="mt-6">
           </div>
+        </div>
 
-          {/* Sección de ayuda */}
-          <div className="border-t border-gray-100 pt-4">
-            <div className="flex flex-col gap-2">
-              <p className="text-sm text-gray-900">
-                ¿Necesitas ayuda?
-              </p>
-              <div className="text-sm text-gray-500">
-                <p>Contáctenos en:</p>
-                <div className="mt-1 space-y-1">
-                  <p className="text-gray-600">
-                    <a 
-                      href="mailto:soportesimplelink@gmail.com"
-                      className="hover:text-gray-900 transition-colors"
-                    >
-                      soportesimplelink@gmail.com
-                    </a>
-                  </p>
-                  <p className="text-gray-600">
-                    <a 
-                      href="https://www.simple-link.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-gray-900 transition-colors"
-                    >
-                      www.simple-link.com
-                    </a>
-                  </p>
-                </div>
+        {/* Sección de ayuda */}
+        <div className="border-t border-gray-100 pt-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-gray-900">
+              ¿Necesitas ayuda?
+            </p>
+            <div className="text-sm text-gray-500">
+              <p>Contáctenos en:</p>
+              <div className="mt-1 space-y-1">
+                <p className="text-gray-600">
+                  <a 
+                    href="mailto:soportesimplelink@gmail.com"
+                    className="hover:text-gray-900 transition-colors"
+                  >
+                    soportesimplelink@gmail.com
+                  </a>
+                </p>
+                <p className="text-gray-600">
+                  <a 
+                    href="https://www.simple-link.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-gray-900 transition-colors"
+                  >
+                    www.simple-link.com
+                  </a>
+                </p>
               </div>
             </div>
           </div>

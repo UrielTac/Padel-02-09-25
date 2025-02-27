@@ -16,6 +16,7 @@ import type { Database } from '@/types/supabase'
 import type { UserPackageFromDB, ClassSession } from '../types/models'
 import Image from 'next/image'
 import { MobileDrawer } from '../shared/MobileDrawer'
+import { LoadingState } from '../shared/LoadingState'
 
 const SESSIONS_PER_PAGE = 4
 
@@ -144,12 +145,11 @@ export function SessionStep() {
   if (isInitializing || isLoadingPackage) {
     return (
       <StepContainer stepId="session-loading" centered>
-        <div className="pt-8 text-center space-y-4">
-          <LoadingSpinner />
-          <p className="text-sm text-gray-500">
-            Cargando información de la sesión...
-          </p>
-        </div>
+        <LoadingState 
+          message="Cargando información de la sesión..." 
+          fullScreen={false}
+          className="py-8"
+        />
       </StepContainer>
     )
   }

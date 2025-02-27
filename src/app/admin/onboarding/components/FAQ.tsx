@@ -1,8 +1,11 @@
+'use client'
+
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog"
 
 import {
@@ -11,6 +14,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { ChevronDown } from "lucide-react"
 
 const faqItems = [
   {
@@ -55,18 +59,25 @@ interface FAQDialogProps {
 export function FAQDialog({ open, onOpenChange }: FAQDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Preguntas frecuentes</DialogTitle>
+      <DialogContent className="max-w-lg max-h-[80vh] bg-white border-none shadow-2xl">
+        <DialogHeader className="pb-4 border-b">
+          <DialogTitle className="text-xl font-semibold">Preguntas frecuentes</DialogTitle>
+          <DialogDescription className="text-sm text-gray-500 mt-1">
+            Encuentra respuestas a las preguntas más comunes sobre la configuración y uso del sistema.
+          </DialogDescription>
         </DialogHeader>
-        <div className="overflow-y-auto pr-6 max-h-[60vh]">
-          <Accordion type="single" collapsible className="w-full">
+        <div className="overflow-y-auto pr-6 max-h-[60vh] pt-4">
+          <Accordion type="single" collapsible>
             {faqItems.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`}>
-                <AccordionTrigger className="text-sm">
-                  {item.question}
+              <AccordionItem 
+                key={index} 
+                value={`item-${index}`}
+                className="border-b last:border-0"
+              >
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <span className="text-sm font-medium text-left">{item.question}</span>
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground">
+                <AccordionContent className="text-sm text-gray-600">
                   {item.answer}
                 </AccordionContent>
               </AccordionItem>
