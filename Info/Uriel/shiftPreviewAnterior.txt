@@ -1,21 +1,21 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { FormStepField } from "@/types/form-steps";
-import { PreviewContainer } from "../layout/PreviewContainer";
+import { PreviewContainer } from "../../layout/PreviewContainer";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, Clock, ChevronLeft, Check, Filter, Sun, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { format, addDays, isSameDay, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { NavigationButtons } from "../layout/NavigationButtons";
+import { NavigationButtons } from "../../layout/NavigationButtons";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useAvailability } from '@/hooks/useAvailability';
 import { AvailabilitySlot } from '@/types/availability';
 import { DURATIONS, COURT_TYPES, TIME_RANGES } from '@/config/availability';
 import { useForm } from "@/contexts/FormContext";
-import { MobileNavigation } from "../layout/MobileNavigation";
-import { MobileNextButton } from "../layout/MobileNextButton";
+import { MobileNavigation } from "../../layout/MobileNavigation";
+import { MobileNextButton } from "../../layout/MobileNextButton";
 
 interface ShiftsPreviewProps {
   field: FormStepField;
@@ -325,6 +325,120 @@ export function ShiftsPreview({ field, theme, viewType, onNext, onPrev, isFirstS
     courtTypes
   } = useAvailability(availabilityParams);
 
+  // Memoización y filtrado de slots
+  const filteredSlots = useMemo(() => {
+    if (!slots) return [];
+    
+    // Función para generar una clave única más robusta
+    const generateUniqueKey = (slot: AvailabilitySlot) => {
+      const baseKey = `${slot.startTime}-${slot.endTime}-${slot.courtId}-${slot.courtName}`;
+      const statusKey = slot.status ? `-${slot.status}` : '';
+      const priceKey = slot.price ? `-${slot.price}` : '';
+      return `${baseKey}${statusKey}${priceKey}`;
+    };
+
+    // Primero agrupamos los slots por hora de inicio y cancha
+    const groupedSlots = slots.reduce((groups, slot) => {
+      const timeKey = slot.startTime;
+      const courtKey = slot.courtId;
+      const key = `${timeKey}-${courtKey}`;
+      
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(slot);
+      return groups;
+    }, {} as Record<string, AvailabilitySlot[]>);
+
+    // Para cada grupo, seleccionamos el slot más apropiado
+    const uniqueSlots = Object.values(groupedSlots).map(group => {
+      if (group.length === 1) return group[0];
+      
+      // Si hay múltiples slots para la misma hora y cancha,
+      // seleccionamos el más apropiado basado en criterios específicos
+      return group.reduce((selected, current) => {
+        // Priorizar slots disponibles
+        if (current.status === 'available' && selected.status !== 'available') {
+          return current;
+        }
+        // Si ambos están disponibles, priorizar el de menor precio
+        if (current.status === 'available' && selected.status === 'available') {
+          return (current.price || 0) < (selected.price || 0) ? current : selected;
+        }
+        return selected;
+      });
+    });
+
+    // Convertimos a array y aplicamos filtros adicionales
+    let filtered = uniqueSlots;
+
+    // Aplicar filtro de tiempo si está seleccionado
+    if (selectedTime) {
+      const timeRanges = {
+        morning: { start: '07:00', end: '12:00' },
+        afternoon: { start: '12:00', end: '18:00' },
+        night: { start: '18:00', end: '23:00' }
+      };
+
+      filtered = filtered.filter(slot => {
+        const range = timeRanges[selectedTime];
+        return slot.startTime >= range.start && slot.startTime < range.end;
+      });
+    }
+
+    // Ordenamiento mejorado
+    return filtered.sort((a, b) => {
+      // Primero por hora de inicio
+      const timeCompare = a.startTime.localeCompare(b.startTime);
+      if (timeCompare !== 0) return timeCompare;
+      
+      // Luego por tipo de cancha
+      const typeCompare = (a.courtType || '').localeCompare(b.courtType || '');
+      if (typeCompare !== 0) return typeCompare;
+      
+      // Finalmente por número de cancha
+      return a.courtName.localeCompare(b.courtName);
+    });
+  }, [slots, selectedTime]);
+
+  // Monitoreo de duplicados y diagnóstico mejorado
+  useEffect(() => {
+    if (slots.length > 0) {
+      const slotAnalysis = slots.reduce((analysis, slot) => {
+        const timeKey = slot.startTime;
+        const courtKey = slot.courtId;
+        
+        if (!analysis.timeGroups[timeKey]) {
+          analysis.timeGroups[timeKey] = new Set();
+        }
+        if (!analysis.courtGroups[courtKey]) {
+          analysis.courtGroups[courtKey] = new Set();
+        }
+        
+        analysis.timeGroups[timeKey].add(slot.courtId);
+        analysis.courtGroups[courtKey].add(slot.startTime);
+        
+        return analysis;
+      }, {
+        timeGroups: {} as Record<string, Set<string>>,
+        courtGroups: {} as Record<string, Set<string>>
+      });
+
+      console.log('Análisis de slots:', {
+        totalSlots: slots.length,
+        uniqueSlots: filteredSlots.length,
+        timeSlots: Object.keys(slotAnalysis.timeGroups).length,
+        courtsWithMultipleSlots: Object.entries(slotAnalysis.courtGroups)
+          .filter(([_, times]) => times.size > 1)
+          .length,
+        slotsPerTimeSlot: Object.fromEntries(
+          Object.entries(slotAnalysis.timeGroups)
+            .map(([time, courts]) => [time, courts.size])
+        )
+      });
+    }
+  }, [slots, filteredSlots]);
+
   // Sincronizar con el estado del contexto cuando cambie
   useEffect(() => {
     if (isLocalUpdate) {
@@ -503,28 +617,6 @@ export function ShiftsPreview({ field, theme, viewType, onNext, onPrev, isFirstS
     }
   };
 
-  // Modificar la sección de turnos para usar los slots disponibles
-  const filteredSlots = useMemo(() => {
-    if (!slots) return [];
-    
-    let filtered = [...slots];
-
-    if (selectedTime) {
-      const timeRanges = {
-        morning: { start: '07:00', end: '12:00' },
-        afternoon: { start: '12:00', end: '18:00' },
-        night: { start: '18:00', end: '23:00' }
-      };
-
-      filtered = filtered.filter(slot => {
-        const range = timeRanges[selectedTime];
-        return slot.startTime >= range.start && slot.startTime < range.end;
-      });
-    }
-
-    return filtered;
-  }, [slots, selectedTime]);
-
   // Reemplazar la sección de renderizado de turnos
   const renderSlots = () => {
     if (loadingSlots) {
@@ -561,7 +653,7 @@ export function ShiftsPreview({ field, theme, viewType, onNext, onPrev, isFirstS
       );
     }
 
-    if (!slots.length) {
+    if (!filteredSlots.length) {
       return (
         <div className="flex flex-col items-center justify-center py-8 space-y-2">
           <p className={cn(
@@ -576,12 +668,12 @@ export function ShiftsPreview({ field, theme, viewType, onNext, onPrev, isFirstS
 
     return (
       <div className="space-y-2">
-        {slots.map((slot) => {
+        {filteredSlots.map((slot) => {
           const isSelected = selectedShift === slot.id;
           
           return (
             <motion.button
-              key={slot.id}
+              key={`${slot.id}-${slot.startTime}-${slot.courtId}`}
               onClick={() => handleSlotSelection(slot)}
               className={cn(
                 "relative w-full px-3 py-2 text-left transition-colors duration-200 rounded-lg",

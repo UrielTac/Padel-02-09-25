@@ -3,20 +3,18 @@ import { type CookieOptions } from '@/types/supabase-auth'
 export const AUTH_CONFIG = {
   admin: {
     routes: {
+      afterSignIn: '/admin/dashboard/bookings/reservations',
+      afterSignOut: '/admin/login',
       signIn: '/admin/login',
       signUp: '/admin/register',
-      signOut: '/admin/logout',
-      callback: '/admin/auth/callback',
+      authCallback: '/admin/auth/callback',
+      verifyRequest: '/admin/verify-request',
+      error: '/admin/error',
       unauthorized: '/admin/unauthorized',
-      afterSignIn: '/admin/dashboard/bookings',
-      protected: [
+      restrictedPaths: [
+        '/admin/dashboard/bookings/reservations',
         '/admin/dashboard',
-        '/admin/dashboard/bookings',
-        '/admin/dashboard/settings',
-        '/admin/dashboard/users',
-        '/admin/dashboard/analytics',
-        '/admin/dashboard/forms-a',
-        '/admin/dashboard/forms-a/new'
+        '/admin/settings'
       ]
     },
     cookies: {

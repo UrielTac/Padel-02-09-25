@@ -8,12 +8,13 @@ import { PaymentMethod, PaymentTypeEnum, SelectedItem, PaymentType, PAYMENT_TYPE
 import { MobileNavigation } from "@/components/preview/layout/MobileNavigation";
 import { MobileNextButton } from "@/components/preview/layout/MobileNextButton";
 import { MobileReservationHeader } from "./MobileReservationHeader";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { ReservationDetails } from "../ReservationDetails";
 import { ChevronRight, ChevronDown, Check, X } from "lucide-react";
 import { PaymentTypeList } from "../PaymentTypeList";
 import { useStripeConnection } from "@/hooks/useStripeConnection";
 import { toast } from "sonner";
+import { PaymentUpdateEvent, PaymentSelectionHandlers } from "../../types";
 
 // Filtrar solo los tipos de pago que queremos mostrar
 const FILTERED_PAYMENT_TYPES = PAYMENT_TYPES.filter(type => 
@@ -445,27 +446,78 @@ function MobilePaymentContainerBase({
   empresaId
 }: MobilePaymentContainerProps) {
   const [currentView, setCurrentView] = useState<ViewStep>('details');
-  // Estado local para el tipo de pago seleccionado
   const [localSelectedType, setLocalSelectedType] = useState<PaymentTypeEnum | null>(selectedPaymentType);
+  const [localSelectedMethod, setLocalSelectedMethod] = useState<PaymentMethod | null>(selectedPaymentMethod);
 
-  // Sincronizar el estado local con las props cuando cambian
+  // Sincronizar estados locales con props
   useEffect(() => {
     setLocalSelectedType(selectedPaymentType);
   }, [selectedPaymentType]);
 
-  if (viewType !== 'mobile') return null;
+  useEffect(() => {
+    setLocalSelectedMethod(selectedPaymentMethod);
+  }, [selectedPaymentMethod]);
 
-  const handleNext = () => {
+  // Función para actualizar el método de pago
+  const handleMethodSelect = useCallback((method: PaymentMethod) => {
+    try {
+      console.log('Seleccionando método de pago:', method);
+
+      // 1. Actualizar estado local
+      setLocalSelectedMethod(method);
+
+      // 2. Actualizar estado global directamente
+      // Esta es la clave: llamar a la misma función que usa el modal
+      if (onShowPaymentMethods) {
+        onShowPaymentMethods();
+      }
+
+      // 3. Notificar éxito
+      toast.success('Método de pago seleccionado correctamente');
+    } catch (error) {
+      console.error('Error al seleccionar método de pago:', error);
+      toast.error('Error al seleccionar método de pago');
+    }
+  }, [onShowPaymentMethods]);
+
+  // Manejadores de selección
+  const paymentHandlers: PaymentSelectionHandlers = {
+    onMethodSelect: handleMethodSelect,
+    onMethodRemove: useCallback(() => {
+      setLocalSelectedMethod(null);
+      onRemovePaymentMethod();
+    }, [onRemovePaymentMethod]),
+    onTypeSelect: useCallback((type: PaymentTypeEnum) => {
+      setLocalSelectedType(type);
+      onShowPaymentTypes(); // Actualizar estado global del tipo
+    }, [onShowPaymentTypes]),
+    onTypeRemove: useCallback(() => {
+      setLocalSelectedType(null);
+      onRemovePaymentType();
+    }, [onRemovePaymentType])
+  };
+
+  const handleNext = useCallback(() => {
     if (currentView === 'details') {
       setCurrentView('payment');
       return;
     }
 
-    if (!selectedPaymentType || !selectedPaymentMethod) return;
-    onNext();
-  };
+    // Verificar selecciones
+    if (!localSelectedType || !localSelectedMethod) {
+      toast.error('Por favor, selecciona un tipo y método de pago');
+      return;
+    }
 
-  // Función para manejar la selección directa del tipo de pago
+    // Asegurar que el estado global está actualizado
+    handleMethodSelect(localSelectedMethod);
+
+    // Continuar al siguiente paso
+    onNext();
+  }, [currentView, localSelectedType, localSelectedMethod, handleMethodSelect, onNext]);
+
+  if (viewType !== 'mobile') return null;
+
   const handlePaymentTypeSelect = (type: PaymentTypeEnum) => {
     console.log(`[MobilePaymentContainer] handlePaymentTypeSelect: ${type}`);
     
@@ -700,11 +752,13 @@ function MobilePaymentContainerBase({
                     
                     <PaymentSection
                       theme={theme}
-                      selectedMethod={selectedPaymentMethod}
-                      onShowMethods={onShowPaymentMethods}
-                      onRemoveMethod={onRemovePaymentMethod}
+                      selectedMethod={localSelectedMethod}
+                      onShowMethods={() => {}} // No necesitamos el modal
+                      onUpdateMethod={handleMethodSelect} // Usar la misma función para actualizar
+                      onRemoveMethod={paymentHandlers.onMethodRemove}
                       viewType={viewType}
                       empresaId={empresaId}
+                      showModalOnSelect={false}
                     />
                   </div>
                 </motion.div>

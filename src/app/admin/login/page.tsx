@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (!isLoading && user) {
       console.log('✅ Usuario autenticado, redirigiendo...')
-      router.replace(returnUrl || '/admin/dashboard/bookings')
+      router.replace(returnUrl || '/admin/dashboard/bookings/reservations')
     }
   }, [user, isLoading, router, returnUrl])
 

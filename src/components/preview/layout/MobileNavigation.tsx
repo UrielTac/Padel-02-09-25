@@ -18,15 +18,16 @@ export function MobileNavigation({
 
   return (
     <div className={cn(
-      "absolute top-6 left-0 right-0 z-50",
+      "absolute top-6 left-6 z-50",
       className
     )}>
       <button
         onClick={onPrev}
         className={cn(
+          "p-1.5 rounded-lg transition-colors",
           theme === 'dark'
-            ? "text-white hover:opacity-70"
-            : "text-black hover:opacity-70"
+            ? "text-white hover:bg-white/10"
+            : "text-black hover:bg-black/10"
         )}
       >
         <ArrowLeft className="h-6 w-6" strokeWidth={2.5} />

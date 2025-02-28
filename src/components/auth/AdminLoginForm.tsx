@@ -70,7 +70,7 @@ export function AdminLoginForm() {
       }
 
       toast.success('Inicio de sesión exitoso')
-      router.push('/admin/dashboard/bookings')
+      router.push('/admin/dashboard/bookings/reservations')
     } catch (error: any) {
       const errorMessage = error.message === 'Invalid login credentials'
         ? 'Credenciales inválidas'

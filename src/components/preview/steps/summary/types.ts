@@ -157,4 +157,17 @@ export interface CouponsModalProps {
   viewType: "mobile" | "desktop";
   onSelect: (coupon: string) => void;
   isPublicView?: boolean;
+}
+
+export interface PaymentUpdateEvent {
+  method: PaymentMethod;
+  type?: PaymentTypeEnum;
+  source: 'list' | 'modal' | 'form';
+}
+
+export interface PaymentSelectionHandlers {
+  onMethodSelect: (method: PaymentMethod) => void;
+  onMethodRemove: () => void;
+  onTypeSelect?: (type: PaymentTypeEnum) => void;
+  onTypeRemove?: () => void;
 } 

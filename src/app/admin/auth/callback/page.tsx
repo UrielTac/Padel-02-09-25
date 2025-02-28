@@ -31,7 +31,7 @@ export default function AuthCallbackPage() {
         }
 
         console.log('Redirigiendo al panel...')
-        window.location.href = '/admin/dashboard/bookings'
+        window.location.href = '/admin/dashboard/bookings/reservations'
       }
 
       if (event === 'SIGNED_OUT') {
@@ -60,7 +60,7 @@ export default function AuthCallbackPage() {
       }
 
       console.log('Sesión activa, redirigiendo...')
-      window.location.href = '/admin/dashboard/bookings'
+      window.location.href = '/admin/dashboard/bookings/reservations'
     }
 
     // Verificar sesión después de un breve delay
