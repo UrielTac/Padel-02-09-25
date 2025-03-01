@@ -3,17 +3,18 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { IconCash, IconCreditCard, IconBuildingBank } from "@tabler/icons-react"
 import { cn } from "@/lib/utils"
+import type { PaymentMethodEnum } from "@/types/bookings"
 
 interface PaymentModalProps {
   isOpen: boolean
   onClose: () => void
-  onConfirm: (amount: number, method: string) => void
+  onConfirm: (amount: number, method: PaymentMethodEnum) => void
   remainingAmount: number
 }
 
 export function PaymentModal({ isOpen, onClose, onConfirm, remainingAmount }: PaymentModalProps) {
   const [amount, setAmount] = useState<number>(remainingAmount)
-  const [method, setMethod] = useState<string>('cash')
+  const [method, setMethod] = useState<PaymentMethodEnum>('cash')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,11 +23,11 @@ export function PaymentModal({ isOpen, onClose, onConfirm, remainingAmount }: Pa
     onClose()
   }
 
-  const paymentMethods = [
+  const paymentMethods: { id: PaymentMethodEnum; label: string }[] = [
     { id: 'cash', label: 'Efectivo' },
     { id: 'stripe', label: 'Tarjeta' },
     { id: 'transfer', label: 'Transferencia' }
-  ] as const;
+  ];
 
   return (
     <AnimatePresence>
