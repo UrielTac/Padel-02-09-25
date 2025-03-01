@@ -36,8 +36,13 @@ export default function UpgradePage() {
 
   const handlePaymentSubmit = (data: any) => {
     console.log('Payment data:', data)
-    toast.success('Pago procesado correctamente')
-    router.back()
+    // Disparar el evento de éxito
+    const event = new Event('subscription:success')
+    window.dispatchEvent(event)
+    // Redirigir después de un pequeño delay
+    setTimeout(() => {
+      router.back()
+    }, 500)
   }
 
   const handlePaymentCancel = () => {
@@ -46,9 +51,9 @@ export default function UpgradePage() {
 
   return (
     <PayPalProvider>
-      <div className="relative flex h-full">
+      <div className="relative flex h-full bg-white">
         {/* Contenido principal */}
-        <div className="w-[440px] flex-shrink-0 bg-zinc-900">
+        <div className="w-[500px] flex-shrink-0 p-6">
           <PlanFeatures
             planName="Pro"
             subtitle="Haz más con bloques, archivos e integraciones ilimitadas."

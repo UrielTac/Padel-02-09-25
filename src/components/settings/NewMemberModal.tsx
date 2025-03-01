@@ -171,7 +171,7 @@ export function NewMemberModal({ isOpen, onClose, onSave, branches }: NewMemberM
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px]"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px]"
             style={{ zIndex: 9998 }}
             transition={{ duration: 0.3 }}
           />

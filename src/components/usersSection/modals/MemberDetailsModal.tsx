@@ -324,7 +324,7 @@ export function MemberDetailsModal({ isOpen, onClose, member }: MemberDetailsMod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
             transition={{ duration: 0.3, ease: "easeInOut" }}
           />
 
@@ -581,88 +581,95 @@ export function MemberDetailsModal({ isOpen, onClose, member }: MemberDetailsMod
                         <div className="text-sm text-gray-500">No hay paquetes activos</div>
                       ) : (
                         packageDetailsResponse.map((packageDetail: UserPackageWithDetails) => (
-                          <div
-                            key={packageDetail.userPackage.id}
-                            className="p-4 border rounded-lg space-y-3"
-                          >
-                            {/* Nombre y estado */}
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-medium">{packageDetail.packageDetails.name}</h4>
-                                <p className="text-sm text-gray-500">
-                                  Total: {packageDetail.packageDetails.class_count} sesiones
-                                </p>
+                          packageDetail && (
+                            <div
+                              key={packageDetail.userPackage.id}
+                              className="p-4 border rounded-lg space-y-3"
+                            >
+                              {/* Nombre y estado */}
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium">{packageDetail.packageDetails.name}</h4>
+                                  <p className="text-sm text-gray-500">
+                                    Total: {packageDetail.packageDetails.class_count} sesiones
+                                  </p>
+                                </div>
+                                <span className={cn(
+                                  "text-sm px-2 py-1 rounded-full",
+                                  packageDetail.userPackage.status === 'active' 
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-gray-100 text-gray-700"
+                                )}>
+                                  {packageDetail.userPackage.status === 'active' ? 'Activo' : 'Inactivo'}
+                                </span>
                               </div>
-                              <span className="text-sm text-gray-500">
-                                Activo
-                              </span>
-                            </div>
 
-                            {/* Detalles del paquete */}
-                            <div className="grid grid-cols-2 gap-4 text-sm">
-                              <div>
-                                <p className="text-gray-500">Sesiones Restantes</p>
-                                <p className="font-medium">{packageDetail.userPackage.sessions_left}</p>
+                              {/* Detalles del paquete */}
+                              <div className="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-500">Sesiones Restantes</p>
+                                  <p className="font-medium">{packageDetail.userPackage.sessions_left}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Precio</p>
+                                  <p className="font-medium">${packageDetail.packageDetails.price}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Expira</p>
+                                  <p className="font-medium">{formatDate(packageDetail.userPackage.expires_at)}</p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500">Creado</p>
+                                  <p className="font-medium">{formatDate(packageDetail.userPackage.created_at || '')}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="text-gray-500">Precio</p>
-                                <p className="font-medium">${packageDetail.packageDetails.price}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500">Expira</p>
-                                <p className="font-medium">{formatDate(packageDetail.userPackage.expires_at)}</p>
-                              </div>
-                              <div>
-                                <p className="text-gray-500">Creado</p>
-                                <p className="font-medium">{formatDate(packageDetail.userPackage.created_at || '')}</p>
-                              </div>
-                            </div>
 
-                            {/* Información adicional y acciones */}
-                            <div className="pt-2 border-t space-y-3">
-                              <div className="flex items-center gap-2 text-sm text-gray-500">
-                                <IconCalendar className="h-4 w-4" />
-                                <span>Reserva con {packageDetail.packageDetails.advance_booking_days} días de anticipación</span>
-                              </div>
-                              
-                              {/* Botones de acción */}
-                              <div className="flex justify-end">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <button
-                                      className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                              {/* Información adicional y acciones */}
+                              <div className="pt-2 border-t space-y-3">
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                  <IconCalendar className="h-4 w-4" />
+                                  <span>Reserva con {packageDetail.packageDetails.advance_booking_days} días de anticipación</span>
+                                </div>
+                                
+                                {/* Botones de acción */}
+                                <div className="flex justify-end">
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                                      >
+                                        Eliminar
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent 
+                                      className="w-[280px]" 
+                                      side="left" 
+                                      align="end"
+                                      sideOffset={5}
                                     >
-                                      Eliminar
-                                    </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent 
-                                    className="w-[280px]" 
-                                    side="left" 
-                                    align="end"
-                                    sideOffset={5}
-                                  >
-                                    <div className="space-y-3 p-1">
-                                      <div className="space-y-2">
-                                        <h4 className="font-medium text-sm">¿Eliminar paquete?</h4>
-                                        <p className="text-xs text-gray-500">
-                                          Esta acción eliminará permanentemente el paquete y todas sus sesiones restantes. No podrás deshacer esta acción.
-                                        </p>
+                                      <div className="space-y-3 p-1">
+                                        <div className="space-y-2">
+                                          <h4 className="font-medium text-sm">¿Eliminar paquete?</h4>
+                                          <p className="text-xs text-gray-500">
+                                            Esta acción eliminará permanentemente el paquete y todas sus sesiones restantes. No podrás deshacer esta acción.
+                                          </p>
+                                        </div>
+                                        <div className="flex justify-end gap-2 pt-2 border-t">
+                                          <button
+                                            onClick={() => deletePackage.mutate(packageDetail.userPackage.id)}
+                                            className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
+                                            disabled={deletePackage.isPending}
+                                          >
+                                            {deletePackage.isPending ? 'Eliminando...' : 'Confirmar'}
+                                          </button>
+                                        </div>
                                       </div>
-                                      <div className="flex justify-end gap-2 pt-2 border-t">
-                                        <button
-                                          onClick={() => deletePackage.mutate(packageDetail.userPackage.id)}
-                                          className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
-                                          disabled={deletePackage.isPending}
-                                        >
-                                          {deletePackage.isPending ? 'Eliminando...' : 'Confirmar'}
-                                        </button>
-                                      </div>
-                                    </div>
-                                  </PopoverContent>
-                                </Popover>
+                                    </PopoverContent>
+                                  </Popover>
+                                </div>
                               </div>
                             </div>
-                          </div>
+                          )
                         ))
                       )}
                     </div>

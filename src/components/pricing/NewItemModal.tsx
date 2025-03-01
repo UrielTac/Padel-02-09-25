@@ -320,7 +320,7 @@ export function NewItemModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px]"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px]"
             style={{
               position: 'fixed',
               top: 0,

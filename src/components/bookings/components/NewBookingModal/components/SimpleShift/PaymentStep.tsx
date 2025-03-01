@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import type { PaymentDetails } from '@/types/bookings'
 import { Button } from '@/components/ui/button'
-import { IconClock, IconCreditCard } from '@tabler/icons-react'
+import { IconClock, IconCreditCard, IconAlertCircle } from '@tabler/icons-react'
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
 import { useCourts } from '@/hooks/useCourts'
@@ -191,11 +191,24 @@ export function PaymentStep({
       <motion.div
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: 'auto' }}
-        className="space-y-2"
+        className="space-y-4"
       >
-        <Label className="text-sm font-medium text-gray-700">
-          Precio personalizado para {reservationDuration} minutos
-        </Label>
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gray-900">
+            Precio personalizado
+          </h3>
+          <p className="text-xs text-gray-500">
+            Ingresa el precio para una reserva de {reservationDuration} minutos
+          </p>
+        </div>
+
+        <div className="bg-amber-50/30 border border-amber-200/50 rounded-lg p-2.5 mb-4 flex items-center gap-2">
+          <IconAlertCircle className="h-4 w-4 text-amber-500/70" stroke={1.5} />
+          <p className="text-sm text-amber-600/80 font-light tracking-wide">
+            Ingresa un precio para la reserva
+          </p>
+        </div>
+
         <input
           type="number"
           min="0"
@@ -207,14 +220,13 @@ export function PaymentStep({
           }}
           placeholder="Ingrese el precio"
           className={cn(
-            "w-full px-3 py-2",
-            "rounded-lg border border-gray-200 bg-white",
+            "w-full px-3 py-1.5",
+            "text-sm text-gray-900 placeholder:text-gray-400",
+            "bg-transparent",
+            "rounded-lg",
+            "border border-gray-200/75",
             "focus:outline-none focus:border-gray-300",
-            "transition-colors duration-200",
-            "placeholder:text-gray-400 text-sm",
-            "[appearance:textfield]",
-            "[&::-webkit-outer-spin-button]:appearance-none",
-            "[&::-webkit-inner-spin-button]:appearance-none"
+            "transition-all duration-200"
           )}
         />
       </motion.div>
@@ -388,46 +400,34 @@ export function PaymentStep({
     <div className="space-y-6">
       {/* Opciones de Pago */}
       <div className="space-y-4">
-        <div className="grid gap-3">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-gray-900">
+            Tipo de pago
+          </h3>
+          <p className="text-xs text-gray-500">
+            Selecciona el tipo de pago para esta reserva
+          </p>
+        </div>
+
+        <div className="grid gap-2">
           {[
             {
               id: 'pending' as const,
               title: 'Reserva Simple',
               description: 'Sin registro de pago o seña',
-              icon: (
-                <div className="relative w-9 h-9">
-                  <div className="absolute inset-0 bg-gradient-to-b from-gray-50/40 to-gray-100/40 rounded-lg" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <IconClock className="h-4.5 w-4.5 text-gray-600/80" strokeWidth={1.5} />
-                  </div>
-                </div>
-              )
+              icon: <IconClock className="h-4 w-4 text-gray-600/80" strokeWidth={1.5} />
             },
             {
               id: 'partial' as const,
               title: 'Seña / Anticipo',
               description: 'Registrar pago parcial',
-              icon: (
-                <div className="relative w-9 h-9">
-                  <div className="absolute inset-0 bg-gradient-to-b from-amber-50/40 to-amber-100/40 rounded-lg" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <IconCreditCard className="h-4.5 w-4.5 text-amber-600/80" strokeWidth={1.5} />
-                  </div>
-                </div>
-              )
+              icon: <IconCreditCard className="h-4 w-4 text-amber-600/80" strokeWidth={1.5} />
             },
             {
               id: 'completed' as const,
               title: 'Pago Completo',
               description: 'Registrar pago total',
-              icon: (
-                <div className="relative w-9 h-9">
-                  <div className="absolute inset-0 bg-gradient-to-b from-green-50/40 to-green-100/40 rounded-lg" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <IconCreditCard className="h-4.5 w-4.5 text-green-600/80" strokeWidth={1.5} />
-                  </div>
-                </div>
-              )
+              icon: <IconCreditCard className="h-4 w-4 text-green-600/80" strokeWidth={1.5} />
             }
           ].map((option, index) => (
             <motion.button
@@ -444,21 +444,22 @@ export function PaymentStep({
               }}
               onClick={() => handlePaymentTypeChange(option.id)}
               className={cn(
-                "relative flex items-center gap-3 p-4 w-full",
-                "rounded-xl border transition-all duration-200",
+                "relative flex items-center gap-3 p-3 w-full",
+                "rounded-lg border text-left transition-all duration-200",
                 paymentState.paymentStatus === option.id
                   ? [
-                      "border-gray-900/10 bg-gray-50/80"
+                      "border-gray-300 bg-gray-50",
+                      "hover:bg-gray-50/80"
                     ]
                   : [
-                      "border-gray-200 bg-white",
+                      "border-gray-200/75 bg-transparent",
                       "hover:border-gray-300",
                       "hover:bg-gray-50/50"
                     ]
               )}
             >
               {option.icon}
-              <div className="flex-1 text-left">
+              <div className="flex-1">
                 <p className={cn(
                   "text-sm font-medium",
                   paymentState.paymentStatus === option.id
@@ -468,7 +469,7 @@ export function PaymentStep({
                   {option.title}
                 </p>
                 <p className={cn(
-                  "text-sm",
+                  "text-xs",
                   paymentState.paymentStatus === option.id
                     ? "text-gray-600"
                     : "text-gray-500"
@@ -521,11 +522,17 @@ export function PaymentStep({
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="space-y-3"
+            className="space-y-4"
           >
-            <label className="text-sm font-medium text-gray-700">
-              Método de Pago
-            </label>
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-gray-900">
+                Método de pago
+              </h3>
+              <p className="text-xs text-gray-500">
+                Selecciona el método de pago para esta reserva
+              </p>
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
               {[
                 { id: 'cash' as const, label: 'Efectivo' },
@@ -545,18 +552,18 @@ export function PaymentStep({
                     onPaymentChange(newState)
                   }}
                   className={cn(
-                    "relative h-10 rounded-lg text-sm transition-all duration-200",
-                    "border flex items-center justify-center",
+                    "relative h-9 rounded-lg text-sm transition-all duration-200",
+                    "border",
                     "w-full px-2",
                     paymentMethod === id
                       ? [
-                          "border-gray-900/10 bg-gray-50",
+                          "border-gray-300 bg-gray-50",
                           "text-gray-900 font-medium"
                         ]
                       : [
-                          "border-gray-200 bg-white hover:border-gray-300",
+                          "border-gray-200/75 bg-transparent",
                           "text-gray-600 hover:text-gray-900",
-                          "hover:bg-gray-50/50"
+                          "hover:border-gray-300 hover:bg-gray-50/50"
                         ]
                   )}
                 >
@@ -575,87 +582,37 @@ export function PaymentStep({
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
-          className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2"
+          className="mt-6 space-y-4"
         >
-          {/* Desglose de costos */}
-          {selectedCourts.length > 0 && (
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Alquiler de cancha ({reservationDuration} min):</span>
-              <span>${courtsPriceTotal}</span>
-            </div>
-          )}
-          
-          {rentals.length > 0 && (
-            <div className="flex justify-between text-sm text-gray-600">
-              <span>Alquiler de equipamiento:</span>
-              <span>${rentalsPriceTotal}</span>
-            </div>
-          )}
-
-          <div className="pt-2 border-t border-gray-200">
-            <div className="flex justify-between text-sm font-medium">
-              <span>Total:</span>
-              <span>${paymentState.totalAmount}</span>
-            </div>
-            
-            {paymentState.paymentStatus === 'partial' && (
-              <>
-                <div className="flex justify-between text-sm mt-1">
-                  <span>Seña (mínimo 30%):</span>
-                  <span>${paymentState.deposit}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-500">
-                  <span>Pendiente:</span>
-                  <span>${paymentState.totalAmount - paymentState.deposit}</span>
-                </div>
-              </>
-            )}
+          <div className="space-y-1">
+            <h3 className="text-sm font-medium text-gray-900">
+              Resumen de pago
+            </h3>
+            <p className="text-xs text-gray-500">
+              Detalles del costo de la reserva
+            </p>
           </div>
-        </motion.div>
-      )}
 
-      {/* Mostrar el resumen de rentals si hay items seleccionados */}
-      {rentals.length > 0 && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium text-gray-900">
-            Artículos Rentados
-          </h4>
-          <div className="space-y-2">
-            {rentals.map((rental) => {
-              const item = items.find(i => i.id === rental.itemId)
-              if (!item) return null
-
-              const itemTotal = rental.quantity * (rental.pricePerUnit || 0)
-              console.log('Precio calculado para item rentado:', {
-                itemId: rental.itemId,
-                quantity: rental.quantity,
-                pricePerUnit: rental.pricePerUnit,
-                itemTotal
-              })
-
-              return (
-                <div key={rental.itemId} className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {item.name} x{rental.quantity}
-                  </span>
-                  <span className="font-medium text-gray-900">
-                    {itemTotal.toFixed(2)}€
-                  </span>
-                </div>
-              )
-            })}
-            <div className="pt-2 border-t border-gray-200">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-gray-900">
-                  Total Rentals
-                </span>
-                <span className="font-medium text-gray-900">
-                  {rentalsPriceTotal.toFixed(2)}€
-                </span>
+          {/* Resumen de costos */}
+          <div className="space-y-2.5">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-600">Cancha</span>
+              <span className="text-sm text-gray-900">{courtsPriceTotal}€</span>
+            </div>
+            {rentals.length > 0 && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Equipamiento</span>
+                <span className="text-sm text-gray-900">{rentalsPriceTotal}€</span>
+              </div>
+            )}
+            <div className="pt-2.5 border-t border-gray-100">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium text-gray-900">Total</span>
+                <span className="text-sm font-medium text-gray-900">{calculateTotalAmount()}€</span>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   )

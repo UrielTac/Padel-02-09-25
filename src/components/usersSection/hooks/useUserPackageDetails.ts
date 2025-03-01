@@ -58,11 +58,15 @@ export function useUserPackageDetails({ userId, empresaId }: UseUserPackageDetai
 
     return userPackages.map(userPackage => {
       const packageDetails = packages.find(p => p.id === userPackage.package_id)
+      if (!packageDetails) {
+        console.warn(`No se encontraron detalles para el paquete con ID: ${userPackage.package_id}`)
+        return null
+      }
       return {
         userPackage: { ...userPackage, empresa_id: empresaId },
-        packageDetails: packageDetails!
+        packageDetails
       }
-    })
+    }).filter((item): item is UserPackageWithDetails => item !== null)
   }
 
   // Query para obtener los detalles

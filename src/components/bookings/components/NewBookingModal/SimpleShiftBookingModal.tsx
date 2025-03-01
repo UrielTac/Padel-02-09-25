@@ -56,6 +56,7 @@ interface SimpleShiftBookingProps {
   participants: BookingParticipant[]
   startTime?: string
   endTime?: string
+  selectedDate: Date
 }
 
 interface PaymentDetails {
@@ -84,22 +85,23 @@ interface SimpleShiftBookingModalProps {
   onClose: () => void
   selection: Selection
   onBookingCreated?: () => void
+  selectedDate: Date
 }
 
 export function SimpleShiftBookingModal({ 
   isOpen, 
   onClose,
   selection,
-  onBookingCreated
+  onBookingCreated,
+  selectedDate
 }: SimpleShiftBookingModalProps) {
   const queryClient = useQueryClient()
   const [mounted, setMounted] = useState(false)
   const [isStepValid, setIsStepValid] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [participants, setParticipants] = useState<BookingParticipant[]>([])
-  const { selectedDate } = useDateContext()
   const { currentBranch } = useBranchContext()
-  const { rentals, totalPrice: rentalItemsPrice } = useRentalContext()
+  const { rentals, totalPrice: rentalItemsPrice, updateRentals } = useRentalContext()
   const { data: courts = [] } = useCourts({ branchId: currentBranch?.id })
   const { data: items = [] } = useItems(currentBranch?.id)
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails>(() => {
@@ -124,7 +126,7 @@ export function SimpleShiftBookingModal({
 
   const { canMakeBooking } = useBookingCount({ 
     empresaId: organization?.id || '', 
-    date: selectedDate?.toISOString().split('T')[0] || '',
+    date: selectedDate.toISOString().split('T')[0],
     enabled: !!organization?.id && !!selectedDate && isOpen
   })
 
@@ -260,6 +262,9 @@ export function SimpleShiftBookingModal({
       
       toast.success('Reserva creada exitosamente');
       onBookingCreated?.();
+
+      // Limpiar rentals después de crear la reserva
+      updateRentals([])
     } catch (error: any) {
       console.error('Error al crear la reserva:', error);
       toast.error(error.message || 'Error al crear la reserva');
@@ -357,6 +362,13 @@ export function SimpleShiftBookingModal({
     // Esta función ya no es necesaria ya que usamos el contexto
     console.log('Rentals actualizados via contexto:', newRentals)
   }
+
+  // Limpiar rentals cuando se cierra el modal
+  useEffect(() => {
+    if (!isOpen) {
+      updateRentals([])
+    }
+  }, [isOpen, updateRentals])
 
   if (!selection || !mounted) return null
 
@@ -480,6 +492,7 @@ export function SimpleShiftBookingModal({
                     onPaymentChange={setPaymentDetails}
                     onParticipantChange={setParticipants}
                     participants={participants}
+                    selectedDate={selectedDate}
                   />
                 )}
               </div>

@@ -92,23 +92,35 @@ export function useUsers() {
       // Obtener paquetes activos para estos usuarios
       const { data: userPackages, error: packagesError } = await supabase
         .from('user_packages')
-        .select('user_id, package_id')
+        .select('user_id, package_id, sessions_left, expires_at')
         .in('user_id', userIds)
         .eq('empresa_id', empresa.id)
         .eq('status', 'active')
+        .gt('sessions_left', 0) // Solo paquetes con sesiones disponibles
+        .gte('expires_at', new Date().toISOString()) // Solo paquetes no expirados
 
       if (packagesError) {
         console.error('❌ Error al obtener paquetes:', packagesError)
         throw packagesError
       }
 
+      console.log('📦 Paquetes activos encontrados:', userPackages?.length || 0)
+
       // Crear un mapa de usuarios con sus paquetes
       const usersWithPackages: UserWithPackage[] = usuarios?.map(user => {
-        const userPackage = userPackages?.find(pkg => pkg.user_id === user.id)
+        const userActivePackages = userPackages?.filter(pkg => 
+          pkg.user_id === user.id && 
+          pkg.sessions_left > 0 && 
+          new Date(pkg.expires_at) > new Date()
+        )
+        
+        const hasActivePackage = userActivePackages?.length > 0
+        console.log(`Usuario ${user.nombre}: ${hasActivePackage ? 'tiene' : 'no tiene'} paquete activo`)
+        
         return {
           ...user,
-          hasActivePackage: !!userPackage,
-          activePackageId: userPackage?.package_id
+          hasActivePackage,
+          activePackageId: userActivePackages?.[0]?.package_id
         }
       }) || []
 

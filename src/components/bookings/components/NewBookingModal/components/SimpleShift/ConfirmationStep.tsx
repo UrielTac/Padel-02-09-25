@@ -34,6 +34,32 @@ export function ConfirmationStep({
     return item?.name || 'Item no encontrado'
   }
 
+  const getCourtPrice = (courtId: string) => {
+    const court = courts.find(c => c.id === courtId)
+    if (!court) return 0
+
+    // Si hay un precio manual en paymentDetails, lo usamos
+    if (paymentDetails?.manualPrice) {
+      return paymentDetails.manualPrice
+    }
+
+    // Si no hay precio manual, usamos el precio configurado para la duración
+    const duration = timeSelection?.duration || 0
+    const durationKey = duration.toString()
+    const price = court.duration_pricing?.[durationKey]
+
+    return price || 0
+  }
+
+  // Calcular el total incluyendo el precio manual si existe
+  const calculateTotal = () => {
+    const courtPrice = getCourtPrice(selectedCourts[0])
+    const rentalsTotal = rentals.reduce((total, rental) => 
+      total + (rental.pricePerUnit * rental.quantity), 0
+    )
+    return courtPrice + rentalsTotal
+  }
+
   return (
     <div className="space-y-6 px-6 py-2">
       {/* Detalles de la reserva */}
@@ -83,7 +109,7 @@ export function ConfirmationStep({
             <div key={court.id} className="flex justify-between items-center">
               <span className="text-xs text-gray-600">{court.name}</span>
               <span className="text-xs font-medium text-gray-900">
-                {paymentDetails.courtPrice}€
+                {getCourtPrice(court.id)}€
               </span>
             </div>
           ))}
@@ -187,7 +213,7 @@ export function ConfirmationStep({
           <div className="space-y-2">
             <div className="flex justify-between items-center">
               <span className="text-xs text-gray-600">Cancha</span>
-              <span className="text-xs font-medium">{paymentDetails.courtPrice}€</span>
+              <span className="text-xs font-medium">{getCourtPrice(selectedCourts[0])}€</span>
             </div>
             {rentals.length > 0 && (
               <div className="flex justify-between items-center">
@@ -198,7 +224,7 @@ export function ConfirmationStep({
             <div className="pt-2 border-t border-gray-100">
               <div className="flex justify-between items-center">
                 <span className="text-xs font-medium text-gray-900">Total</span>
-                <span className="text-xs font-medium text-gray-900">{paymentDetails.totalAmount}€</span>
+                <span className="text-xs font-medium text-gray-900">{calculateTotal()}€</span>
               </div>
               {paymentDetails.paymentStatus === 'partial' && (
                 <>
@@ -209,7 +235,7 @@ export function ConfirmationStep({
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-500">Pendiente</span>
                     <span className="text-xs text-gray-500">
-                      {paymentDetails.totalAmount - paymentDetails.deposit}€
+                      {calculateTotal() - paymentDetails.deposit}€
                     </span>
                   </div>
                 </>

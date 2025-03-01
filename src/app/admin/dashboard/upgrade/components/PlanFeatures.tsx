@@ -58,19 +58,19 @@ export function PlanFeatures({
   }
 
   return (
-    <div className="h-full bg-zinc-900 p-8 border border-zinc-800">
+    <div className="h-full p-6">
       <motion.div 
         variants={containerAnimation}
         initial="initial"
         animate="animate"
-        className="space-y-8 h-full flex flex-col"
+        className="space-y-6 h-full flex flex-col bg-zinc-50/90 rounded-3xl p-8"
       >
         {/* Header */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-medium text-zinc-100">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-zinc-800 font-mono tracking-tight">
             Plan {planName}
           </h3>
-          <p className="text-sm text-zinc-400 leading-relaxed">
+          <p className="text-xs text-zinc-600 font-mono leading-relaxed">
             Sistema completo de gestión para instalaciones de pádel, 
             diseñado para optimizar tus operaciones diarias y mejorar 
             la experiencia de tus clientes.
@@ -78,16 +78,16 @@ export function PlanFeatures({
         </div>
 
         {/* Subtle Divider */}
-        <div className="h-px bg-zinc-800" />
+        <div className="h-px bg-zinc-200/75" />
 
         {/* Features */}
-        <div className="space-y-6">
-          <h4 className="text-sm font-medium text-zinc-300">
+        <div className="space-y-4">
+          <h4 className="text-xs font-medium text-zinc-700 font-mono tracking-tight">
             Características incluidas
           </h4>
           <motion.ul 
             variants={containerAnimation}
-            className="space-y-5"
+            className="space-y-4"
           >
             {defaultFeatures.map((feature, index) => (
               <motion.li
@@ -95,10 +95,10 @@ export function PlanFeatures({
                 variants={itemAnimation}
                 className="space-y-1"
               >
-                <p className="text-sm font-medium text-zinc-200">
+                <p className="text-xs font-medium text-zinc-800 font-mono">
                   {feature.title}
                 </p>
-                <p className="text-sm text-zinc-400">
+                <p className="text-[10px] text-zinc-600 font-mono leading-relaxed">
                   {feature.description}
                 </p>
               </motion.li>
@@ -107,10 +107,10 @@ export function PlanFeatures({
         </div>
 
         {/* Footer Info */}
-        <div className="mt-auto pt-6">
-          <div className="h-px bg-zinc-800 mb-6" />
-          <div className="rounded-lg bg-zinc-800/50 px-4 py-3">
-            <p className="text-xs text-zinc-400 text-center">
+        <div className="mt-auto pt-4">
+          <div className="h-px bg-zinc-200/75 mb-4" />
+          <div className="rounded-lg bg-white/50 px-4 py-3">
+            <p className="text-[10px] text-zinc-600 text-center font-mono">
               Mejora tu gestión ahora y descubre todas las ventajas premium.
               Cancela cuando quieras sin compromiso.
             </p>

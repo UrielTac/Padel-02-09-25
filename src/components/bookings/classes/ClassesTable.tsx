@@ -248,9 +248,6 @@ export function ClassesTable() {
         </div>
       </div>
 
-      {/* Sección de Paquetes */}
-      <PackagesTable />
-
       {/* Modales */}
       <NewBookingModal
         isOpen={isNewClassModalOpen}

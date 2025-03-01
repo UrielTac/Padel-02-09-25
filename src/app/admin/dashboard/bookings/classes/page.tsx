@@ -1,10 +1,12 @@
 "use client"
 
 import { ClassesTable } from "@/components/bookings/classes/ClassesTable"
+import { PackagesTable } from "@/components/bookings/classes/PackagesTable"
+import { ViewSelector } from "@/components/bookings/classes/components/ViewSelector"
 import { useAuth } from "@/contexts/AuthContext"
 import { useBranchContext } from "@/contexts/BranchContext"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Suspense } from "react"
+import { Suspense, useState } from "react"
 
 function LoadingState() {
   return (
@@ -40,6 +42,7 @@ function NoBranchState() {
 export default function ClassesPage() {
   const { isLoading: isLoadingAuth, user } = useAuth()
   const { isLoading: isLoadingBranch, currentBranch } = useBranchContext()
+  const [currentView, setCurrentView] = useState<'classes' | 'packages'>('classes')
   
   const isLoading = isLoadingAuth || isLoadingBranch
 
@@ -56,8 +59,18 @@ export default function ClassesPage() {
               <NoBranchState />
             ) : (
               <div className="p-6">
+                <div className="flex justify-start mb-6">
+                  <ViewSelector 
+                    value={currentView} 
+                    onValueChange={setCurrentView} 
+                  />
+                </div>
                 <Suspense fallback={<LoadingState />}>
-                  <ClassesTable key={`classes-${currentBranch.id}`} />
+                  {currentView === 'classes' ? (
+                    <ClassesTable key={`classes-${currentBranch.id}`} />
+                  ) : (
+                    <PackagesTable key={`packages-${currentBranch.id}`} />
+                  )}
                 </Suspense>
               </div>
             )}

@@ -11,6 +11,7 @@ import { empresaService } from "@/services/empresaService"
 import { useAuth } from "@/contexts/AuthContext"
 import { useToast } from "@/components/ui/use-toast"
 import { PAYPAL_CONFIG } from "@/config/paypal"
+import Image from "next/image"
 
 type BillingPeriod = "monthly" | "quarterly" | "annually"
 
@@ -119,12 +120,7 @@ export function PaymentForm({
         // Actualizar el plan de la empresa
         await empresaService.updatePlanType(empresaId, 'PRO' as const)
         
-        toast({
-          title: "Plan actualizado",
-          description: "Tu suscripción se ha procesado correctamente.",
-          duration: 5000,
-        })
-
+        // Llamar a onSubmit inmediatamente
         onSubmit(data)
       }
     } catch (error: any) {
@@ -160,56 +156,67 @@ export function PaymentForm({
           className="space-y-8"
         >
           {/* Header */}
-          <div>
-            <h2 className="text-2xl font-semibold text-zinc-900">
-              Actualizar a {planName}
-            </h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Con SimpleLink Pro podrás gestionar más reservas y clientes de una manera mucho más eficiente y moderna.
-            </p>
+          <div className="space-y-6">
+            <div className="flex items-start">
+              <Image
+                src="/images/Miroodles - Sticker 5.png"
+                alt="Upgrade illustration"
+                width={80}
+                height={80}
+                className="object-contain -ml-2"
+              />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-medium text-zinc-900 font-mono tracking-tight">
+                Actualizar a {planName}
+              </h2>
+              <p className="text-sm text-zinc-500 font-mono leading-relaxed">
+                Con SimpleLink Pro podrás gestionar más reservas y clientes de una manera mucho más eficiente y moderna.
+              </p>
+            </div>
           </div>
 
           {/* Billing Options */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-zinc-700">
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-zinc-700 font-mono tracking-tight">
               Opciones de facturación
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {billingOptions.map((option) => (
                 <button
                   key={option.id}
                   onClick={() => setSelectedBilling(option.id)}
                   className={cn(
                     "w-full px-4 py-3 rounded-lg border transition-all duration-200",
-                    "hover:bg-zinc-50",
+                    "hover:bg-zinc-50/80",
                     selectedBilling === option.id
-                      ? "border-zinc-800 bg-zinc-50/50"
-                      : "border-zinc-200"
+                      ? "border-zinc-200 bg-zinc-50/80"
+                      : "border-zinc-100"
                   )}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm font-normal text-zinc-800">
+                    <div className="space-y-1.5 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-zinc-800 font-mono">
                           {option.title}
                         </span>
                         {option.savings && (
-                          <span className="text-emerald-600 text-[11px] font-medium">
+                          <span className="text-[10px] font-medium text-zinc-600 font-mono bg-zinc-100/80 px-1.5 py-0.5 rounded-full">
                             {option.savings}
                           </span>
                         )}
                       </div>
                       <div className="flex flex-col gap-0.5">
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-base font-medium text-zinc-900">
+                        <div className="flex items-baseline gap-1">
+                          <span className="text-sm font-medium text-zinc-900 font-mono">
                             €{(option.monthlyPrice || option.price).toFixed(2)}
                           </span>
-                          <span className="text-xs text-zinc-500 font-light">
+                          <span className="text-[10px] text-zinc-500 font-mono">
                             {option.period}
                           </span>
                         </div>
                         {option.monthlyPrice && (
-                          <p className="text-xs text-zinc-500 text-left">
+                          <p className="text-[10px] text-zinc-500 text-left font-mono">
                             Total: €{option.price.toFixed(2)}
                             {option.id === 'quarterly' ? ' / trimestre' : ' / año'}
                           </p>
@@ -228,16 +235,16 @@ export function PaymentForm({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
                 className={cn(
-                  "mt-3 p-3 rounded-lg",
-                  "bg-gradient-to-br from-emerald-50/50 to-emerald-50/30",
-                  "border border-emerald-100/50"
+                  "mt-2 p-3 rounded-lg",
+                  "bg-gradient-to-br from-zinc-50/60 to-zinc-50/30",
+                  "border border-zinc-100/30"
                 )}
               >
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium text-emerald-800">
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-zinc-800 font-mono">
                     Mejor elección
                   </p>
-                  <p className="text-xs leading-relaxed text-emerald-600">
+                  <p className="text-[10px] leading-relaxed text-zinc-700/75 font-mono">
                     El plan anual te ofrece el mejor valor, con un ahorro significativo del 35% y la tranquilidad de tener todas las funcionalidades PRO aseguradas por un año completo.
                   </p>
                 </div>
@@ -266,12 +273,12 @@ export function PaymentForm({
             <Button
               variant="outline"
               onClick={onCancel}
-              className="w-full"
+              className="w-full font-mono text-sm"
               disabled={isProcessing}
             >
               Cancelar
             </Button>
-            <p className="text-xs text-zinc-500 text-center">
+            <p className="text-xs text-zinc-500 text-center font-mono">
               Al continuar, aceptas nuestros términos y condiciones.
             </p>
           </div>

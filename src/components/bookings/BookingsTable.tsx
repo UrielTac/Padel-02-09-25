@@ -359,6 +359,7 @@ export function BookingsTable() {
         onClose={handleSimpleShiftModalClose}
         selection={selection}
         onBookingCreated={handleRefresh}
+        selectedDate={selectedDate}
       />
 
       <ViewBookingModal

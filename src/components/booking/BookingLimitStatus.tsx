@@ -78,15 +78,15 @@ export function BookingLimitStatus({ empresaId, date, className }: BookingLimitS
           value={usagePercentage} 
           className={cn(
             "h-1 bg-gray-200 rounded-full",
-            usagePercentage >= 90 ? "bg-orange-900/50" : "bg-gray-300"
+            usagePercentage >= 90 ? "bg-gray-900/50" : "bg-gray-300"
           )}
           indicatorClassName={cn(
             "transition-all duration-300 rounded-full",
             usagePercentage >= 90 
-              ? "bg-orange-400" 
+              ? "bg-gray-600" 
               : usagePercentage >= 75 
-                ? "bg-orange-400" 
-                : "bg-orange-400"
+                ? "bg-gray-600" 
+                : "bg-gray-600"
           )}
         />
         <p className="text-[11px] text-gray-400 font-normal mt-1">

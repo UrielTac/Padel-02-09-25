@@ -62,7 +62,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
           </BranchProvider>
         </OrganizationProvider>
       </AuthProvider>
-      <Toaster position="top-right" />
+      <Toaster 
+        position="bottom-right"
+        expand={false}
+        closeButton
+        theme="light"
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: '1px solid #f4f4f5',
+            color: '#18181b',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            fontSize: '0.875rem',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          },
+          className: 'font-mono',
+          descriptionClassName: 'text-zinc-600 text-sm',
+          actionClassName: 'font-mono',
+        }}
+      />
       {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}

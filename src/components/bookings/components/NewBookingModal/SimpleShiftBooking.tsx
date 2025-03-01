@@ -29,6 +29,7 @@ interface SimpleShiftBookingProps {
   onPaymentChange: (details: PaymentDetails) => void
   onParticipantChange: (participants: Participant[]) => void
   participants: Participant[]
+  selectedDate: Date
 }
 
 export function SimpleShiftBooking({ 
@@ -40,9 +41,10 @@ export function SimpleShiftBooking({
   onValidationChange,
   onPaymentChange,
   participants,
-  onParticipantChange
+  onParticipantChange,
+  selectedDate
 }: SimpleShiftBookingProps) {
-  const { selectedDate } = useDateContext()
+  const { selectedDate: contextDate } = useDateContext()
   const { currentBranch } = useBranchContext()
   const { data: courts = [] } = useCourts({ 
     branchId: currentBranch?.id,
@@ -262,6 +264,7 @@ export function SimpleShiftBooking({
             startTime={timeSelection?.startTime || '00:00'}
             endTime={timeSelection?.endTime || '00:00'}
             durationInMinutes={timeSelection ? timeToMinutes(timeSelection.endTime) - timeToMinutes(timeSelection.startTime) : 0}
+            selectedDate={selectedDate}
           />
         )
       case 'payment':

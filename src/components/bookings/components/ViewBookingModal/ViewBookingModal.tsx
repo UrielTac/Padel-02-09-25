@@ -600,7 +600,7 @@ export function ViewBookingModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
           />
 
           {/* Modal */}
@@ -642,158 +642,122 @@ export function ViewBookingModal({
                 className="flex-1 overflow-y-auto"
               >
                 <div className="p-6 space-y-8">
-                  {/* Nueva sección de resumen */}
-                  <motion.div
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                    className="rounded-lg bg-gray-50/80 p-4 border border-gray-100"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-x-2">
-                          {/* Columna izquierda: Solo Usuario */}
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 rounded-full bg-white shadow-sm ring-1 ring-gray-900/5 flex items-center justify-center flex-shrink-0">
-                                <span className="text-sm font-medium text-gray-900">
-                                  {processedData.getInitial(processedData.participants[0])}
-                                </span>
-                              </div>
-                              <h3 className="text-sm font-medium text-gray-900 truncate">
-                                {processedData.formatParticipantName(processedData.participants[0])}
-                              </h3>
-                            </div>
-                            
-                            {/* Lista de participantes adicionales */}
-                            {processedData.hasValidParticipants && processedData.participants.length > 1 && (
-                              <div className="mt-2 text-xs text-gray-500 space-y-1">
-                                {processedData.participants.slice(1).map((participant, index) => (
-                                  <div key={index} className="flex items-center gap-1.5">
-                                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                      <span className="text-xs font-medium text-gray-600">
-                                        {processedData.getInitial(participant)}
-                                      </span>
-                                    </div>
-                                    <span className="text-sm text-gray-500">
-                                      {processedData.formatParticipantName(participant)}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
+                  {/* Sección de resumen */}
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Información de la reserva
+                      </h3>
+                      <p className="text-xs text-gray-500">
+                        {format(new Date(currentBooking.date), "dd 'de' MMMM, yyyy", { locale: es })} • {currentBooking.startTime} - {currentBooking.endTime}
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {processedData.participants.map((participant, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className={cn(
+                            "flex items-center py-1.5",
+                            "group transition-colors duration-200"
+                          )}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center mr-3">
+                            <span className="text-sm font-medium text-gray-900">
+                              {processedData.getInitial(participant)}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-sm text-gray-600">{processedData.formatParticipantName(participant)}</p>
+                            {participant.email && (
+                              <p className="text-xs text-gray-400">{participant.email}</p>
                             )}
                           </div>
-
-                          {/* Columna derecha: Solo Fecha y Horario */}
-                          <div className="text-right pt-1">
-                            <p className="text-xs font-medium text-gray-700">
-                              {format(new Date(currentBooking.date), "dd 'de' MMMM, yyyy", { locale: es })}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              {/* Los horarios ya vienen transformados desde BookingsTable */}
-                              {currentBooking.startTime} - {currentBooking.endTime}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  </motion.div>
+                  </div>
 
                   {/* Detalles principales */}
-                  <motion.div 
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.3 }}
-                    className="rounded-lg bg-white p-4 border border-gray-200 shadow-sm space-y-4"
-                  >
+                  <div className="space-y-6">
                     {/* Sección de Pistas */}
-                    <CollapsibleSection
-                      icon={<IconBallTennis className="h-5 w-5 text-gray-400" />}
-                      title="Pistas"
-                      count={1}
-                    >
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-500">
-                            {processedData.courtName} ({processedData.durationInMinutes} min)
-                          </span>
-                          <span className="text-gray-900">
-                            {formatPrice(processedData.courtPrice)}
-                          </span>
-                        </div>
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Pistas reservadas
+                      </h3>
+                      <div className="space-y-1.5">
+                        {processedData.courtName && (
+                          <div className="flex items-center justify-between py-1.5">
+                            <span className="text-sm text-gray-600">{processedData.courtName}</span>
+                            <span className="text-sm text-gray-900 font-mono">€{processedData.courtPrice}</span>
+                          </div>
+                        )}
                       </div>
-                    </CollapsibleSection>
+                    </div>
 
-                    {/* Sección de Participantes */}
-                    {processedData.hasValidParticipants && (
-                      <CollapsibleSection
-                        icon={<IconUsers className="h-5 w-5 text-gray-400" />}
-                        title="Participantes"
-                        count={processedData.participants.length}
-                      >
-                        <div className="space-y-2">
-                          {processedData.participants.map((participant, index) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                <span className="text-xs font-medium text-gray-600">
-                                  {processedData.getInitial(participant)}
+                    {/* Sección de Items Rentados */}
+                    {processedData.hasRentedItems && (
+                      <div className="space-y-2">
+                        <h3 className="text-sm font-medium text-gray-900">
+                          Equipamiento rentado
+                        </h3>
+                        <div className="space-y-1.5">
+                          {processedData.rentedItems.map((item, index) => (
+                            <div 
+                              key={index}
+                              className="flex items-center justify-between py-1.5"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">
+                                  {item.name} ({item.quantity}x)
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-500">
-                                {processedData.formatParticipantName(participant)}
+                              <span className="text-sm text-gray-900 font-mono">
+                                €{(item.pricePerUnit * item.quantity).toFixed(2)}
                               </span>
                             </div>
                           ))}
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                            <span className="text-xs font-medium text-gray-500">Total equipamiento</span>
+                            <span className="text-sm text-gray-900 font-mono">€{processedData.rentalsTotal}</span>
+                          </div>
                         </div>
-                      </CollapsibleSection>
+                      </div>
                     )}
 
-                    {/* Sección de Ítems */}
-                    {processedData && (
-                      <CollapsibleSection
-                        icon={<IconPackage className="h-5 w-5 text-gray-400" />}
-                        title="Ítems Alquilados"
-                        count={processedData.rentedItems.length}
-                      >
-                        <div className="space-y-2">
-                          {processedData.rentedItems.length > 0 ? (
-                            <>
-                              {processedData.rentedItems.map((item, index) => (
-                                <div key={index} className="flex justify-between text-sm">
-                                  <span className="text-gray-500">
-                                    {item.name} (x{item.quantity})
-                                  </span>
-                                  <span className="text-gray-900">
-                                    {formatPrice(item.pricePerUnit * item.quantity)}
-                                  </span>
-                                </div>
-                              ))}
-                              {processedData.rentalsTotal > 0 && (
-                                <div className="pt-2 border-t flex justify-between text-sm">
-                                  <span className="font-medium text-gray-900">Total Ítems</span>
-                                  <span className="font-medium text-gray-900">
-                                    {formatPrice(processedData.rentalsTotal)}
-                                  </span>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <p className="text-sm text-gray-500">No hay ítems alquilados</p>
-                          )}
+                    {/* Estado del Pago */}
+                    <div className="space-y-2">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        Estado del pago
+                      </h3>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between py-1.5">
+                          <span className="text-sm text-gray-600">Método de pago</span>
+                          <span className="text-sm text-gray-900">{processedData.paymentMethod}</span>
                         </div>
-                      </CollapsibleSection>
-                    )}
-
-                    {/* Detalles de Pago */}
-                    <PaymentDetails
-                      total={processedData.totalAmount}
-                      deposit={processedData.depositAmount}
-                      paymentMethod={processedData.paymentMethod}
-                      status={processedData.paymentStatus}
-                      paymentType={processedData.paymentType}
-                      onNewPayment={handlePayment}
-                    />
-                  </motion.div>
+                        <div className="flex items-center justify-between py-1.5">
+                          <span className="text-sm text-gray-600">Estado</span>
+                          <span className={cn(
+                            "text-sm font-medium",
+                            processedData.paymentStatus === 'completed' && "text-gray-600",
+                            processedData.paymentStatus === 'pending' && "text-gray-600",
+                            processedData.paymentStatus === 'partial' && "text-gray-600"
+                          )}>
+                            {getStatusText(processedData.paymentStatus)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between py-1.5 border-t border-gray-100">
+                          <span className="text-sm font-medium text-gray-900">Total</span>
+                          <span className="text-sm font-medium text-gray-900 font-mono">
+                            €{processedData.totalAmount}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
 

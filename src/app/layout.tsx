@@ -1,7 +1,6 @@
 import './globals.css'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
 import { Providers } from './providers'
 import { DateProvider } from "@/contexts/DateContext"
 
@@ -23,7 +22,6 @@ export default function RootLayout({
         <DateProvider>
           <Providers>
             {children}
-            <Toaster />
           </Providers>
         </DateProvider>
       </body>

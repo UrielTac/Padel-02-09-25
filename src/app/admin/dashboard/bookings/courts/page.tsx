@@ -44,7 +44,7 @@ export default function CourtsPage() {
   const isLoading = isLoadingAuth || isLoadingBranch
 
   return (
-    <div className="fixed inset-0 overflow-hidden z-0">
+    <div className="fixed inset-0 overflow-hidden">
       <main className="absolute inset-0 lg:left-[240px]">
         <div className="absolute inset-[8px]">
           <div className="bg-white rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.02)] w-full h-full overflow-auto scrollbar-none">

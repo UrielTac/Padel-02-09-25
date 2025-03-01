@@ -153,38 +153,6 @@ export function PlanInfo() {
                 </div>
               </div>
             )}
-
-            {/* Separador e información de contacto */}
-            <div className="border-t border-gray-100 pt-4">
-              <div className="flex flex-col gap-2">
-                <p className="text-sm text-gray-900">
-                  ¿Desea cancelar suscripción?
-                </p>
-                <div className="text-sm text-gray-500">
-                  <p>Contáctenos en:</p>
-                  <div className="mt-1 space-y-1">
-                    <p className="text-gray-600">
-                      <a 
-                        href="mailto:soportesimplelink@gmail.com"
-                        className="hover:text-gray-900 transition-colors"
-                      >
-                        soportesimplelink@gmail.com
-                      </a>
-                    </p>
-                    <p className="text-gray-600">
-                      <a 
-                        href="https://www.simple-link.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-gray-900 transition-colors"
-                      >
-                        www.simple-link.com
-                      </a>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </motion.div>
