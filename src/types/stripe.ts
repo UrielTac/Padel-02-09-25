@@ -1,3 +1,10 @@
+export interface StripeConnection {
+  charges_enabled: boolean;
+  stripe_account_id: string;
+  stripe_customer_id: string;
+  status: 'active' | 'inactive' | 'pending';
+}
+
 export interface StripeCustomerCache {
   stripeCustomerId: string;
   stripeAccountId: string;

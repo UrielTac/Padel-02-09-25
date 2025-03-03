@@ -6,6 +6,7 @@ import { FullPaymentService } from '@/services/full-payment.service';
 import { z } from 'zod';
 import { createId } from '@paralleldrive/cuid2';
 import { Database } from '@/types/supabase';
+import { stripe } from '@/lib/stripe';
 
 // Esquema de validación para la solicitud
 const fullPaymentSchema = z.object({
@@ -13,20 +14,28 @@ const fullPaymentSchema = z.object({
   amount: z.number().positive(),
   stripePaymentMethodId: z.string(),
   stripeAccountId: z.string(),
-  stripeCustomerId: z.string().optional(),
-  empresaId: z.string().optional(),
+  stripeCustomerId: z.string(),
+  empresaId: z.string(),
   description: z.string().optional(),
   paymentType: z.string().optional().default('booking'),
-  paymentMethod: z.string().optional().default('stripe')
+  metadata: z.object({
+    request_id: z.string(),
+    payment_type: z.string(),
+    description: z.string()
+  }).optional()
 });
 
 export async function POST(request: Request) {
   const requestId = createId();
 
   try {
-    // Obtener y validar el body de la solicitud
+    // 1. Obtener y validar el body de la solicitud
     const body = await request.json();
-    console.log(`[${requestId}] Recibida solicitud de pago completo:`, body);
+    console.log(`[${requestId}] Recibida solicitud de pago completo:`, {
+      ...body,
+      stripePaymentMethodId: '***',
+      stripeCustomerId: '***'
+    });
 
     const result = fullPaymentSchema.safeParse(body);
     if (!result.success) {
@@ -46,18 +55,19 @@ export async function POST(request: Request) {
 
     const data = result.data;
     
-    // Asegurar que el tipo sea 'booking' y el método 'stripe'
+    // 2. Asegurar que el tipo sea 'booking' y el método 'stripe'
     const paymentType = data.paymentType === 'full' ? 'booking' : data.paymentType;
     const paymentMethod = 'stripe';
     
     console.log(`[${requestId}] Procesando pago con tipo "${paymentType}" y método "${paymentMethod}":`, {
       bookingId: data.bookingId,
-      amount: data.amount
+      amount: data.amount,
+      metadata: data.metadata
     });
 
     const supabase = createServerComponentClient<Database>({ cookies });
 
-    // Verificar que la reserva existe
+    // 3. Verificar que la reserva existe
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
       .select('id, status')
@@ -65,7 +75,10 @@ export async function POST(request: Request) {
       .single();
 
     if (bookingError || !booking) {
-      console.error(`[${requestId}] Reserva no encontrada:`, { bookingId: data.bookingId, error: bookingError });
+      console.error(`[${requestId}] Reserva no encontrada:`, { 
+        bookingId: data.bookingId, 
+        error: bookingError 
+      });
       return NextResponse.json(
         { 
           success: false, 
@@ -78,7 +91,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validar que la reserva esté en estado válido para pago
+    // 4. Validar que la reserva esté en estado válido para pago
     if (booking.status === 'cancelled' || booking.status === 'completed') {
       return NextResponse.json(
         { 
@@ -92,23 +105,17 @@ export async function POST(request: Request) {
       );
     }
 
-    // Inicializar Stripe
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-      // @ts-ignore - Ignorar error de versión de API
-      apiVersion: '2023-10-16',
-    });
-
-    // Crear servicio de pago
+    // 5. Crear servicio de pago
     const paymentService = new FullPaymentService(stripe, supabase);
 
-    // Procesar el pago
+    // 6. Procesar el pago
     const paymentResult = await paymentService.processFullPayment({
       bookingId: data.bookingId,
       amount: data.amount,
       stripePaymentMethodId: data.stripePaymentMethodId,
       stripeAccountId: data.stripeAccountId,
-      stripeCustomerId: data.stripeCustomerId || '',
-      empresaId: data.empresaId || '',
+      stripeCustomerId: data.stripeCustomerId,
+      empresaId: data.empresaId,
       description: data.description,
       paymentType: paymentType,
       paymentMethod: paymentMethod

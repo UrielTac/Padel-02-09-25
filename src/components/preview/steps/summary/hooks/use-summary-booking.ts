@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { PAYMENT_TYPE_MAPPINGS, PaymentTypeEnum, ParticipantRoleEnum } from '@/types/bookings';
 import { bookingService } from '@/services/bookingService';
 import { useFormItems } from '@/contexts/FormItemsContext';
+import { PaymentState, BookingPaymentData } from '@/types/payments';
 
 interface ValidationError {
   field: string;
@@ -14,7 +15,7 @@ interface ValidationError {
 }
 
 interface UseSummaryBookingOptions {
-  onSuccess?: () => void;
+  onSuccess?: (booking: BookingPaymentData) => void;
   onError?: (error: Error) => void;
 }
 
@@ -251,6 +252,25 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         paymentConfig,
         originalPaymentType: state.payment.type
       });
+
+      // Validar configuración especial para pago completo
+      if (state.payment.type === 'full') {
+        if (!state.payment.stripe_payment_intent_id) {
+          console.error('[useSummaryBooking] Pago completo sin PaymentIntent:', state.payment);
+          throw new Error('No se encontró confirmación del pago con Stripe');
+        }
+
+        // Forzar configuración correcta para pago con Stripe
+        bookingData.paymentMethod = 'stripe';
+        bookingData.paymentStatus = 'completed';
+        bookingData.stripe_payment_intent_id = state.payment.stripe_payment_intent_id;
+        
+        console.log('[useSummaryBooking] Datos de pago Stripe configurados:', {
+          method: bookingData.paymentMethod,
+          status: bookingData.paymentStatus,
+          paymentIntentId: bookingData.stripe_payment_intent_id
+        });
+      }
 
       // Verificar disponibilidad antes de crear
       const availabilityCheck = await bookingService.checkAvailability(bookingData);

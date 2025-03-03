@@ -520,21 +520,16 @@ function MobilePaymentContainerBase({
     }, [onRemovePaymentType])
   };
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback(async () => {
     if (currentView === 'details') {
       setCurrentView('payment');
       return;
     }
 
-    // Verificar selecciones
     if (!localSelectedType || !localSelectedMethod) {
       return;
     }
 
-    // Asegurar que el estado global está actualizado
-    // Ya no necesitamos actualizar el estado global explícitamente porque ya se está
-    // manejando a través de los métodos de selección individuales
-    
     console.log('[MobilePaymentContainer] Avanzando al siguiente paso con:', {
       localSelectedMethod,
       localSelectedType
@@ -543,26 +538,76 @@ function MobilePaymentContainerBase({
     // Si el tipo de pago es "full" (pago completo), necesitamos preparar los datos
     // para procesar el cargo completo
     if (localSelectedType === 'full' && localSelectedMethod) {
-      // Crear un objeto con los datos de pago que necesitaremos en el siguiente paso
-      const paymentData = {
-        paymentType: localSelectedType,
-        paymentMethod: localSelectedMethod,
-        amount: calculations.total,
-        itemsTotal: calculations.itemsTotal,
-        courtPrice: calculations.courtPrice,
-        discount: calculations.discount,
-        selectedItems: calculations.selectedItems,
-        // El tipo de pago "full" indica que debemos cobrar la totalidad
-        shouldChargeFullAmount: true,
-        // Datos adicionales para el procesamiento del pago
-        stripePaymentMethodId: localSelectedMethod.id,
-        empresaId: empresaId
-      };
+      try {
+        // 1. Obtener datos de conexión Stripe
+        const { stripeConnectionService } = await import('@/services/stripeConnectionService');
+        const stripeConnection = await stripeConnectionService.getConnection(empresaId);
+        
+        if (!stripeConnection?.charges_enabled) {
+          throw new Error('La cuenta de Stripe no está habilitada para cobros');
+        }
 
-      console.log('[MobilePaymentContainer] Preparando cobro total:', paymentData);
-      
-      // Pasar los datos al siguiente paso a través del evento onNext
-      onNext(paymentData);
+        // 2. Obtener datos del cliente Stripe usando el endpoint centralizado
+        const response = await fetch('/api/stripe/payment-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            paymentMethodId: localSelectedMethod.id,
+            empresaId,
+            existingCustomerId: stripeConnection.stripe_customer_id,
+            existingAccountId: stripeConnection.stripe_account_id
+          })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          console.error('❌ Error al obtener datos de pago:', result.error);
+          throw new Error(result.error?.message || 'Error al obtener datos de pago');
+        }
+
+        // 3. Preparar datos con validación
+        const paymentData = {
+          paymentType: localSelectedType,
+          paymentMethod: localSelectedMethod,
+          amount: calculations.total,
+          shouldChargeFullAmount: true,
+          stripePaymentMethodId: result.data.paymentMethodId,
+          stripeAccountId: result.data.accountId,
+          stripeCustomerId: result.data.customerId,
+          empresaId: empresaId,
+          metadata: {
+            type: 'full_payment',
+            description: 'Pago completo de reserva',
+            userId: result.data.userId
+          }
+        };
+
+        console.log('✅ Datos de pago preparados:', {
+          amount: calculations.total,
+          paymentMethodId: result.data.paymentMethodId,
+          hasStripeAccount: !!result.data.accountId,
+          hasCustomer: !!result.data.customerId,
+          timestamp: new Date().toISOString()
+        });
+
+        // 4. Propagar los datos al siguiente paso
+        onNext(paymentData);
+      } catch (error: any) {
+        console.error('❌ Error preparando pago:', error);
+        toast.error(error.message || 'Error al preparar el pago');
+        
+        // Log detallado del error
+        console.error('[MobilePaymentContainer] Error detallado:', {
+          error,
+          selectedMethod: localSelectedMethod,
+          selectedType: localSelectedType,
+          empresaId,
+          timestamp: new Date().toISOString()
+        });
+      }
       return;
     }
 

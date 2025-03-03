@@ -147,8 +147,8 @@ export function SummaryPreview({
     }
   }, [selectedPaymentMethod, selectedPaymentType, setPayment]);
 
-  const handleNext = useCallback((paymentData?: any) => {
-    console.log('[SummaryPreview] Intentando avanzar:', {
+  const handleNext = useCallback(async (paymentData?: any) => {
+    console.log('[SummaryPreview] Iniciando proceso de avance:', {
       isValid,
       hasWarnings,
       selectedPaymentType,
@@ -157,23 +157,11 @@ export function SummaryPreview({
       shouldChargeFullAmount: paymentData?.shouldChargeFullAmount
     });
 
+    // 1. Validaciones iniciales
     if (!isValid) {
-      const errors = validationErrors
-        .map(err => err.message)
-        .join('\n');
+      const errors = validationErrors.map(err => err.message).join('\n');
       toast.error(`Por favor, verifica los siguientes campos:\n${errors}`);
       return;
-    }
-
-    if (hasWarnings) {
-      toast('Tienes advertencias pendientes', {
-        icon: '⚠️',
-        style: {
-          background: '#fff7ed',
-          color: '#9a3412',
-          border: '1px solid #fdba74'
-        }
-      });
     }
 
     if (!selectedPaymentType || !selectedPaymentMethod) {
@@ -181,77 +169,99 @@ export function SummaryPreview({
       return;
     }
 
-    // Verificar si debemos procesar un pago completo
-    if (paymentData?.shouldChargeFullAmount) {
-      console.log('[SummaryPreview] Procesando pago completo:', paymentData);
-      
-      // Mostrar indicador de carga
-      toast.loading('Procesando pago...', { id: 'payment-processing' });
-      
-      // Importar dinámicamente el servicio de pago para evitar errores de SSR
-      import('@/services/paymentService').then(async ({ paymentService }) => {
-        try {
-          // Crear un ID temporal para la reserva (será reemplazado por el real)
-          const tempBookingId = `temp_${Date.now()}`;
-          
-          // Procesar el pago usando el servicio
-          const result = await paymentService.processFullPayment({
-            bookingId: tempBookingId, // Se asignará el ID real en el backend
-            paymentMethodId: paymentData.stripePaymentMethodId || paymentData.paymentMethod.id,
-            amount: paymentData.amount,
-            description: 'Pago completo de reserva',
-            paymentType: 'full'
-          });
-          
-          // Limpiar toast de carga
-          toast.dismiss('payment-processing');
-          
-          if (result.success) {
-            // Guardar ID del PaymentIntent para referencia en la creación de la reserva
-            setPaymentIntent(result.paymentIntentId);
-            
-            // Actualizar el estado global para garantizar que se use 'stripe' como método
-            setPayment({
-              method: 'stripe',
-              type: 'full' as PaymentTypeEnum,
-              selectedPaymentMethod: paymentData.paymentMethod
-            });
-            
-            toast.success('Pago procesado correctamente');
-            console.log('[SummaryPreview] Pago exitoso, avanzando:', result);
-            onNext();
-          } else {
-            // Si el pago falla, mostrar error y no avanzar
-            toast.error(`Error al procesar el pago: ${result.message || 'Error desconocido'}`);
-            console.error('[SummaryPreview] Error en el pago:', result);
-          }
-        } catch (error: any) {
-          // Limpiar toast de carga
-          toast.dismiss('payment-processing');
-          
-          console.error('[SummaryPreview] Error al procesar pago:', error);
-          toast.error(`Error al procesar el pago: ${error.message || 'Error desconocido'}`);
-        }
-      }).catch(err => {
-        toast.dismiss('payment-processing');
-        console.error('[SummaryPreview] Error al cargar el servicio de pago:', err);
-        toast.error('Error al inicializar el proceso de pago');
-      });
-      
-      // Importante: detener la ejecución aquí para no avanzar automáticamente
+    // 2. Si no es pago completo, continuar normalmente
+    if (!paymentData?.shouldChargeFullAmount) {
+      console.log('[SummaryPreview] Avanzando sin procesamiento de pago');
+      onNext();
       return;
     }
 
-    // Para otros tipos de pago, continuar con el flujo normal
-    console.log('[SummaryPreview] Configuración válida, permitiendo navegación');
-    onNext();
+    // 3. Procesar pago completo
+    try {
+      // 3.1 Validar datos necesarios
+      if (!paymentData.stripePaymentMethodId || !paymentData.stripeAccountId || !paymentData.stripeCustomerId) {
+        console.error('[SummaryPreview] Datos de Stripe incompletos:', {
+          hasPaymentMethodId: !!paymentData.stripePaymentMethodId,
+          hasAccountId: !!paymentData.stripeAccountId,
+          hasCustomerId: !!paymentData.stripeCustomerId
+        });
+        throw new Error('Datos de pago incompletos');
+      }
+
+      // 3.2 Mostrar indicador de carga
+      toast.loading('Procesando pago...', { id: 'payment-processing' });
+
+      // 3.3 Procesar el pago
+      const { paymentService } = await import('@/services/paymentService');
+      const result = await paymentService.processFullPayment({
+        paymentMethodId: paymentData.stripePaymentMethodId,
+        amount: paymentData.amount,
+        stripeAccountId: paymentData.stripeAccountId,
+        stripeCustomerId: paymentData.stripeCustomerId,
+        empresaId: empresaId || '',
+        description: 'Pago completo de reserva',
+        paymentType: 'full',
+        metadata: {
+          ...paymentData.metadata,
+          source: 'summary_preview',
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      // 3.4 Limpiar indicador de carga
+      toast.dismiss('payment-processing');
+
+      if (!result.success) {
+        console.error('[SummaryPreview] Error en procesamiento de pago:', result.error);
+        throw new Error(result.message || 'Error al procesar el pago');
+      }
+
+      // 3.5 Actualizar estado global
+      const paymentUpdate = {
+        method: 'stripe' as const,
+        type: 'full' as const,
+        status: 'completed' as const,
+        paymentIntentId: result.paymentIntentId,
+        selectedPaymentMethod: paymentData.paymentMethod,
+        config: {
+          paymentMethodId: paymentData.stripePaymentMethodId,
+          brand: paymentData.paymentMethod.brand,
+          last4: paymentData.paymentMethod.last4,
+          expMonth: paymentData.paymentMethod.expMonth,
+          expYear: paymentData.paymentMethod.expYear
+        }
+      };
+
+      console.log('[SummaryPreview] Actualizando estado de pago:', {
+        ...paymentUpdate,
+        timestamp: new Date().toISOString()
+      });
+
+      await setPayment(paymentUpdate);
+
+      // 3.6 Guardar referencia y continuar
+      setPaymentIntent(result.paymentIntentId);
+      toast.success('Pago procesado correctamente');
+      console.log('[SummaryPreview] Pago exitoso, procediendo con la reserva');
+      onNext();
+    } catch (error: any) {
+      // 3.7 Manejar errores
+      toast.dismiss('payment-processing');
+      console.error('[SummaryPreview] Error al procesar pago:', {
+        error,
+        timestamp: new Date().toISOString()
+      });
+      toast.error(error.message || 'Error al procesar el pago');
+    }
   }, [
     isValid,
     validationErrors,
     hasWarnings,
     selectedPaymentType,
     selectedPaymentMethod,
-    onNext
+    onNext,
+    setPayment,
+    empresaId
   ]);
 
   const handleModalAction = (action: () => void) => {

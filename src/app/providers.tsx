@@ -1,7 +1,7 @@
 "use client"
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+// import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { OrganizationProvider } from '@/contexts/OrganizationContext'
@@ -81,9 +81,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
           actionClassName: 'font-mono',
         }}
       />
+      {/* Devtools de React Query desactivados
       {process.env.NODE_ENV === 'development' && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}
+      */}
     </QueryClientProvider>
   )
 } 

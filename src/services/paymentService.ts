@@ -1,5 +1,5 @@
 import { getAuthenticatedSupabaseClient } from '@/lib/supabase/client'
-import type { PaymentMethod } from '@/types/payments'
+import type { PaymentMethod, StripePaymentResult, FullPaymentRequest } from '@/types/payments'
 import { createId } from '@paralleldrive/cuid2'
 import type { Database } from '@/types/supabase'
 
@@ -22,6 +22,12 @@ interface StripePaymentData {
   paymentMethodId: string;
   accountId: string;
   customerId?: string | null;
+}
+
+interface Payment {
+  stripe_payment_method_id?: string;
+  payment_method: string;
+  created_at: string;
 }
 
 export const paymentService = {
@@ -90,7 +96,6 @@ export const paymentService = {
         timestamp: new Date().toISOString()
       });
       
-      // 1. Intentar obtener el pago más reciente con stripe_payment_method_id
       const { data: payments, error } = await client
         .from('payments')
         .select('stripe_payment_method_id, payment_method, created_at')
@@ -106,8 +111,7 @@ export const paymentService = {
         return null;
       }
 
-      // 2. Filtrar y obtener el primer pago con stripe_payment_method_id
-      const validPayment = payments?.find(payment => 
+      const validPayment = payments?.find((payment: Payment) => 
         payment.payment_method === 'stripe' && 
         payment.stripe_payment_method_id
       );
@@ -279,93 +283,53 @@ export const paymentService = {
    * @param amount Monto total a cobrar
    * @returns Resultado del pago
    */
-  async processFullPayment(params: {
-    bookingId: string;
-    paymentMethodId: string;
-    amount: number;
-    description?: string;
-    paymentType?: string;
-  }): Promise<{
-    success: boolean;
-    paymentIntentId?: string;
-    message?: string;
-    error?: any;
-  }> {
+  async processFullPayment(params: FullPaymentRequest): Promise<StripePaymentResult> {
+    const requestId = createId();
     try {
-      const { bookingId, paymentMethodId, amount, description, paymentType = 'full' } = params;
-      
       console.log('🔄 Iniciando procesamiento de pago completo:', {
-        bookingId,
-        paymentMethodId,
-        amount,
-        paymentType,
-        timestamp: new Date().toISOString()
+        amount: params.amount,
+        hasStripeAccount: !!params.stripeAccountId,
+        hasCustomer: !!params.stripeCustomerId,
+        timestamp: new Date().toISOString(),
+        requestId
       });
 
-      // 1. Obtener los datos necesarios para procesar el pago con Stripe
-      const stripeData = await this.getStripePaymentData(bookingId);
-      
-      if (!stripeData) {
-        console.error('❌ No se pudieron obtener los datos de Stripe para la reserva:', bookingId);
-        return {
-          success: false,
-          message: 'No se pudieron obtener los datos de pago'
-        };
-      }
-
-      // Mapeo de tipos de pago para asegurar compatibilidad con la BD
-      const dbPaymentType = paymentType === 'full' ? 'booking' : paymentType;
-
-      console.log('🔄 Tipo de pago mapeado para API:', {
-        original: paymentType,
-        mapped: dbPaymentType
-      });
-
-      // 3. Procesar el pago a través de la API
       const response = await fetch('/api/stripe/process-full-payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bookingId,
-          amount,
-          stripePaymentMethodId: paymentMethodId,
-          stripeAccountId: stripeData.accountId,
-          stripeCustomerId: stripeData.customerId,
-          description: description || 'Pago completo de reserva',
-          paymentType: dbPaymentType,
-          paymentMethod: 'stripe'
+          amount: params.amount,
+          stripePaymentMethodId: params.stripePaymentMethodId,
+          stripeAccountId: params.stripeAccountId,
+          stripeCustomerId: params.stripeCustomerId,
+          empresaId: params.empresaId,
+          description: params.description || 'Pago completo de reserva',
+          paymentType: params.paymentType || 'full',
+          metadata: params.metadata
         })
       });
 
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        console.error('❌ Error al procesar el pago completo:', result.error);
-        return {
-          success: false,
-          message: result.error?.message || 'Error al procesar el pago',
-          error: result.error
-        };
+        throw new Error(result.error?.message || 'Error al procesar el pago');
       }
-
-      console.log('✅ Pago completo procesado exitosamente:', {
-        bookingId,
-        paymentIntentId: result.paymentIntentId,
-        status: result.chargeStatus,
-        type: dbPaymentType
-      });
 
       return {
         success: true,
         paymentIntentId: result.paymentIntentId,
-        message: 'Pago procesado exitosamente'
+        message: 'Pago procesado correctamente'
       };
     } catch (error: any) {
-      console.error('❌ Error inesperado al procesar pago completo:', error);
+      console.error(`❌ [${requestId}] Error al procesar pago:`, error);
       return {
         success: false,
-        message: error.message || 'Error inesperado al procesar el pago',
-        error
+        message: error.message || 'Error al procesar el pago',
+        error: {
+          code: error.code || 'UNKNOWN_ERROR',
+          message: error.message || 'Error desconocido',
+          details: error.details || error
+        }
       };
     }
   }

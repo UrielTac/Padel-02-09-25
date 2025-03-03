@@ -49,7 +49,6 @@ export class FullPaymentService {
   async processFullPayment(params: FullPaymentRequest): Promise<PaymentResult> {
     const requestId = createId();
     console.log(`🔄 [${requestId}] Iniciando proceso de cobro completo:`, {
-      bookingId: params.bookingId,
       amount: params.amount,
       empresaId: params.empresaId,
       paymentType: params.paymentType || 'full',
@@ -57,42 +56,58 @@ export class FullPaymentService {
     });
 
     try {
-      // Determinar el tipo de pago a usar en la BD
-      const dbPaymentType = params.paymentType 
-        ? (PAYMENT_TYPE_MAPPING[params.paymentType] || 'booking')
-        : 'booking';
-        
-      console.log(`🔄 [${requestId}] Tipo de pago mapeado:`, {
-        original: params.paymentType || 'full',
-        mapped: dbPaymentType
-      });
-        
-      // 1. Procesar el cargo a través de Stripe
-      const paymentIntent = await this.createPaymentIntent({
-        amount: params.amount,
-        customerId: params.stripeCustomerId,
-        paymentMethodId: params.stripePaymentMethodId,
-        accountId: params.stripeAccountId,
+      // 1. Validar datos necesarios
+      if (!params.stripePaymentMethodId || !params.stripeAccountId || !params.stripeCustomerId) {
+        throw {
+          code: 'INVALID_PAYMENT_DATA',
+          message: 'Datos de pago incompletos'
+        };
+      }
+
+      // 2. Crear y confirmar el PaymentIntent
+      const paymentIntent = await this.stripe.paymentIntents.create({
+        amount: Math.round(params.amount * 100),
+        currency: 'eur',
+        customer: params.stripeCustomerId,
+        payment_method: params.stripePaymentMethodId,
+        off_session: true,
+        confirm: true,
+        payment_method_types: ['card'],
         metadata: {
-          booking_id: params.bookingId,
-          payment_type: dbPaymentType, // Usar tipo "booking" válido en la BD
-          description: params.description || 'Pago completo de reserva'
-        }
+          request_id: requestId,
+          payment_type: 'full',
+          description: params.description || 'Pago completo de reserva',
+          empresa_id: params.empresaId
+        },
+        description: params.description || 'Pago completo de reserva',
+        confirmation_method: 'automatic',
+        capture_method: 'automatic',
+        setup_future_usage: 'off_session'  // Importante para futuros cargos
+      }, {
+        stripeAccount: params.stripeAccountId,
+        idempotencyKey: `full_payment_${requestId}`
       });
 
-      // 2. Registrar el pago en la base de datos
+      console.log(`✅ [${requestId}] PaymentIntent creado:`, {
+        id: paymentIntent.id,
+        status: paymentIntent.status,
+        amount: paymentIntent.amount,
+        customer: paymentIntent.customer
+      });
+
+      // 3. Si el pago fue exitoso, registrar en caché para asociarlo después
       if (paymentIntent.status === 'succeeded') {
-        await this.registerPaymentInDatabase({
-          bookingId: params.bookingId,
-          amount: params.amount,
+        await this.cacheSuccessfulPayment({
           paymentIntentId: paymentIntent.id,
-          status: 'completed',
-          description: params.description || 'Pago completo de reserva',
-          paymentType: dbPaymentType
+          amount: params.amount,
+          stripeAccountId: params.stripeAccountId,
+          stripeCustomerId: params.stripeCustomerId,
+          empresaId: params.empresaId,
+          requestId,
+          description: params.description
         });
 
-        // 3. Actualizar el estado de la reserva a 'confirmed' y el estado de pago a 'completed'
-        await this.updateBookingStatus(params.bookingId, 'confirmed');
+        console.log(`✅ [${requestId}] Pago registrado en caché para asociación posterior`);
       }
 
       return {
@@ -100,15 +115,44 @@ export class FullPaymentService {
         paymentIntentId: paymentIntent.id,
         chargeStatus: paymentIntent.status
       };
+
     } catch (error: any) {
       console.error(`❌ [${requestId}] Error en processFullPayment:`, error);
       
       // Registrar el error para análisis posterior
       await this.logError(error, {
         requestId,
-        bookingId: params.bookingId,
         type: 'full_payment_error'
       });
+
+      // Transformar errores de Stripe en errores más legibles
+      if (error.code === 'authentication_required') {
+        return {
+          success: false,
+          error: {
+            code: 'AUTHENTICATION_REQUIRED',
+            message: 'La tarjeta requiere autenticación',
+            details: {
+              payment_intent_id: error.payment_intent?.id,
+              type: error.type
+            }
+          }
+        };
+      }
+
+      if (error.code === 'card_declined') {
+        return {
+          success: false,
+          error: {
+            code: 'CARD_DECLINED',
+            message: 'La tarjeta fue rechazada',
+            details: {
+              decline_code: error.decline_code,
+              type: error.type
+            }
+          }
+        };
+      }
       
       return {
         success: false,
@@ -116,100 +160,6 @@ export class FullPaymentService {
           code: error.code || 'PAYMENT_ERROR',
           message: error.message || 'Error al procesar el pago completo',
           details: error.details || error
-        }
-      };
-    }
-  }
-
-  /**
-   * Crea un PaymentIntent en Stripe y lo confirma inmediatamente
-   */
-  private async createPaymentIntent({
-    amount,
-    customerId,
-    paymentMethodId,
-    accountId,
-    metadata
-  }: {
-    amount: number;
-    customerId: string;
-    paymentMethodId: string;
-    accountId: string;
-    metadata: Record<string, any>;
-  }) {
-    const requestId = createId();
-    console.log(`🔄 [${requestId}] Creando PaymentIntent:`, {
-      amount,
-      customerId,
-      hasPaymentMethod: Boolean(paymentMethodId),
-      paymentType: metadata.payment_type,
-      timestamp: new Date().toISOString()
-    });
-
-    try {
-      // Usar retryOperation para intentar nuevamente en caso de errores temporales
-      return await this.retryOperation(async () => {
-        const paymentIntent = await this.stripe.paymentIntents.create({
-          amount: Math.round(amount * 100), // Convertir a céntimos
-          currency: 'eur',
-          customer: customerId,
-          payment_method: paymentMethodId,
-          off_session: true,
-          confirm: true,
-          payment_method_types: ['card'],
-          metadata: {
-            ...metadata,
-            request_id: requestId
-          },
-          description: metadata.description || 'Pago completo de reserva',
-          confirmation_method: 'automatic',
-          capture_method: 'automatic'
-        }, {
-          stripeAccount: accountId,
-          idempotencyKey: `full_payment_${metadata.booking_id}_${Date.now()}`
-        });
-
-        console.log(`✅ [${requestId}] PaymentIntent creado:`, {
-          id: paymentIntent.id,
-          status: paymentIntent.status,
-          amount: paymentIntent.amount,
-          paymentType: metadata.payment_type
-        });
-
-        return paymentIntent;
-      });
-    } catch (error: any) {
-      console.error(`❌ [${requestId}] Error al crear PaymentIntent:`, error);
-
-      // Transformar errores de Stripe en errores más legibles
-      if (error.code === 'authentication_required') {
-        throw {
-          code: 'AUTHENTICATION_REQUIRED',
-          message: 'La tarjeta requiere autenticación',
-          details: {
-            payment_intent_id: error.payment_intent?.id,
-            type: error.type
-          }
-        };
-      }
-
-      if (error.code === 'card_declined') {
-        throw {
-          code: 'CARD_DECLINED',
-          message: 'La tarjeta fue rechazada',
-          details: {
-            decline_code: error.decline_code,
-            type: error.type
-          }
-        };
-      }
-
-      throw {
-        code: 'STRIPE_ERROR',
-        message: error.message || 'Error al procesar el pago',
-        details: {
-          type: error.type,
-          code: error.code
         }
       };
     }
@@ -224,7 +174,9 @@ export class FullPaymentService {
     paymentIntentId,
     status,
     description,
-    paymentType = 'booking'
+    paymentType = 'booking',
+    stripeAccountId,
+    stripeCustomerId
   }: {
     bookingId: string;
     amount: number;
@@ -232,6 +184,8 @@ export class FullPaymentService {
     status: 'pending' | 'completed' | 'failed';
     description?: string;
     paymentType?: string;
+    stripeAccountId: string;
+    stripeCustomerId: string;
   }) {
     try {
       const { error } = await this.supabase
@@ -244,8 +198,10 @@ export class FullPaymentService {
           payment_status: status,
           payment_type: paymentType,
           stripe_payment_intent_id: paymentIntentId,
+          stripe_account_id: stripeAccountId,
+          stripe_customer_id: stripeCustomerId,
           notes: description || 'Pago completo de reserva'
-        } as any);
+        });
 
       if (error) {
         console.error('Error al registrar pago en la base de datos:', error);
@@ -262,44 +218,12 @@ export class FullPaymentService {
   }
 
   /**
-   * Actualiza el estado de la reserva
-   */
-  private async updateBookingStatus(
-    bookingId: string,
-    status: 'pending' | 'confirmed' | 'cancelled'
-  ) {
-    try {
-      const { error } = await this.supabase
-        .from('bookings')
-        .update({
-          status,
-          payment_status: status === 'confirmed' ? 'completed' : 'pending',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', bookingId);
-
-      if (error) {
-        console.error('Error al actualizar estado de la reserva:', error);
-        throw {
-          code: 'DATABASE_ERROR',
-          message: 'Error al actualizar el estado de la reserva',
-          details: error
-        };
-      }
-    } catch (error) {
-      console.error('Error inesperado al actualizar reserva:', error);
-      throw error;
-    }
-  }
-
-  /**
    * Registra un error en la base de datos
    */
   private async logError(
     error: any,
     context: {
       requestId: string;
-      bookingId: string;
       type: string;
     }
   ) {
@@ -358,5 +282,39 @@ export class FullPaymentService {
     ];
 
     return retryableCodes.includes(error.code);
+  }
+
+  /**
+   * Almacena temporalmente los datos del pago exitoso para asociarlos después
+   */
+  private async cacheSuccessfulPayment(data: {
+    paymentIntentId: string;
+    amount: number;
+    stripeAccountId: string;
+    stripeCustomerId: string;
+    empresaId: string;
+    requestId: string;
+    description?: string;
+  }) {
+    try {
+      const { error } = await this.supabase
+        .from('payment_cache')
+        .insert({
+          payment_intent_id: data.paymentIntentId,
+          amount: data.amount,
+          stripe_account_id: data.stripeAccountId,
+          stripe_customer_id: data.stripeCustomerId,
+          empresa_id: data.empresaId,
+          request_id: data.requestId,
+          description: data.description,
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutos
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error al cachear pago:', error);
+      // No lanzamos el error para no afectar el flujo principal
+    }
   }
 } 
