@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { AnimatePresence, motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import { Modal } from "@/components/ui/modal"
 import { Switch } from "@/components/ui/switch"
 import { 
   Select,
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { CategoryMultiSelect } from "@/components/ui/category-multi-select"
 import { DurationPricing } from "./DurationPricing"
 import { CustomPricing } from "./CustomPricing"
+import { AnimatePresence, motion } from "framer-motion"
 
 interface NewCourtModalProps {
   isOpen: boolean
@@ -187,407 +188,325 @@ export function NewCourtModal({
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 overflow-hidden z-[100]">
-          <div className="fixed inset-0 overflow-hidden">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleClose}
-              className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-[90]"
-              transition={{ 
-                duration: 0.3,
-                ease: "easeInOut"
-              }}
-            />
+    <Modal 
+      isOpen={isOpen} 
+      onClose={handleClose}
+      className="w-screen max-w-md"
+    >
+      <div className="flex h-full flex-col bg-white">
+        <div className="p-6 border-b">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">
+              {mode === 'create' ? 'Agregar Nueva Pista' : 'Editar Pista'}
+            </h2>
+          </div>
+          <p className="text-sm text-gray-500 mt-1">
+            {currentStep === 'court' 
+              ? 'Configure los datos básicos de la pista'
+              : 'Configure los precios de la pista'}
+          </p>
+        </div>
 
-            <div className="fixed inset-y-0 right-0 flex max-w-full pl-10 z-[100]">
+        <div className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {currentStep === 'court' ? (
               <motion.div
-                initial={{ x: "100%", opacity: 0.5 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ 
-                  x: "100%", 
-                  opacity: 0,
-                  transition: {
-                    duration: 0.3,
-                    ease: [0.4, 0, 0.2, 1]
-                  }
-                }}
-                transition={{ 
-                  type: "spring",
-                  damping: 30,
-                  stiffness: 300,
-                }}
-                className="w-screen max-w-md"
+                key="court-step"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="p-6 space-y-6"
               >
-                <div className="flex h-full flex-col bg-white shadow-xl">
-                  <motion.div
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ 
-                      delay: 0.1,
-                      duration: 0.3,
-                      ease: "easeOut"
-                    }}
-                    className="p-6 border-b"
-                  >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Nombre de la pista
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: Pista Principal"
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg",
+                      "border border-gray-200 bg-white",
+                      "focus:outline-none focus:border-gray-300",
+                      "transition-colors duration-200",
+                      "placeholder:text-gray-400",
+                      "text-sm"
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Deporte
+                    </label>
+                    <SingleSelect
+                      value={formData.sport}
+                      onChange={(value) => setFormData(prev => ({ ...prev, sport: value }))}
+                      options={sportOptions}
+                      placeholder="Seleccionar deporte"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">
+                      Tipo de Pista
+                    </label>
+                    <SingleSelect
+                      value={formData.court_type}
+                      onChange={(value) => setFormData(prev => ({ ...prev, court_type: value }))}
+                      options={courtTypeOptions}
+                      placeholder="Seleccionar tipo"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    Características de la Pista
+                  </label>
+                  <CategoryMultiSelect
+                    value={formData.features}
+                    onChange={(features) => setFormData(prev => ({ ...prev, features }))}
+                    categories={courtFeatures}
+                    placeholder="Seleccionar características"
+                  />
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <motion.h2 
-                        initial={{ y: 10, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.15, duration: 0.3 }}
-                        className="text-xl font-semibold"
-                      >
-                        {mode === 'create' ? 'Agregar Nueva Pista' : 'Editar Pista'}
-                      </motion.h2>
-                    </div>
-                    <motion.p 
-                      initial={{ y: 10, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: 0.2, duration: 0.3 }}
-                      className="text-sm text-gray-500 mt-1"
-                    >
-                      {currentStep === 'court' 
-                        ? 'Configure los datos básicos de la pista'
-                        : 'Configure los precios de la pista'}
-                    </motion.p>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ 
-                      delay: 0.3,
-                      duration: 0.3,
-                      ease: "easeOut"
-                    }}
-                    className="flex-1 overflow-y-auto"
-                  >
-                    <AnimatePresence mode="wait">
-                      {currentStep === 'court' ? (
-                        <motion.div
-                          key="court-step"
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          exit={{ opacity: 0, x: 20 }}
-                          className="p-6 space-y-6"
+                      <h3 className="text-sm font-medium">Duraciones disponibles</h3>
+                      {formData.available_durations.length > 0 && (
+                        <button
+                          onClick={() => setFormData(prev => ({ ...prev, available_durations: [] }))}
+                          className={cn(
+                            "text-xs text-gray-400",
+                            "hover:text-gray-600",
+                            "transition-colors duration-200",
+                            "flex items-center gap-1"
+                          )}
                         >
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium text-gray-700">
-                              Nombre de la pista
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Ej: Pista Principal"
-                              value={formData.name}
-                              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                              className={cn(
-                                "w-full px-3 py-2 rounded-lg",
-                                "border border-gray-200 bg-white",
-                                "focus:outline-none focus:border-gray-300",
-                                "transition-colors duration-200",
-                                "placeholder:text-gray-400",
-                                "text-sm"
-                              )}
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">
-                                Deporte
-                              </label>
-                              <SingleSelect
-                                value={formData.sport}
-                                onChange={(value) => setFormData(prev => ({ ...prev, sport: value }))}
-                                options={sportOptions}
-                                placeholder="Seleccionar deporte"
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <label className="text-sm font-medium">
-                                Tipo de Pista
-                              </label>
-                              <SingleSelect
-                                value={formData.courtType}
-                                onChange={(value) => setFormData(prev => ({ ...prev, courtType: value }))}
-                                options={courtTypeOptions}
-                                placeholder="Seleccionar tipo"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                              Características de la Pista
-                            </label>
-                            <CategoryMultiSelect
-                              value={formData.features}
-                              onChange={(features) => setFormData(prev => ({ ...prev, features }))}
-                              categories={courtFeatures}
-                              placeholder="Seleccionar características"
-                            />
-                          </div>
-
-                          <div className="space-y-6">
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <h3 className="text-sm font-medium">Duraciones disponibles</h3>
-                                {formData.available_durations.length > 0 && (
-                                  <button
-                                    onClick={() => setFormData(prev => ({ ...prev, available_durations: [] }))}
-                                    className={cn(
-                                      "text-xs text-gray-400",
-                                      "hover:text-gray-600",
-                                      "transition-colors duration-200",
-                                      "flex items-center gap-1"
-                                    )}
-                                  >
-                                    <span>Limpiar</span>
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Duraciones predefinidas */}
-                              <div className="flex flex-wrap gap-2">
-                                {durationOptions.map((duration) => (
-                                  <button
-                                    key={duration}
-                                    onClick={() => {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        available_durations: prev.available_durations.includes(duration)
-                                          ? prev.available_durations.filter(d => d !== duration)
-                                          : [...prev.available_durations, duration].sort((a, b) => a - b)
-                                      }))
-                                    }}
-                                    className={cn(
-                                      "h-9 px-4 rounded-md text-sm transition-all duration-200",
-                                      "border hover:border-gray-400",
-                                      formData.available_durations.includes(duration)
-                                        ? "bg-gray-900 text-white border-transparent hover:bg-gray-800"
-                                        : "bg-white text-gray-700 border-gray-200"
-                                    )}
-                                  >
-                                    {duration} min
-                                  </button>
-                                ))}
-                              </div>
-
-                              {/* Duración personalizada */}
-                              <div className="space-y-1">
-                                <div className="relative">
-                                  <input
-                                    type="number"
-                                    placeholder="Añadir duración personalizada"
-                                    value={newDuration || ''}
-                                    onChange={(e) => setNewDuration(parseInt(e.target.value) || null)}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' && newDuration) {
-                                        e.preventDefault()
-                                        // Validar que la duración sea válida
-                                        if (newDuration >= 1) {
-                                          setFormData(prev => ({
-                                            ...prev,
-                                            available_durations: prev.available_durations.includes(newDuration)
-                                              ? prev.available_durations
-                                              : [...prev.available_durations, newDuration].sort((a, b) => a - b)
-                                          }))
-                                          setNewDuration(null) // Limpiar el input
-                                        }
-                                      }
-                                    }}
-                                    className={cn(
-                                      "w-full px-3 py-2 rounded-lg",
-                                      "border border-gray-200 bg-white",
-                                      "focus:outline-none focus:border-gray-300",
-                                      "transition-colors duration-200",
-                                      "placeholder:text-gray-400",
-                                      "text-sm",
-                                      "[appearance:textfield]",
-                                      "[&::-webkit-outer-spin-button]:appearance-none",
-                                      "[&::-webkit-inner-spin-button]:appearance-none",
-                                      "pr-12"
-                                    )}
-                                    min="1"
-                                  />
-                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
-                                    min
-                                  </span>
-                                </div>
-                                <p className="text-xs text-gray-500 pl-1">
-                                  Presiona ENTER para agregar
-                                </p>
-                              </div>
-
-                              {/* Duraciones seleccionadas */}
-                              {formData.available_durations.length > 0 && (
-                                <div className="pt-2 space-y-2">
-                                  <span className="text-xs text-gray-500">
-                                    Duraciones seleccionadas
-                                  </span>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {formData.available_durations.sort((a, b) => a - b).map((duration) => (
-                                      <div
-                                        key={duration}
-                                        className={cn(
-                                          "group inline-flex items-center gap-1.5",
-                                          "h-7 pl-2.5 pr-1.5 rounded-md",
-                                          "bg-gray-50 text-gray-700 text-sm",
-                                          "border border-gray-200",
-                                          "transition-all duration-200"
-                                        )}
-                                      >
-                                        <span>{duration} min</span>
-                                        <button
-                                          onClick={() => {
-                                            setFormData(prev => ({
-                                              ...prev,
-                                              available_durations: prev.available_durations.filter(d => d !== duration)
-                                            }))
-                                          }}
-                                          className={cn(
-                                            "w-4 h-4 rounded-sm",
-                                            "inline-flex items-center justify-center",
-                                            "text-gray-400 hover:text-gray-600",
-                                            "transition-colors duration-200"
-                                          )}
-                                        >
-                                          <span className="sr-only">Eliminar</span>
-                                          ×
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </motion.div>
-                      ) : (
-                        <div className="p-6">
-                          <DurationPricing
-                            durations={formData.available_durations}
-                            pricing={formData.duration_pricing}
-                            onChange={(pricing) => setFormData(prev => ({ ...prev, duration_pricing: pricing }))}
-                          />
-
-                          <div className="pt-6 border-t">
-                            <CustomPricing
-                              pricing={formData.custom_pricing}
-                              onChange={(newCustomPricing) => setFormData(prev => ({
-                                ...prev,
-                                custom_pricing: newCustomPricing
-                              }))}
-                              basePricing={formData.duration_pricing}
-                              availableDurations={formData.available_durations}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </AnimatePresence>
-                  </motion.div>
-
-                  <motion.div 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.35, duration: 0.3 }}
-                    className="p-6 border-t bg-white"
-                  >
-                    <div className="flex gap-3">
-                      {currentStep === 'pricing' ? (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleBack}
-                            className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
-                          >
-                            Anterior
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleSave}
-                            className="flex-1 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
-                          >
-                            {mode === 'create' ? 'Guardar' : 'Actualizar'}
-                          </motion.button>
-                        </>
-                      ) : (
-                        <>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleClose}
-                            className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
-                          >
-                            Cancelar
-                          </motion.button>
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={handleNext}
-                            disabled={!isFirstStepValid()}
-                            className={`flex-1 px-4 py-2 rounded-md transition-colors ${
-                              isFirstStepValid()
-                                ? 'bg-black text-white hover:bg-gray-800'
-                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                            }`}
-                          >
-                            Siguiente
-                          </motion.button>
-                        </>
+                          <span>Limpiar</span>
+                        </button>
                       )}
                     </div>
-                  </motion.div>
+
+                    {/* Duraciones predefinidas */}
+                    <div className="flex flex-wrap gap-2">
+                      {durationOptions.map((duration) => (
+                        <button
+                          key={duration}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              available_durations: prev.available_durations.includes(duration)
+                                ? prev.available_durations.filter(d => d !== duration)
+                                : [...prev.available_durations, duration].sort((a, b) => a - b)
+                            }))
+                          }}
+                          className={cn(
+                            "h-9 px-4 rounded-md text-sm transition-all duration-200",
+                            "border hover:border-gray-400",
+                            formData.available_durations.includes(duration)
+                              ? "bg-gray-900 text-white border-transparent hover:bg-gray-800"
+                              : "bg-white text-gray-700 border-gray-200"
+                          )}
+                        >
+                          {duration} min
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Duración personalizada */}
+                    <div className="space-y-1">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          placeholder="Añadir duración personalizada"
+                          value={newDuration || ''}
+                          onChange={(e) => setNewDuration(parseInt(e.target.value) || null)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newDuration) {
+                              e.preventDefault()
+                              // Validar que la duración sea válida
+                              if (newDuration >= 1) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  available_durations: prev.available_durations.includes(newDuration)
+                                    ? prev.available_durations
+                                    : [...prev.available_durations, newDuration].sort((a, b) => a - b)
+                                }))
+                                setNewDuration(null) // Limpiar el input
+                              }
+                            }
+                          }}
+                          className={cn(
+                            "w-full px-3 py-2 rounded-lg",
+                            "border border-gray-200 bg-white",
+                            "focus:outline-none focus:border-gray-300",
+                            "transition-colors duration-200",
+                            "placeholder:text-gray-400",
+                            "text-sm",
+                            "[appearance:textfield]",
+                            "[&::-webkit-outer-spin-button]:appearance-none",
+                            "[&::-webkit-inner-spin-button]:appearance-none",
+                            "pr-12"
+                          )}
+                          min="1"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">
+                          min
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 pl-1">
+                        Presiona ENTER para agregar
+                      </p>
+                    </div>
+
+                    {/* Duraciones seleccionadas */}
+                    {formData.available_durations.length > 0 && (
+                      <div className="pt-2 space-y-2">
+                        <span className="text-xs text-gray-500">
+                          Duraciones seleccionadas
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {formData.available_durations.sort((a, b) => a - b).map((duration) => (
+                            <div
+                              key={duration}
+                              className={cn(
+                                "group inline-flex items-center gap-1.5",
+                                "h-7 pl-2.5 pr-1.5 rounded-md",
+                                "bg-gray-50 text-gray-700 text-sm",
+                                "border border-gray-200",
+                                "transition-all duration-200"
+                              )}
+                            >
+                              <span>{duration} min</span>
+                              <button
+                                onClick={() => {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    available_durations: prev.available_durations.filter(d => d !== duration)
+                                  }))
+                                }}
+                                className={cn(
+                                  "w-4 h-4 rounded-sm",
+                                  "inline-flex items-center justify-center",
+                                  "text-gray-400 hover:text-gray-600",
+                                  "transition-colors duration-200"
+                                )}
+                              >
+                                <span className="sr-only">Eliminar</span>
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
-            </div>
+            ) : (
+              <div className="p-6">
+                <DurationPricing
+                  durations={formData.available_durations}
+                  pricing={formData.duration_pricing}
+                  onChange={(pricing) => setFormData(prev => ({ ...prev, duration_pricing: pricing }))}
+                />
 
-            <AnimatePresence>
-              {showDeleteConfirm && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-50"
+                <div className="pt-6 border-t">
+                  <CustomPricing
+                    pricing={formData.custom_pricing}
+                    onChange={(newCustomPricing) => setFormData(prev => ({
+                      ...prev,
+                      custom_pricing: newCustomPricing
+                    }))}
+                    basePricing={formData.duration_pricing}
+                    availableDurations={formData.available_durations}
                   />
-                  <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.95, opacity: 0 }}
-                    className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-lg shadow-lg z-50 p-6"
-                  >
-                    <h3 className="text-lg font-semibold mb-2">Confirmar eliminación</h3>
-                    <p className="text-gray-500 mb-6">
-                      ¿Está seguro que desea eliminar esta pista? Esta acción no se puede deshacer.
-                    </p>
-                    <div className="flex justify-end gap-3">
-                      <button
-                        onClick={() => setShowDeleteConfirm(false)}
-                        className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                      <button
-                        onClick={handleDelete}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <div className="p-6 border-t bg-white">
+          <div className="flex gap-3">
+            {currentStep === 'pricing' ? (
+              <>
+                <button
+                  onClick={handleBack}
+                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Anterior
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="flex-1 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+                >
+                  {mode === 'create' ? 'Guardar' : 'Actualizar'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleClose}
+                  className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleNext}
+                  disabled={!isFirstStepValid()}
+                  className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+                    isFirstStepValid()
+                      ? 'bg-black text-white hover:bg-gray-800'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  Siguiente
+                </button>
+              </>
+            )}
           </div>
         </div>
-      )}
-    </AnimatePresence>
+      </div>
+
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <Modal
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            className="w-full max-w-md"
+            showOverlay={true}
+          >
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-2">Confirmar eliminación</h3>
+              <p className="text-gray-500 mb-6">
+                ¿Está seguro que desea eliminar esta pista? Esta acción no se puede deshacer.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </Modal>
+        )}
+      </AnimatePresence>
+    </Modal>
   )
 } 

@@ -15,6 +15,7 @@ import { RegisterForm } from '../components/RegisterForm'
 import { vinculacionService } from '@/services/vinculacionService'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import type { Database } from '@/types/supabase'
+import Image from 'next/image'
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -119,8 +120,7 @@ export function AuthStep({ onLoginSuccess }: AuthStepProps) {
   }
 
   const handleForgotPassword = () => {
-    // Aquí iría la lógica para recuperar contraseña
-    toast.info('Funcionalidad en desarrollo')
+    window.location.href = 'https://www.simple-link.com/reset'
   }
 
   return (
@@ -128,6 +128,15 @@ export function AuthStep({ onLoginSuccess }: AuthStepProps) {
       <div className="w-full max-w-sm mx-auto">
         {authView === 'login' ? (
           <>
+            <div className="mb-6">
+              <Image
+                src="/images/Miroodles - Mono Comp.png"
+                alt="Login illustration"
+                width={120}
+                height={120}
+                className="mb-4"
+              />
+            </div>
             <StepHeader 
               title="Iniciar sesión"
               subtitle="Ingresa tus credenciales para continuar"

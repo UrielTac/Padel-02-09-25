@@ -63,6 +63,14 @@ export class ClassService {
     // Mapear los IDs de las pistas a sus detalles
     const courtsMap = new Map(courts.map(court => [court.id, court]))
 
+    // Fecha actual para filtrar sesiones pasadas
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Fecha límite para mostrar sesiones (1 semana hacia adelante)
+    const oneWeekFromNow = new Date(today)
+    oneWeekFromNow.setDate(oneWeekFromNow.getDate() + 7)
+
     // Para cada día en el horario
     days.forEach(dayNumber => {
       // Para cada franja horaria
@@ -83,6 +91,16 @@ export class ClassService {
         // Calcular la fecha para este día
         const sessionDate = new Date(dbClass.start_date)
         sessionDate.setDate(sessionDate.getDate() + (dayNumber - sessionDate.getDay() + 7) % 7)
+        
+        // Ajustar la fecha para que sea la próxima ocurrencia del día de la semana
+        while (sessionDate < today) {
+          sessionDate.setDate(sessionDate.getDate() + 7)
+        }
+        
+        // Verificar si la sesión está dentro del rango de tiempo deseado (hasta una semana adelante)
+        if (sessionDate > oneWeekFromNow) {
+          return // No incluir esta sesión si está más allá de una semana
+        }
 
         // Crear una sesión por cada cancha en el slot
         slotCourts.forEach(court => {

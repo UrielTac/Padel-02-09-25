@@ -11,6 +11,7 @@ import { StepHeader, StepSection, StepGrid, StepActions } from '../shared/StepSe
 import { cn } from '@/lib/utils'
 import type { Organization, ClassPackage } from '../types/models'
 import Image from 'next/image'
+import { useClientOrganizationContext } from '@/contexts/ClientOrganizationContext'
 
 interface PackageSelectionStepProps {
   organization: Organization
@@ -24,6 +25,7 @@ export function PackageSelectionStep({ organization }: PackageSelectionStepProps
   const { packages = [], isLoading, error, createUserPackage } = usePackages(organization.id)
   const [currentPage, setCurrentPage] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
+  const { organization: clientOrg } = useClientOrganizationContext()
 
   // Calcular el número total de páginas
   const totalPages = Math.ceil(packages.length / PACKAGES_PER_PAGE)
@@ -40,7 +42,7 @@ export function PackageSelectionStep({ organization }: PackageSelectionStepProps
       setIsProcessing(true)
       
       // Crear el paquete de usuario
-      const userPackage = await createUserPackage(packageId)
+      const userPackage = await createUserPackage(packageId, clientOrg?.id)
       
       if (userPackage) {
         // Actualizar el estado con el paquete seleccionado

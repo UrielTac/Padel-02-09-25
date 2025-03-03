@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
-import { createPortal } from "react-dom"
-import { AnimatePresence, motion } from "framer-motion"
+import { motion } from "framer-motion"
 import { SimpleShiftBooking } from "./SimpleShiftBooking"
 import { ModalHeader } from "./components/ModalHeader"
 import { ModalFooter } from "./components/ModalFooter"
+import { Modal } from "@/components/ui/modal"
 import { useBookingState } from "./hooks/useBookingState"
 import { bookingService } from "@/services/bookingService"
 import { useDateContext } from "@/contexts/DateContext"
@@ -233,7 +233,7 @@ export function SimpleShiftBookingModal({
         date: selectedDate.toISOString().split('T')[0],
         startTime: timeSelection.startTime,
         endTime: timeSelection.endTime,
-        courtPrice: calculatedPrices.courtPrice,
+        courtPrice: paymentDetails.manualPrice !== undefined ? paymentDetails.manualPrice : calculatedPrices.courtPrice,
         rentalItemsPrice: calculatedPrices.rentalPrice,
         paymentStatus: paymentDetails.paymentStatus,
         paymentMethod: paymentDetails.paymentMethod,
@@ -301,7 +301,10 @@ export function SimpleShiftBookingModal({
     if (Math.abs(newTotal - paymentDetails.totalAmount) <= 0.01) return;
 
     let newDeposit = paymentDetails.deposit;
-    if (paymentDetails.paymentStatus === 'completed') {
+    // Si hay un precio manual y una seña configurada, mantener la seña
+    if (paymentDetails.manualPrice !== undefined && paymentDetails.deposit > 0) {
+      newDeposit = paymentDetails.deposit;
+    } else if (paymentDetails.paymentStatus === 'completed') {
       newDeposit = newTotal;
     } else if (paymentDetails.deposit === 0 || paymentDetails.deposit > newTotal) {
       newDeposit = Math.ceil(newTotal * 0.3);
@@ -311,7 +314,7 @@ export function SimpleShiftBookingModal({
       ...paymentDetails,
       totalAmount: newTotal,
       deposit: newDeposit,
-      courtPrice: calculatedPrices.courtPrice,
+      courtPrice: paymentDetails.manualPrice !== undefined ? paymentDetails.manualPrice : calculatedPrices.courtPrice,
       rentalItemsPrice: calculatedPrices.rentalPrice
     };
 
@@ -373,148 +376,83 @@ export function SimpleShiftBookingModal({
   if (!selection || !mounted) return null
 
   if (currentStep === 'noCredits') {
-    return createPortal(
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onClose}
-              className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
-            />
-            <motion.div
-              initial={{ x: "100%", opacity: 0.5 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{
-                x: "100%",
-                opacity: 0,
-                transition: {
-                  duration: 0.3,
-                  ease: [0.4, 0, 0.2, 1]
-                }
-              }}
-              transition={{
-                type: "spring",
-                damping: 30,
-                stiffness: 300,
-                mass: 0.8
-              }}
-              className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
-            >
-              <div className="h-full flex flex-col">
-                <NoCredits />
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>,
-      document.body
+    return (
+      <Modal isOpen={isOpen} onClose={onClose}>
+        <div className="h-full flex flex-col">
+          <NoCredits />
+        </div>
+      </Modal>
     );
   }
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
-          />
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8
-            }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
-          >
-            <div className="h-full flex flex-col">
-              <ModalHeader 
-                currentStep={currentStep}
-                selectedBookingType="simple_shift"
-                show={currentStep !== 'congrats'}
-              />
+  return (
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="h-full flex flex-col">
+        <ModalHeader 
+          currentStep={currentStep}
+          selectedBookingType="simple_shift"
+          show={currentStep !== 'congrats'}
+        />
 
-              <div className="flex-1 overflow-y-auto">
-                {currentStep === 'congrats' ? (
-                  <CongratsStep
-                    selectedDate={selectedDate || new Date()}
-                    selectedCourts={selectedCourts}
-                    courts={courts}
-                    totalAmount={calculatedPrices.total}
-                    rentals={rentals}
-                  />
-                ) : currentStep === 'confirmation' ? (
-                  <ConfirmationStep
-                    selectedDate={selectedDate || new Date()}
-                    selectedCourts={selectedCourts}
-                    courts={courts}
-                    timeSelection={timeSelection || { startTime: '', endTime: '' }}
-                    participants={participants}
-                    rentals={rentals}
-                    paymentDetails={{
-                      totalAmount: calculatedPrices.total,
-                      deposit: paymentDetails.deposit,
-                      courtPrice: calculatedPrices.courtPrice,
-                      rentalItemsPrice: calculatedPrices.rentalPrice,
-                      paymentStatus: paymentDetails.paymentStatus,
-                      paymentMethod: paymentDetails.paymentMethod,
-                      isPaid: paymentDetails.isPaid,
-                      manualPrice: paymentDetails.manualPrice
-                    }}
-                    items={items}
-                  />
-                ) : (
-                  <SimpleShiftBooking
-                    currentStep={currentStep}
-                    selectedCourts={selectedCourts}
-                    timeSelection={timeSelection}
-                    onCourtSelect={setSelectedCourts}
-                    onTimeSelect={setTimeSelection}
-                    onValidationChange={setIsStepValid}
-                    onPaymentChange={setPaymentDetails}
-                    onParticipantChange={setParticipants}
-                    participants={participants}
-                    selectedDate={selectedDate}
-                  />
-                )}
-              </div>
+        <div className="flex-1 overflow-y-auto">
+          {currentStep === 'congrats' ? (
+            <CongratsStep
+              selectedDate={selectedDate || new Date()}
+              selectedCourts={selectedCourts}
+              courts={courts}
+              totalAmount={calculatedPrices.total}
+              rentals={rentals}
+            />
+          ) : currentStep === 'confirmation' ? (
+            <ConfirmationStep
+              selectedDate={selectedDate || new Date()}
+              selectedCourts={selectedCourts}
+              courts={courts}
+              timeSelection={timeSelection || { startTime: '', endTime: '' }}
+              participants={participants}
+              rentals={rentals}
+              paymentDetails={{
+                totalAmount: calculatedPrices.total,
+                deposit: paymentDetails.deposit,
+                courtPrice: calculatedPrices.courtPrice,
+                rentalItemsPrice: calculatedPrices.rentalPrice,
+                paymentStatus: paymentDetails.paymentStatus,
+                paymentMethod: paymentDetails.paymentMethod,
+                isPaid: paymentDetails.isPaid,
+                manualPrice: paymentDetails.manualPrice
+              }}
+              items={items}
+            />
+          ) : (
+            <SimpleShiftBooking
+              currentStep={currentStep}
+              selectedCourts={selectedCourts}
+              timeSelection={timeSelection}
+              onCourtSelect={setSelectedCourts}
+              onTimeSelect={setTimeSelection}
+              onValidationChange={setIsStepValid}
+              onPaymentChange={setPaymentDetails}
+              onParticipantChange={setParticipants}
+              participants={participants}
+              selectedDate={selectedDate}
+            />
+          )}
+        </div>
 
-              <ModalFooter
-                currentStep={currentStep}
-                onBack={handleBackAction}
-                onContinue={handleContinueAction}
-                isValid={isStepValid}
-                continueText={
-                  currentStep === 'confirmation' ? 'Crear Reserva' : 
-                  currentStep === 'congrats' ? 'Cerrar' : 
-                  'Continuar'
-                }
-                isSubmitting={isProcessing}
-                show={currentStep !== 'congrats'}
-              />
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>,
-    document.body
+        <ModalFooter
+          currentStep={currentStep}
+          onBack={handleBackAction}
+          onContinue={handleContinueAction}
+          isValid={isStepValid}
+          continueText={
+            currentStep === 'confirmation' ? 'Crear Reserva' : 
+            currentStep === 'congrats' ? 'Cerrar' : 
+            'Continuar'
+          }
+          isSubmitting={isProcessing}
+          show={currentStep !== 'congrats'}
+        />
+      </div>
+    </Modal>
   )
 } 

@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
-import { AnimatePresence, motion } from "framer-motion"
+import { Modal } from "@/components/ui/modal"
 import { toast } from "sonner"
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { ModalFooter } from "../NewBookingModal/components/ModalFooter"
@@ -211,75 +210,46 @@ export function NewPackageModal({ isOpen, onClose }: NewPackageModalProps) {
 
   if (!mounted) return null
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
-          />
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8
-            }}
-            className="fixed right-0 top-0 h-full w-[500px] bg-white shadow-xl z-50 flex flex-col"
-          >
-            {/* Header */}
-            {showHeader && (
-              <ModalHeader 
-                currentStep={currentStep}
-              />
-            )}
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto">
-              <div className="p-6">
-                {currentStep === 'package-confirmation' ? (
-                  <PackageConfirmationStep
-                    details={packageDetails}
-                    payment={packagePayment}
-                    isCreated={isCreated}
-                    onSuccess={() => setShowHeader(false)}
-                  />
-                ) : (
-                  renderStep()
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            {!isCreated && (
-              <ModalFooter 
-                currentStep={currentStep}
-                onBack={handleBack}
-                onContinue={handleNext}
-                isValid={isValid}
-                isSubmitting={isSubmitting}
-                continueText={getFooterText()}
-              />
-            )}
-          </motion.div>
-        </>
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      className="flex flex-col"
+    >
+      {/* Header */}
+      {showHeader && (
+        <ModalHeader 
+          currentStep={currentStep}
+        />
       )}
-    </AnimatePresence>,
-    document.body
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6">
+          {currentStep === 'package-confirmation' ? (
+            <PackageConfirmationStep
+              details={packageDetails}
+              payment={packagePayment}
+              isCreated={isCreated}
+              onSuccess={() => setShowHeader(false)}
+            />
+          ) : (
+            renderStep()
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      {!isCreated && (
+        <ModalFooter 
+          currentStep={currentStep}
+          onBack={handleBack}
+          onContinue={handleNext}
+          isValid={isValid}
+          isSubmitting={isSubmitting}
+          continueText={getFooterText()}
+        />
+      )}
+    </Modal>
   )
 } 

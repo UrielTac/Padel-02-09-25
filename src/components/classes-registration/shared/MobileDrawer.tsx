@@ -50,7 +50,7 @@ export function MobileDrawer({
             onClick={onClose}
             className={cn(
               "fixed inset-0 z-50",
-              "bg-black/20 backdrop-blur-sm"
+              "bg-white/20 backdrop-blur-sm"
             )}
           />
 
@@ -70,10 +70,11 @@ export function MobileDrawer({
               "bg-white",
               "rounded-t-2xl",
               "shadow-lg",
+              "border border-gray-200",
               // Padding y scroll
               "p-6",
               "overflow-y-auto",
-              "scrollbar-custom",
+              "scrollbar-none",
               className
             )}
           >

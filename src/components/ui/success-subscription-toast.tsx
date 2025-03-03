@@ -42,11 +42,11 @@ export function SuccessSubscriptionToast({
   }
 
   const handleGoToSettings = () => {
-    // Refrescar la página para obtener los datos actualizados
-    router.refresh()
-    // Navegar a la página de settings
-    router.push('/admin/dashboard/settings?tab=company')
+    // Cerrar primero el toast
     handleClose()
+    
+    // Navegar a la página de settings usando window.location para forzar un refresco completo
+    window.location.href = '/admin/dashboard/settings?tab=company'
   }
 
   if (!shouldRender || !isVisible) return null

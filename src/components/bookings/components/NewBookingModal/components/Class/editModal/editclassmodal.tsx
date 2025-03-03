@@ -1,8 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { createPortal } from "react-dom"
+import { Modal } from "@/components/ui/modal"
 import { cn } from "@/lib/utils"
 import type { Database } from "@/types/supabase"
 import { ClassEditBasic } from "./Classeditbasic"
@@ -27,39 +26,17 @@ interface ModalFooterProps {
   isSubmitting?: boolean
 }
 
-interface NewBookingModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  initialBookingType: 'class';
-  disableTypeSelection: boolean;
-  onSuccess?: () => void;
-}
-
 // Componente Header interno
 function ModalHeader({ title, description }: ModalHeaderProps) {
   return (
-    <motion.div
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="p-6 border-b"
-    >
-      <motion.h2 
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="text-xl font-semibold text-gray-900"
-      >
+    <div className="p-6 border-b">
+      <h2 className="text-xl font-semibold text-gray-900">
         {title}
-      </motion.h2>
-      <motion.p 
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-sm text-gray-500 mt-1"
-      >
+      </h2>
+      <p className="text-sm text-gray-500 mt-1">
         {description}
-      </motion.p>
-    </motion.div>
+      </p>
+    </div>
   )
 }
 
@@ -132,61 +109,32 @@ export function EditClassModal({ isOpen, onClose, classData, onSuccess }: EditCl
 
   if (!mounted) return null
 
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      className="flex flex-col"
+    >
+      <div className="h-full flex flex-col">
+        <ModalHeader 
+          title="Editar Clase" 
+          description="Modifica los detalles de la clase"
+        />
+
+        <div className="flex-1 overflow-y-auto p-6">
+          <ClassEditBasic
+            classData={classData}
+            onValidationChange={setIsValid}
+            onChange={setUpdatedData}
           />
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8
-            }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
-          >
-            <div className="h-full flex flex-col">
-              <ModalHeader 
-                title="Editar Clase" 
-                description="Modifica los detalles de la clase"
-              />
+        </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <ClassEditBasic
-                  classData={classData}
-                  onValidationChange={setIsValid}
-                  onChange={setUpdatedData}
-                />
-              </div>
-
-              <ModalFooter
-                onSave={handleSave}
-                isValid={isValid}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>,
-    document.body
+        <ModalFooter
+          onSave={handleSave}
+          isValid={isValid}
+          isSubmitting={isSubmitting}
+        />
+      </div>
+    </Modal>
   )
 }

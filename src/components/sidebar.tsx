@@ -18,14 +18,14 @@ import {
   LogOut,
   ChevronUp,
   ChevronDown,
-  Calendar,
+  CalendarDays,
   Users,
-  FileSpreadsheet,
+  FileText,
   Link as LinkIcon,
   ChevronLeft,
-  Building2,
+  Building,
   Network,
-  Users2
+  UserCircle2
 } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useBranches } from '@/hooks/useBranches'
@@ -92,7 +92,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
 const menuItems = [
   {
     title: "Reservas",
-    icon: Calendar,
+    icon: CalendarDays,
     exact: true,
     hasSubMenu: true,
     href: "/admin/dashboard/bookings",
@@ -120,7 +120,7 @@ const menuItems = [
   {
     title: "Artículos",
     href: "/admin/dashboard/pricing",
-    icon: FileSpreadsheet,
+    icon: FileText,
     exact: true
   },
   {
@@ -135,7 +135,7 @@ const settingsMenuItems = [
   {
     label: "Empresa",
     value: "company",
-    icon: Building2
+    icon: Building
   },
   {
     label: "Sucursales",
@@ -150,7 +150,7 @@ const settingsMenuItems = [
   {
     label: "Miembros",
     value: "members",
-    icon: Users2
+    icon: UserCircle2
   },
   {
     label: "Usuario",
@@ -458,22 +458,20 @@ function MenuItem({
   onToggle: () => void
   pathname: string
 }) {
-  // Verificar si algún subítem está activo
   const hasActiveSubItem = item.subItems?.some(subItem => 
     isRouteActive(pathname, subItem.href)
   ) ?? false
 
-  // Un ítem principal solo está activo si no tiene subítems activos
   const isMainItemActive = isActive && !hasActiveSubItem
 
   const commonClasses = cn(
-    "relative flex items-center gap-2.5 px-4 py-2 text-[14px] font-medium rounded-xl transition-all duration-200",
+    "relative flex items-center gap-2.5 px-3 py-1.5",
+    "text-sm font-medium rounded-lg",
     "border border-transparent",
-    "group w-full",
+    "group w-full transition-all duration-200",
     isMainItemActive
-      ? "bg-white border-gray-100 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
-      : "text-gray-500 hover:bg-white hover:border-gray-100 hover:text-gray-900 hover:shadow-[0_1px_2px_rgba(0,0,0,0.02)]",
-    item.exact ? "exact-match" : "partial-match"
+      ? "bg-white/60 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+      : "text-gray-500 hover:bg-white/40 hover:text-gray-900"
   )
 
   return (
@@ -485,20 +483,20 @@ function MenuItem({
         >
           <item.icon 
             className={cn(
-              "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-              "group-hover:scale-110",
+              "w-4 h-4 stroke-[1.5px] transition-transform duration-200",
+              "group-hover:scale-105",
               item.title === "Links" && "-scale-x-100"
             )} 
           />
-          <span className="flex-1 text-left">{item.title}</span>
+          <span className="flex-1 text-left text-sm">{item.title}</span>
           <ChevronDown
             className={cn(
-              "w-4 h-4 transition-transform duration-200",
+              "w-3.5 h-3.5 stroke-[1.5px] transition-transform duration-200",
               isExpanded && "rotate-180"
             )}
           />
           {isMainItemActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gray-300 rounded-full" />
           )}
         </button>
       ) : (
@@ -508,14 +506,14 @@ function MenuItem({
         >
           <item.icon 
             className={cn(
-              "w-3.5 h-3.5 transition-transform duration-200 ease-out",
-              "group-hover:scale-110",
+              "w-4 h-4 stroke-[1.5px] transition-transform duration-200",
+              "group-hover:scale-105",
               item.title === "Links" && "-scale-x-100"
             )} 
           />
-          <span className="flex-1 text-left">{item.title}</span>
+          <span className="flex-1 text-left text-sm">{item.title}</span>
           {isMainItemActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-gray-300 rounded-full" />
           )}
         </Link>
       )}
@@ -527,16 +525,18 @@ function MenuItem({
             isExpanded ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"
           )}
         >
-          <div className="pl-9 pr-3 py-1 space-y-1">
+          <div className="pl-8 pr-3 py-1 space-y-1">
             {item.subItems?.map((subItem) => (
               <Link
                 key={subItem.href}
                 href={subItem.href}
                 className={cn(
-                  "flex items-center px-4 py-2 text-[13px] font-medium rounded-lg transition-all duration-200",
-                  "text-gray-500",
-                  item.title !== "Reservas" && "hover:text-gray-900 hover:bg-white/80",
-                  isRouteActive(pathname, subItem.href) && "bg-white text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
+                  "flex items-center px-3 py-1.5",
+                  "text-xs font-medium rounded-lg",
+                  "text-gray-500 transition-all duration-200",
+                  "hover:text-gray-900 hover:bg-white/40",
+                  isRouteActive(pathname, subItem.href) && 
+                  "bg-white/60 text-gray-900 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                 )}
               >
                 {subItem.title}

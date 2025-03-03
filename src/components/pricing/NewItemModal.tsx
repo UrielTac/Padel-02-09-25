@@ -1,9 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { createPortal } from "react-dom"
-import { AnimatePresence, motion } from "framer-motion"
 import { useState, useEffect } from "react"
+import { Modal } from "@/components/ui/modal"
 import { Switch } from "@/components/ui/switch"
 import { 
   Select,
@@ -18,6 +17,7 @@ import { type Item, type ItemType } from '@/types/items'
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { SingleSelect } from "@/components/ui/single-select"
+import { motion } from "framer-motion"
 
 // Actualizamos la interfaz ItemFormData para incluir todos los campos necesarios
 interface ItemFormData {
@@ -95,7 +95,6 @@ export function NewItemModal({
   mode = 'create'
 }: NewItemModalProps) {
   const [mounted, setMounted] = React.useState(false)
-
   const [formData, setFormData] = useState<ItemFormData>(defaultFormData)
 
   // Efecto para manejar el montaje
@@ -311,244 +310,162 @@ export function NewItemModal({
     </div>
   )
 
-  const modalContent = (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px]"
-            style={{
-              position: 'fixed',
-              top: 0,
-              right: 0,
-              bottom: 0,
-              left: 0,
-              zIndex: 9998
-            }}
-            transition={{ 
-              duration: 0.3,
-              ease: "easeInOut"
-            }}
-          />
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8,
-            }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l"
-            style={{ zIndex: 9999 }}
-          >
-            <div className="h-full flex flex-col">
-              <motion.div
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ 
-                  delay: 0.1,
-                  duration: 0.3,
-                  ease: "easeOut"
-                }}
-                className="p-6 border-b"
-              >
-                <motion.h2 
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.15, duration: 0.3 }}
-                  className="text-xl font-semibold"
-                >
-                  {mode === 'create' ? 'Agregar Nuevo Artículo' : 'Editar Artículo'}
-                </motion.h2>
-                <motion.p 
-                  initial={{ y: 10, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.2, duration: 0.3 }}
-                  className="text-sm text-gray-500 mt-1"
-                >
-                  {mode === 'create' 
-                    ? 'Complete los datos del nuevo artículo'
-                    : 'Modifique los datos del artículo'}
-                </motion.p>
-              </motion.div>
-
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ 
-                  delay: 0.3,
-                  duration: 0.3,
-                  ease: "easeOut"
-                }}
-                className="flex-1 overflow-y-auto"
-              >
-                <div className="p-6 space-y-6">
-                  {/* Nombre del artículo */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Nombre del artículo
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Ej: Raqueta Pro"
-                      value={formData.name}
-                      onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className={cn(
-                        "w-full px-3 py-2 rounded-lg",
-                        "border border-gray-200 bg-white",
-                        "focus:outline-none focus:border-gray-300",
-                        "transition-colors duration-200",
-                        "placeholder:text-gray-400",
-                        "text-sm"
-                      )}
-                    />
-                  </div>
-
-                  {/* Tipo de artículo */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Tipo de artículo
-                    </label>
-                    <SingleSelect
-                      value={formData.type}
-                      onChange={(value: ItemType) => setFormData(prev => ({ 
-                        ...prev, 
-                        type: value 
-                      }))}
-                      options={itemTypeOptions}
-                      placeholder="Seleccionar tipo de artículo"
-                    />
-                  </div>
-
-                  {/* Stock disponible */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Stock disponible
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="Cantidad disponible"
-                      value={formData.stock}
-                      onChange={(e) => setFormData(prev => ({ 
-                        ...prev, 
-                        stock: Number(e.target.value) 
-                      }))}
-                      className={cn(
-                        "w-full px-3 py-2 rounded-lg",
-                        "border border-gray-200 bg-white",
-                        "focus:outline-none focus:border-gray-300",
-                        "transition-colors duration-200",
-                        "placeholder:text-gray-400",
-                        "text-sm",
-                        "[appearance:textfield]",
-                        "[&::-webkit-outer-spin-button]:appearance-none",
-                        "[&::-webkit-inner-spin-button]:appearance-none"
-                      )}
-                    />
-                  </div>
-
-                  {/* Depósito */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <label className="text-sm font-medium">Requiere depósito</label>
-                        <p className="text-sm text-gray-500">
-                          El cliente deberá dejar un depósito como garantía
-                        </p>
-                      </div>
-                      <Switch
-                        checked={formData.requires_deposit}
-                        onCheckedChange={(checked) => 
-                          setFormData(prev => ({ ...prev, requires_deposit: checked }))
-                        }
-                      />
-                    </div>
-
-                    {formData.requires_deposit && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          Monto del depósito
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          placeholder="Ingrese el monto del depósito"
-                          value={formData.deposit_amount}
-                          onChange={(e) => setFormData(prev => ({ 
-                            ...prev, 
-                            deposit_amount: Number(e.target.value) 
-                          }))}
-                          className={cn(
-                            "w-full px-3 py-2 rounded-lg",
-                            "border border-gray-200 bg-white",
-                            "focus:outline-none focus:border-gray-300",
-                            "transition-colors duration-200",
-                            "placeholder:text-gray-400",
-                            "text-sm",
-                            "[appearance:textfield]",
-                            "[&::-webkit-outer-spin-button]:appearance-none",
-                            "[&::-webkit-inner-spin-button]:appearance-none"
-                          )}
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Sección de precios */}
-                  {renderPricingSection()}
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.35, duration: 0.3 }}
-                className="p-6 border-t bg-white"
-              >
-                <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={onClose}
-                    className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    Cancelar
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSave}
-                    className="flex-1 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
-                  >
-                    {mode === 'create' ? 'Guardar' : 'Actualizar'}
-                  </motion.button>
-                </div>
-              </motion.div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-
   if (!mounted) return null
 
-  return createPortal(
-    modalContent,
-    document.body
+  return (
+    <Modal 
+      isOpen={isOpen} 
+      onClose={onClose}
+      className="w-[500px]"
+    >
+      <div className="h-full flex flex-col">
+        <div className="p-6 border-b">
+          <h2 className="text-xl font-semibold">
+            {mode === 'create' ? 'Agregar Nuevo Artículo' : 'Editar Artículo'}
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">
+            {mode === 'create' 
+              ? 'Complete los datos del nuevo artículo'
+              : 'Modifique los datos del artículo'}
+          </p>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 space-y-6">
+            {/* Nombre del artículo */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Nombre del artículo
+              </label>
+              <input
+                type="text"
+                placeholder="Ej: Raqueta Pro"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                className={cn(
+                  "w-full px-3 py-2 rounded-lg",
+                  "border border-gray-200 bg-white",
+                  "focus:outline-none focus:border-gray-300",
+                  "transition-colors duration-200",
+                  "placeholder:text-gray-400",
+                  "text-sm"
+                )}
+              />
+            </div>
+
+            {/* Tipo de artículo */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Tipo de artículo
+              </label>
+              <SingleSelect
+                value={formData.type}
+                onChange={(value: ItemType) => setFormData(prev => ({ 
+                  ...prev, 
+                  type: value 
+                }))}
+                options={itemTypeOptions}
+                placeholder="Seleccionar tipo de artículo"
+              />
+            </div>
+
+            {/* Stock disponible */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">
+                Stock disponible
+              </label>
+              <input
+                type="number"
+                min="0"
+                placeholder="Cantidad disponible"
+                value={formData.stock}
+                onChange={(e) => setFormData(prev => ({ 
+                  ...prev, 
+                  stock: Number(e.target.value) 
+                }))}
+                className={cn(
+                  "w-full px-3 py-2 rounded-lg",
+                  "border border-gray-200 bg-white",
+                  "focus:outline-none focus:border-gray-300",
+                  "transition-colors duration-200",
+                  "placeholder:text-gray-400",
+                  "text-sm",
+                  "[appearance:textfield]",
+                  "[&::-webkit-outer-spin-button]:appearance-none",
+                  "[&::-webkit-inner-spin-button]:appearance-none"
+                )}
+              />
+            </div>
+
+            {/* Depósito */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Requiere depósito</label>
+                  <p className="text-sm text-gray-500">
+                    El cliente deberá dejar un depósito como garantía
+                  </p>
+                </div>
+                <Switch
+                  checked={formData.requires_deposit}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, requires_deposit: checked }))
+                  }
+                />
+              </div>
+
+              {formData.requires_deposit && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Monto del depósito
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="Ingrese el monto del depósito"
+                    value={formData.deposit_amount}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      deposit_amount: Number(e.target.value) 
+                    }))}
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg",
+                      "border border-gray-200 bg-white",
+                      "focus:outline-none focus:border-gray-300",
+                      "transition-colors duration-200",
+                      "placeholder:text-gray-400",
+                      "text-sm",
+                      "[appearance:textfield]",
+                      "[&::-webkit-outer-spin-button]:appearance-none",
+                      "[&::-webkit-inner-spin-button]:appearance-none"
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Sección de precios */}
+            {renderPricingSection()}
+          </div>
+        </div>
+
+        <div className="p-6 border-t bg-white">
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors"
+            >
+              {mode === 'create' ? 'Guardar' : 'Actualizar'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   )
 } 

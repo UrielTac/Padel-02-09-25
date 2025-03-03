@@ -40,7 +40,7 @@ export default function LoginPage() {
   // Si tenemos empresaId, envolver en ClassRegistrationProvider
   if (empresaId) {
     return (
-      <div className="min-h-screen bg-white w-full">
+      <div className="min-h-screen bg-white w-full flex items-center justify-center">
         <ClassRegistrationProvider empresaId={empresaId}>
           <AuthStep onLoginSuccess={() => {
             if (decodedReturnUrl) {
@@ -56,7 +56,7 @@ export default function LoginPage() {
 
   // Si no hay empresaId, mostrar AuthStep directamente
   return (
-    <div className="min-h-screen bg-white w-full">
+    <div className="min-h-screen bg-white w-full flex items-center justify-center">
       <AuthStep onLoginSuccess={() => {
         if (decodedReturnUrl) {
           router.replace(decodedReturnUrl)

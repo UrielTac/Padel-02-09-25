@@ -18,6 +18,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useAppStore } from '@/store/appStore'
 import { useUserPackageDetails } from '../hooks/useUserPackageDetails'
 import type { UserPackageWithDetails } from '../hooks/useUserPackageDetails'
+import { Modal } from "@/components/ui/modal"
 
 interface MemberDetailsModalProps {
   isOpen: boolean
@@ -315,404 +316,356 @@ export function MemberDetailsModal({ isOpen, onClose, member }: MemberDetailsMod
   if (!member) return null
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <SelectProvider>
-          {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          />
+    <SelectProvider>
+      <Modal 
+        isOpen={isOpen} 
+        onClose={onClose}
+        className="w-[500px]"
+      >
+        <div className="h-full flex flex-col">
+          {/* Encabezado */}
+          <div className="p-6 border-b">
+            <h2 className="text-xl font-semibold">Detalles del Miembro</h2>
+            <p className="text-sm text-gray-500 mt-1">Información completa del miembro</p>
+          </div>
 
-          {/* Modal */}
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8,
-            }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
-          >
-            <div className="h-full flex flex-col">
-              {/* Encabezado */}
-              <motion.div
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="p-6 border-b"
-              >
-                <h2 className="text-xl font-semibold">Detalles del Miembro</h2>
-                <p className="text-sm text-gray-500 mt-1">Información completa del miembro</p>
-              </motion.div>
-
-              {/* Contenido Principal */}
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-                className="flex-1 overflow-y-auto"
-              >
-                <div className="p-6 space-y-8">
-                  {/* Sección de Detalles */}
-                  <div className="space-y-6">
-                    {/* Nombre */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          Nombre
-                        </label>
-                        <Popover open={popoverOpen.nombre} onOpenChange={(open) => {
-                          if (!editableFields.nombre) {
-                            setPopoverOpen(prev => ({ ...prev, nombre: open }))
-                          }
-                        }}>
-                          <PopoverTrigger asChild>
-                            <input
-                              type="text"
-                              className={cn(
-                                "w-full px-3 py-2 rounded-lg",
-                                "border border-gray-200 bg-white",
-                                "focus:outline-none focus:border-gray-300",
-                                "transition-colors duration-200",
-                                "placeholder:text-gray-400",
-                                "text-sm",
-                                editableFields.nombre ? "text-gray-900" : "text-gray-500"
-                              )}
-                              value={formData.nombre}
-                              onChange={(e) => handleInputChange('nombre', e.target.value)}
-                              readOnly={!editableFields.nombre}
-                              placeholder="Ingrese el nombre"
-                            />
-                          </PopoverTrigger>
-                          {!editableFields.nombre && (
-                            <PopoverContent className="w-auto p-3">
-                              <div className="text-sm">
-                                <p>¿Desea modificar este campo?</p>
-                                <div className="flex justify-end gap-2 mt-2">
-                                  <button 
-                                    className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
-                                    onClick={() => {
-                                      handleEditRequest('nombre')
-                                      handlePopoverClose('nombre')
-                                    }}
-                                  >
-                                    Sí
-                                  </button>
-                                  <button 
-                                    className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
-                                    onClick={() => handlePopoverClose('nombre')}
-                                  >
-                                    No
-                                  </button>
-                                </div>
-                              </div>
-                            </PopoverContent>
+          {/* Contenido Principal */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-6 space-y-8">
+              {/* Sección de Detalles */}
+              <div className="space-y-6">
+                {/* Nombre */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Nombre
+                    </label>
+                    <Popover open={popoverOpen.nombre} onOpenChange={(open) => {
+                      if (!editableFields.nombre) {
+                        setPopoverOpen(prev => ({ ...prev, nombre: open }))
+                      }
+                    }}>
+                      <PopoverTrigger asChild>
+                        <input
+                          type="text"
+                          className={cn(
+                            "w-full px-3 py-2 rounded-lg",
+                            "border border-gray-200 bg-white",
+                            "focus:outline-none focus:border-gray-300",
+                            "transition-colors duration-200",
+                            "placeholder:text-gray-400",
+                            "text-sm",
+                            editableFields.nombre ? "text-gray-900" : "text-gray-500"
                           )}
-                        </Popover>
-                      </div>
-
-                    {/* Email (no editable) */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        className={cn(
-                          "w-full px-3 py-2 rounded-lg",
-                          "border border-gray-200 bg-gray-50",
-                          "text-gray-500",
-                          "text-sm"
-                        )}
-                        value={formData.email}
-                        readOnly
-                      />
-                    </div>
-
-                    {/* Teléfono */}
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-700">
-                          Número de teléfono
-                        </label>
-                        <Popover open={popoverOpen.telefono} onOpenChange={(open) => {
-                          if (!editableFields.telefono) {
-                            setPopoverOpen(prev => ({ ...prev, telefono: open }))
-                          }
-                        }}>
-                          <PopoverTrigger asChild>
-                            <input
-                              type="tel"
-                              className={cn(
-                                "w-full px-3 py-2 rounded-lg",
-                                "border border-gray-200 bg-white",
-                                "focus:outline-none focus:border-gray-300",
-                                "transition-colors duration-200",
-                                "placeholder:text-gray-400",
-                                "text-sm",
-                                editableFields.telefono ? "text-gray-900" : "text-gray-500"
-                              )}
-                              value={formData.telefono}
-                              onChange={(e) => handleInputChange('telefono', e.target.value)}
-                              readOnly={!editableFields.telefono}
-                              placeholder="Ingrese el número de teléfono"
-                            />
-                          </PopoverTrigger>
-                          {!editableFields.telefono && (
-                            <PopoverContent className="w-auto p-3">
-                              <div className="text-sm">
-                                <p>¿Desea modificar este campo?</p>
-                                <div className="flex justify-end gap-2 mt-2">
-                                  <button 
-                                    className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
-                                    onClick={() => {
-                                      handleEditRequest('telefono')
-                                      handlePopoverClose('telefono')
-                                    }}
-                                  >
-                                    Sí
-                                  </button>
-                                  <button 
-                                    className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
-                                    onClick={() => handlePopoverClose('telefono')}
-                                  >
-                                    No
-                                  </button>
-                                </div>
-                              </div>
-                            </PopoverContent>
-                          )}
-                        </Popover>
-                    </div>
-
-                    {/* Género */}
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-gray-700">
-                        Género
-                      </label>
-                      <Popover open={popoverOpen.genero} onOpenChange={(open) => {
-                        if (!editableFields.genero) {
-                          setPopoverOpen(prev => ({ ...prev, genero: open }))
-                        }
-                      }}>
-                        <PopoverTrigger asChild>
-                          <div 
-                            className={cn(
-                              "w-full px-3 py-2 rounded-lg",
-                              "border border-gray-200 bg-white",
-                              "focus-within:border-gray-300",
-                              "transition-colors duration-200",
-                              "cursor-pointer"
-                            )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className={cn(
-                                "text-sm",
-                                editableFields.genero ? "text-gray-900" : "text-gray-500"
-                              )}>
-                                {selectedGender || "Seleccione el género"}
-                              </span>
-                              <IconChevronDown className="h-4 w-4 text-gray-500" />
+                          value={formData.nombre}
+                          onChange={(e) => handleInputChange('nombre', e.target.value)}
+                          readOnly={!editableFields.nombre}
+                          placeholder="Ingrese el nombre"
+                        />
+                      </PopoverTrigger>
+                      {!editableFields.nombre && (
+                        <PopoverContent className="w-auto p-3">
+                          <div className="text-sm">
+                            <p>¿Desea modificar este campo?</p>
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button 
+                                className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
+                                onClick={() => {
+                                  handleEditRequest('nombre')
+                                  handlePopoverClose('nombre')
+                                }}
+                              >
+                                Sí
+                              </button>
+                              <button 
+                                className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
+                                onClick={() => handlePopoverClose('nombre')}
+                              >
+                                No
+                              </button>
                             </div>
                           </div>
-                        </PopoverTrigger>
-                        {!editableFields.genero && (
-                          <PopoverContent className="w-auto p-3">
-                            <div className="text-sm">
-                              <p>¿Desea modificar este campo?</p>
-                              <div className="flex justify-end gap-2 mt-2">
-                                <button 
-                                  className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
-                                  onClick={() => {
-                                    handleEditRequest('genero')
-                                    handlePopoverClose('genero')
-                                    setGenderMenuOpen(true)
-                                  }}
-                                >
-                                  Sí
-                                </button>
-                                <button 
-                                  className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
-                                  onClick={() => handlePopoverClose('genero')}
-                                >
-                                  No
-                                </button>
-                              </div>
+                        </PopoverContent>
+                      )}
+                    </Popover>
+                  </div>
+
+                {/* Email (no editable) */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Email
+                  </label>
+                  <input
+                    type="email"
+                    className={cn(
+                      "w-full px-3 py-2 rounded-lg",
+                      "border border-gray-200 bg-gray-50",
+                      "text-gray-500",
+                      "text-sm"
+                    )}
+                    value={formData.email}
+                    readOnly
+                  />
+                </div>
+
+                {/* Teléfono */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Número de teléfono
+                    </label>
+                    <Popover open={popoverOpen.telefono} onOpenChange={(open) => {
+                      if (!editableFields.telefono) {
+                        setPopoverOpen(prev => ({ ...prev, telefono: open }))
+                      }
+                    }}>
+                      <PopoverTrigger asChild>
+                        <input
+                          type="tel"
+                          className={cn(
+                            "w-full px-3 py-2 rounded-lg",
+                            "border border-gray-200 bg-white",
+                            "focus:outline-none focus:border-gray-300",
+                            "transition-colors duration-200",
+                            "placeholder:text-gray-400",
+                            "text-sm",
+                            editableFields.telefono ? "text-gray-900" : "text-gray-500"
+                          )}
+                          value={formData.telefono}
+                          onChange={(e) => handleInputChange('telefono', e.target.value)}
+                          readOnly={!editableFields.telefono}
+                          placeholder="Ingrese el número de teléfono"
+                        />
+                      </PopoverTrigger>
+                      {!editableFields.telefono && (
+                        <PopoverContent className="w-auto p-3">
+                          <div className="text-sm">
+                            <p>¿Desea modificar este campo?</p>
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button 
+                                className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
+                                onClick={() => {
+                                  handleEditRequest('telefono')
+                                  handlePopoverClose('telefono')
+                                }}
+                              >
+                                Sí
+                              </button>
+                              <button 
+                                className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
+                                onClick={() => handlePopoverClose('telefono')}
+                              >
+                                No
+                              </button>
                             </div>
-                          </PopoverContent>
+                          </div>
+                        </PopoverContent>
+                      )}
+                    </Popover>
+                </div>
+
+                {/* Género */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Género
+                  </label>
+                  <Popover open={popoverOpen.genero} onOpenChange={(open) => {
+                    if (!editableFields.genero) {
+                      setPopoverOpen(prev => ({ ...prev, genero: open }))
+                    }
+                  }}>
+                    <PopoverTrigger asChild>
+                      <div 
+                        className={cn(
+                          "w-full px-3 py-2 rounded-lg",
+                          "border border-gray-200 bg-white",
+                          "focus-within:border-gray-300",
+                          "transition-colors duration-200",
+                          "cursor-pointer"
                         )}
-                      </Popover>
-                      {editableFields.genero && genderMenuOpen && (
-                        <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[1001]">
-                          {["masculino", "femenino", "otro"].map((gender) => (
-                            <button
-                              key={gender}
-                              onClick={() => handleGenderSelect(gender)}
-                              className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
-                            >
-                              {formatGender(gender)}
-                            </button>
-                          ))}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "text-sm",
+                            editableFields.genero ? "text-gray-900" : "text-gray-500"
+                          )}>
+                            {selectedGender || "Seleccione el género"}
+                          </span>
+                          <IconChevronDown className="h-4 w-4 text-gray-500" />
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Sección de Paquetes Activos */}
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-700">Paquetes de Clases Activos</h3>
-                    <div className="space-y-4">
-                      {isLoadingPackagesDetails ? (
-                        <div className="text-sm text-gray-500">Cargando paquetes...</div>
-                      ) : !packageDetailsResponse?.length ? (
-                        <div className="text-sm text-gray-500">No hay paquetes activos</div>
-                      ) : (
-                        packageDetailsResponse.map((packageDetail: UserPackageWithDetails) => (
-                          packageDetail && (
-                            <div
-                              key={packageDetail.userPackage.id}
-                              className="p-4 border rounded-lg space-y-3"
+                      </div>
+                    </PopoverTrigger>
+                    {!editableFields.genero && (
+                      <PopoverContent className="w-auto p-3">
+                        <div className="text-sm">
+                          <p>¿Desea modificar este campo?</p>
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button 
+                              className="px-2 py-1 text-xs bg-gray-100 rounded-md hover:bg-gray-200"
+                              onClick={() => {
+                                handleEditRequest('genero')
+                                handlePopoverClose('genero')
+                                setGenderMenuOpen(true)
+                              }}
                             >
-                              {/* Nombre y estado */}
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-medium">{packageDetail.packageDetails.name}</h4>
-                                  <p className="text-sm text-gray-500">
-                                    Total: {packageDetail.packageDetails.class_count} sesiones
-                                  </p>
-                                </div>
-                                <span className={cn(
-                                  "text-sm px-2 py-1 rounded-full",
-                                  packageDetail.userPackage.status === 'active' 
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-gray-100 text-gray-700"
-                                )}>
-                                  {packageDetail.userPackage.status === 'active' ? 'Activo' : 'Inactivo'}
-                                </span>
-                              </div>
-
-                              {/* Detalles del paquete */}
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <p className="text-gray-500">Sesiones Restantes</p>
-                                  <p className="font-medium">{packageDetail.userPackage.sessions_left}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500">Precio</p>
-                                  <p className="font-medium">${packageDetail.packageDetails.price}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500">Expira</p>
-                                  <p className="font-medium">{formatDate(packageDetail.userPackage.expires_at)}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500">Creado</p>
-                                  <p className="font-medium">{formatDate(packageDetail.userPackage.created_at || '')}</p>
-                                </div>
-                              </div>
-
-                              {/* Información adicional y acciones */}
-                              <div className="pt-2 border-t space-y-3">
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                  <IconCalendar className="h-4 w-4" />
-                                  <span>Reserva con {packageDetail.packageDetails.advance_booking_days} días de anticipación</span>
-                                </div>
-                                
-                                {/* Botones de acción */}
-                                <div className="flex justify-end">
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <button
-                                        className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
-                                      >
-                                        Eliminar
-                                      </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent 
-                                      className="w-[280px]" 
-                                      side="left" 
-                                      align="end"
-                                      sideOffset={5}
-                                    >
-                                      <div className="space-y-3 p-1">
-                                        <div className="space-y-2">
-                                          <h4 className="font-medium text-sm">¿Eliminar paquete?</h4>
-                                          <p className="text-xs text-gray-500">
-                                            Esta acción eliminará permanentemente el paquete y todas sus sesiones restantes. No podrás deshacer esta acción.
-                                          </p>
-                                        </div>
-                                        <div className="flex justify-end gap-2 pt-2 border-t">
-                                          <button
-                                            onClick={() => deletePackage.mutate(packageDetail.userPackage.id)}
-                                            className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
-                                            disabled={deletePackage.isPending}
-                                          >
-                                            {deletePackage.isPending ? 'Eliminando...' : 'Confirmar'}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    </PopoverContent>
-                                  </Popover>
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        ))
-                      )}
+                              Sí
+                            </button>
+                            <button 
+                              className="px-2 py-1 text-xs bg-black text-white rounded-md hover:bg-gray-800"
+                              onClick={() => handlePopoverClose('genero')}
+                            >
+                              No
+                            </button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    )}
+                  </Popover>
+                  {editableFields.genero && genderMenuOpen && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg z-[1001]">
+                      {["masculino", "femenino", "otro"].map((gender) => (
+                        <button
+                          key={gender}
+                          onClick={() => handleGenderSelect(gender)}
+                          className="w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left"
+                        >
+                          {formatGender(gender)}
+                        </button>
+                      ))}
                     </div>
-                  </div>
+                  )}
                 </div>
-              </motion.div>
+              </div>
 
-              {/* Pie del Modal */}
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.35, duration: 0.3 }}
-                className="p-6 border-t bg-white"
-              >
-                <div className="flex gap-3">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={onClose}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
-                  >
-                    Cerrar
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSaveChanges}
-                    className="flex-1 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
-                  >
-                    Guardar Cambios
-                  </motion.button>
+              {/* Sección de Paquetes Activos */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-medium text-gray-700">Paquetes de Clases Activos</h3>
+                <div className="space-y-4">
+                  {isLoadingPackagesDetails ? (
+                    <div className="text-sm text-gray-500">Cargando paquetes...</div>
+                  ) : !packageDetailsResponse?.length ? (
+                    <div className="text-sm text-gray-500">No hay paquetes activos</div>
+                  ) : (
+                    packageDetailsResponse.map((packageDetail: UserPackageWithDetails) => (
+                      packageDetail && (
+                        <div
+                          key={packageDetail.userPackage.id}
+                          className="p-4 border rounded-lg space-y-3"
+                        >
+                          {/* Nombre y estado */}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{packageDetail.packageDetails.name}</h4>
+                              <p className="text-sm text-gray-500">
+                                Total: {packageDetail.packageDetails.class_count} sesiones
+                              </p>
+                            </div>
+                            <span className={cn(
+                              "text-sm px-2 py-1 rounded-full",
+                              packageDetail.userPackage.status === 'active' 
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                            )}>
+                              {packageDetail.userPackage.status === 'active' ? 'Activo' : 'Inactivo'}
+                            </span>
+                          </div>
+
+                          {/* Detalles del paquete */}
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="text-gray-500">Sesiones Restantes</p>
+                              <p className="font-medium">{packageDetail.userPackage.sessions_left}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Precio</p>
+                              <p className="font-medium">${packageDetail.packageDetails.price}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Expira</p>
+                              <p className="font-medium">{formatDate(packageDetail.userPackage.expires_at)}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Creado</p>
+                              <p className="font-medium">{formatDate(packageDetail.userPackage.created_at || '')}</p>
+                            </div>
+                          </div>
+
+                          {/* Información adicional y acciones */}
+                          <div className="pt-2 border-t space-y-3">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <IconCalendar className="h-4 w-4" />
+                              <span>Reserva con {packageDetail.packageDetails.advance_booking_days} días de anticipación</span>
+                            </div>
+                            
+                            {/* Botones de acción */}
+                            <div className="flex justify-end">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors"
+                                  >
+                                    Eliminar
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent 
+                                  className="w-[280px]" 
+                                  side="left" 
+                                  align="end"
+                                  sideOffset={5}
+                                >
+                                  <div className="space-y-3 p-1">
+                                    <div className="space-y-2">
+                                      <h4 className="font-medium text-sm">¿Eliminar paquete?</h4>
+                                      <p className="text-xs text-gray-500">
+                                        Esta acción eliminará permanentemente el paquete y todas sus sesiones restantes. No podrás deshacer esta acción.
+                                      </p>
+                                    </div>
+                                    <div className="flex justify-end gap-2 pt-2 border-t">
+                                      <button
+                                        onClick={() => deletePackage.mutate(packageDetail.userPackage.id)}
+                                        className="px-3 py-1 text-xs font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 transition-colors disabled:opacity-50"
+                                        disabled={deletePackage.isPending}
+                                      >
+                                        {deletePackage.isPending ? 'Eliminando...' : 'Confirmar'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </PopoverContent>
+                              </Popover>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    ))
+                  )}
                 </div>
-              </motion.div>
+              </div>
             </div>
-          </motion.div>
+          </div>
 
-          {/* Modal de Historial de Reservaciones */}
-          <ReservationHistoryModal
-            isOpen={isHistoryModalOpen}
-            onClose={() => setIsHistoryModalOpen(false)}
-          />
-        </SelectProvider>
-      )}
-    </AnimatePresence>
+          {/* Pie del Modal */}
+          <div className="p-6 border-t bg-white">
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cerrar
+              </button>
+              <button
+                onClick={handleSaveChanges}
+                className="flex-1 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 transition-colors"
+              >
+                Guardar Cambios
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal de Historial de Reservaciones */}
+      <ReservationHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+      />
+    </SelectProvider>
   )
 }

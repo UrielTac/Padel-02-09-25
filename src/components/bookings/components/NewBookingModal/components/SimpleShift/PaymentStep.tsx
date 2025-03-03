@@ -146,14 +146,15 @@ export function PaymentStep({
     const effectiveCourtPrice = manualPrice !== null ? manualPrice : courtsPriceTotal
     const newTotal = effectiveCourtPrice + rentalsPriceTotal
 
-    console.log('Calculando nuevo total:', {
+    console.log('Calculando nuevo total en PaymentStep:', {
       effectiveCourtPrice,
       rentalsPriceTotal,
       newTotal,
       manualPrice,
       currentTotal: paymentState.totalAmount,
       currentDeposit: paymentState.deposit,
-      currentStatus: paymentState.paymentStatus
+      currentStatus: paymentState.paymentStatus,
+      rentals
     })
 
     if (newTotal > 0 && Math.abs(newTotal - paymentState.totalAmount) > 0.01) {
@@ -180,7 +181,7 @@ export function PaymentStep({
       setPaymentState(newState)
       onPaymentChange(newState)
     }
-  }, [courtsPriceTotal, rentalsPriceTotal, manualPrice])
+  }, [courtsPriceTotal, rentalsPriceTotal, manualPrice, rentals])
 
   // Mover el renderCustomPriceInput después del método de pago y aplicar los estilos necesarios
   const renderCustomPriceInput = () => {

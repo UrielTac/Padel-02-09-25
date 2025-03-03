@@ -18,7 +18,8 @@ export default function ClassesLayout({ children }: ClassesLayoutProps) {
             "min-h-screen w-full",
             "bg-white",
             "flex flex-col",
-            "overflow-hidden"
+            "overflow-hidden",
+            "items-center justify-center"
           )}>
             <div className={cn(
               "w-full flex-1",

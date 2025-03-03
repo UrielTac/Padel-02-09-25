@@ -516,8 +516,13 @@ export function ViewBookingModal({
       const updatedData = await bookingQueryService.getBookingById(currentBooking.id)
       setSelectedBooking(updatedData)
       
-      toast.success('Pago registrado correctamente')
+      toast({
+        title: "Pago completado",
+        description: "El pago se ha registrado correctamente",
+        variant: "default"
+      })
       setShowPaymentModal(false)
+      onClose() // Cerrar el modal principal
     } catch (error) {
       console.error('Error al procesar el pago:', error)
       toast.error('Error al procesar el pago')
@@ -601,7 +606,7 @@ export function ViewBookingModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             onClick={onClose}
-            className="fixed inset-0 bg-white/30 backdrop-blur-[2px] z-40"
+            className="fixed inset-0 bg-black/10 z-40"
           />
 
           {/* Modal */}
@@ -622,7 +627,7 @@ export function ViewBookingModal({
               stiffness: 300,
               mass: 0.8
             }}
-            className="fixed inset-y-0 right-0 w-[500px] bg-white shadow-2xl border-l z-50"
+            className="fixed inset-y-2 right-2 w-[500px] bg-white rounded-2xl border z-50 overflow-hidden"
           >
             <div className="h-full flex flex-col">
               {/* Encabezado */}
@@ -746,6 +751,22 @@ export function ViewBookingModal({
                             {getStatusText(processedData.paymentStatus)}
                           </span>
                         </div>
+                        {processedData.paymentStatus === 'partial' && (
+                          <>
+                            <div className="flex items-center justify-between py-1.5">
+                              <span className="text-sm text-gray-600">Seña pagada</span>
+                              <span className="text-sm text-gray-900 font-mono">
+                                €{processedData.depositAmount}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between py-1.5">
+                              <span className="text-sm text-gray-600">Restante</span>
+                              <span className="text-sm text-gray-900 font-mono">
+                                €{processedData.totalAmount - processedData.depositAmount}
+                              </span>
+                            </div>
+                          </>
+                        )}
                         <div className="flex items-center justify-between py-1.5 border-t border-gray-100">
                           <span className="text-sm font-medium text-gray-900">Total</span>
                           <span className="text-sm font-medium text-gray-900 font-mono">

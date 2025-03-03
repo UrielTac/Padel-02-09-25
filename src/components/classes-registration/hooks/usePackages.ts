@@ -56,14 +56,14 @@ export function usePackages(empresaId: string) {
     }
   }, [user])
 
-  const createUserPackage = useCallback(async (packageId: string) => {
+  const createUserPackage = useCallback(async (packageId: string, empresaId?: string) => {
     if (!user) {
       console.error('❌ No hay usuario autenticado')
       return null
     }
 
     try {
-      const userPackage = await packageService.createUserPackage(packageId, user.id)
+      const userPackage = await packageService.createUserPackage(packageId, user.id, empresaId)
       if (userPackage) {
         console.log('✅ Paquete de usuario creado:', userPackage)
       }

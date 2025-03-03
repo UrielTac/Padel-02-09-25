@@ -190,7 +190,7 @@ export class PackageService {
     }
   }
 
-  async createUserPackage(packageId: string, userId: string): Promise<UserPackageFromDB | null> {
+  async createUserPackage(packageId: string, userId: string, empresaId?: string): Promise<UserPackageFromDB | null> {
     try {
       console.log('🎁 Creando paquete de usuario...')
       
@@ -223,7 +223,8 @@ export class PackageService {
           package_id: packageId,
           sessions_left: packageData.class_count,
           expires_at: expiresAt.toISOString(),
-          status: 'active'
+          status: 'active',
+          empresa_id: empresaId
         })
         .select('*')
         .single()

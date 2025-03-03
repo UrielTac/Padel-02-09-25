@@ -97,7 +97,28 @@ export function RentalStep({
       ...prev,
       [itemId]: value || 0
     }));
-  }, []);
+
+    // Actualizar el rental si existe
+    setLocalRentals(prev => {
+      const existingRental = prev.find(r => r.itemId === itemId);
+      if (!existingRental) return prev;
+
+      const updatedRentals = prev.map(r =>
+        r.itemId === itemId
+          ? {
+              ...r,
+              pricePerUnit: value || 0,
+              price: (value || 0) * r.quantity,
+              totalPrice: (value || 0) * r.quantity
+            }
+          : r
+      );
+
+      // Actualizar el contexto
+      updateRentals(updatedRentals);
+      return updatedRentals;
+    });
+  }, [updateRentals]);
 
   // Renderizar el input de precio personalizado
   const renderCustomPriceInput = useCallback((item: Item) => {
