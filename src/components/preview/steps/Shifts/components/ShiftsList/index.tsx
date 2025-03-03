@@ -26,11 +26,7 @@ const ShiftCard = memo(({
   onSelect: () => void;
   theme: 'light' | 'dark';
 }) => (
-  <motion.button
-    layout
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
+  <button
     onClick={onSelect}
     className={cn(
       "relative w-full px-3 py-2 text-left transition-colors duration-200 rounded-lg",
@@ -44,100 +40,60 @@ const ShiftCard = memo(({
       )
     )}
   >
-    <AnimatePresence>
-      {isSelected && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ 
-            opacity: 1,
-            scale: 1,
-            transition: { 
-              duration: 0.2,
-              ease: [0.16, 1, 0.3, 1],
-            }
-          }}
-          exit={{ 
-            opacity: 0,
-            scale: 0.95,
-            transition: {
-              duration: 0.15,
-              ease: "easeOut"
-            }
-          }}
-          className={cn(
-            "absolute inset-0 z-0 rounded-lg",
-            theme === 'dark' 
-              ? "bg-zinc-800/70"
-              : "bg-gray-200/70"
-          )}
-        />
-      )}
-    </AnimatePresence>
+    {isSelected && (
+      <div
+        className={cn(
+          "absolute inset-0 z-0 rounded-lg",
+          theme === 'dark' 
+            ? "bg-zinc-800/70"
+            : "bg-gray-200/70"
+        )}
+      />
+    )}
 
-    <motion.div 
-      className="relative z-10 flex-1 min-w-0"
-      animate={{
-        color: isSelected 
-          ? theme === 'dark' 
-            ? "#e5e7eb"
-            : "#374151"
-          : theme === 'dark'
-            ? "#e5e7eb"
-            : "#1f2937"
-      }}
-      transition={{ 
-        duration: 0.25,
-        ease: [0.32, 0.72, 0, 1]
-      }}
-    >
+    <div className="relative z-10 flex-1 min-w-0">
       <div className="flex items-center justify-between mb-1">
-        <motion.p
-          className="font-medium text-sm"
-          animate={{
-            color: isSelected 
-              ? theme === 'dark'
-                ? "#ffffff"
-                : "#111827"
-              : theme === 'dark'
-                ? "#ffffff"
-                : "#111827"
-          }}
-        >
+        <p className={cn(
+          "font-medium text-sm",
+          isSelected 
+            ? theme === 'dark'
+              ? "text-white"
+              : "text-gray-900"
+            : theme === 'dark'
+              ? "text-white"
+              : "text-gray-900"
+        )}>
           {`${slot.startTime} - ${slot.endTime}`}
-        </motion.p>
-        <motion.span
-          className="text-xs font-medium"
-          animate={{
-            color: isSelected 
-              ? theme === 'dark'
-                ? "#e5e7eb"
-                : "#374151"
-              : theme === 'dark'
-                ? "#d1d5db"
-                : "#111827"
-          }}
-        >
+        </p>
+        <span className={cn(
+          "text-xs font-medium",
+          isSelected 
+            ? theme === 'dark'
+              ? "text-gray-300"
+              : "text-gray-700"
+            : theme === 'dark'
+              ? "text-gray-400"
+              : "text-gray-700"
+        )}>
           ${slot.price?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-        </motion.span>
+        </span>
       </div>
       <div className="space-y-0.5">
-        <motion.p
-          className="text-[11px]"
-          animate={{
-            color: isSelected 
-              ? theme === 'dark'
-                ? "#d1d5db"
-                : "#4b5563"
-              : theme === 'dark'
-                ? "#9ca3af"
-                : "#6b7280"
-          }}
-        >
+        <p className={cn(
+          "text-[11px]",
+          isSelected 
+            ? theme === 'dark'
+              ? "text-gray-300"
+              : "text-gray-600"
+            : theme === 'dark'
+              ? "text-gray-400"
+              : "text-gray-600"
+        )}>
           {slot.courtName} • {getCourtTypeLabel(slot.courtType)}
-        </motion.p>
+        </p>
       </div>
-    </motion.div>
-  </motion.button>
+    </div>
+  </button>
 ));
 
 export function ShiftsList({ 
@@ -199,60 +155,65 @@ export function ShiftsList({
           const isSelected = selectedShift === slot.id;
           
           return (
-            <motion.button
+            <button
               key={`${slot.id}-${slot.startTime}-${slot.courtId}`}
               onClick={() => onShiftSelect(slot)}
               className={cn(
                 "relative w-full px-4 py-3 text-left rounded-lg",
                 "transition-colors duration-200",
-                theme === 'dark'
-                  ? [
-                      "bg-zinc-800/20",
-                      isSelected && "bg-[#000000E6]"
-                    ]
-                  : [
-                      "bg-gray-100/60",
-                      isSelected && "bg-[#000000E6]"
-                    ]
+                isSelected
+                  ? theme === 'dark'
+                      ? "bg-[#000000E6]"
+                      : "bg-[#000000E6]"
+                  : theme === 'dark'
+                      ? "border border-zinc-700/25 hover:border-zinc-600/40"
+                      : "border border-gray-200/60 hover:border-gray-300/70",
+                !isSelected && "border-[0.5px]"
               )}
             >
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-1">
-                  <p className={cn(
-                    "font-medium text-sm",
-                    isSelected
-                      ? "text-white"
-                      : theme === 'dark'
-                        ? "text-gray-200"
-                        : "text-gray-900"
-                  )}>
+                  <p
+                    className={cn(
+                      "font-medium text-sm",
+                      isSelected
+                        ? "text-white"
+                        : theme === 'dark'
+                          ? "text-gray-200"
+                          : "text-gray-900"
+                    )}
+                  >
                     {`${slot.startTime} - ${slot.endTime}`}
                   </p>
-                  <span className={cn(
-                    "text-xs font-medium",
-                    isSelected
-                      ? "text-gray-300"
-                      : theme === 'dark'
-                        ? "text-gray-400"
-                        : "text-gray-700"
-                  )}>
+                  <span
+                    className={cn(
+                      "text-xs font-medium",
+                      isSelected
+                        ? "text-gray-300"
+                        : theme === 'dark'
+                          ? "text-gray-400"
+                          : "text-gray-700"
+                    )}
+                  >
                     ${slot.price?.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                   </span>
                 </div>
                 <div className="space-y-0.5">
-                  <p className={cn(
-                    "text-[11px]",
-                    isSelected
-                      ? "text-gray-300"
-                      : theme === 'dark'
-                        ? "text-gray-400"
-                        : "text-gray-600"
-                  )}>
+                  <p
+                    className={cn(
+                      "text-[11px]",
+                      isSelected
+                        ? "text-gray-300"
+                        : theme === 'dark'
+                          ? "text-gray-400"
+                          : "text-gray-600"
+                    )}
+                  >
                     {slot.courtName} • {getCourtTypeLabel(slot.courtType)}
                   </p>
                 </div>
               </div>
-            </motion.button>
+            </button>
           );
         })}
       </div>

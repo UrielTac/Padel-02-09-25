@@ -25,6 +25,31 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    
+    /* Variables para gaps */
+    --gap-small: 0.5rem;
+    --gap-medium: 1rem;
+    --gap-large: 1.5rem;
+    --gap-xlarge: 2rem;
+    
+    /* Variables para z-index */
+    --z-base: 1;
+    --z-overlay: 10;
+    --z-dropdown: 20;
+    --z-sticky: 30;
+    --z-drawer: 40;
+    --z-modal: 50;
+    --z-popover: 60;
+    --z-tooltip: 70;
+    --z-toast: 80;
+    --z-alert: 90;
+    --z-max: 9999;
+    
+    /* Variables para transiciones */
+    --transition-fast: 150ms;
+    --transition-normal: 300ms;
+    --transition-slow: 500ms;
+    --transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   html, body {
@@ -52,7 +77,6 @@
     scroll-snap-type: y proximity;
     transform: translate3d(0, 0, 0);
     backface-visibility: hidden;
-    perspective: 1000;
     -webkit-backface-visibility: hidden;
     -webkit-perspective: 1000;
   }
@@ -79,22 +103,64 @@
     perspective: 1000;
     -webkit-perspective: 1000;
   }
+  
+  /* Clases predefinidas para gaps */
+  .gap-small {
+    gap: var(--gap-small);
+  }
+  
+  .gap-medium {
+    gap: var(--gap-medium);
+  }
+  
+  .gap-large {
+    gap: var(--gap-large);
+  }
+  
+  .gap-xlarge {
+    gap: var(--gap-xlarge);
+  }
+  
+  /* Clases para z-index */
+  .z-base { z-index: var(--z-base); }
+  .z-overlay { z-index: var(--z-overlay); }
+  .z-dropdown { z-index: var(--z-dropdown); }
+  .z-sticky { z-index: var(--z-sticky); }
+  .z-drawer { z-index: var(--z-drawer); }
+  .z-modal { z-index: var(--z-modal); }
+  .z-popover { z-index: var(--z-popover); }
+  .z-tooltip { z-index: var(--z-tooltip); }
+  .z-toast { z-index: var(--z-toast); }
+  .z-alert { z-index: var(--z-alert); }
+  .z-max { z-index: var(--z-max); }
+  
+  /* Clases para transiciones */
+  .transition-fast {
+    transition: all var(--transition-fast) var(--transition-timing);
+  }
+  
+  .transition-normal {
+    transition: all var(--transition-normal) var(--transition-timing);
+  }
+  
+  .transition-slow {
+    transition: all var(--transition-slow) var(--transition-timing);
+  }
 }
 
 /* Utilidades para el scroll */
 @layer utilities {
   /* Clase unificada para ocultar scrollbar */
   .scrollbar-hide {
+    /* Firefox */
     scrollbar-width: none;
+    /* Internet Explorer 10+ */
     -ms-overflow-style: none;
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
   }
-
+  
+  /* WebKit y Chrome */
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
-    width: 0;
-    height: 0;
   }
 
   .scrollbar-hide::-webkit-scrollbar-track {
@@ -189,104 +255,6 @@
   }
 }
 
-/* Estilos del calendario */
-.rdp {
-  --rdp-cell-size: 40px;
-  --rdp-accent-color: #000;
-  --rdp-background-color: #f3f4f6;
-  margin: 0;
-}
-
-.rdp-months {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-}
-
-.rdp-month {
-  width: 100% !important;
-  border-collapse: collapse;
-}
-
-.rdp-table {
-  width: 100% !important;
-  margin: 0;
-  border-collapse: collapse;
-}
-
-.rdp-caption {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.rdp-head_cell {
-  width: var(--rdp-cell-size);
-  height: 40px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #6b7280;
-  text-align: center;
-}
-
-.rdp-cell {
-  width: var(--rdp-cell-size);
-  height: var(--rdp-cell-size);
-  text-align: center;
-  padding: 0;
-}
-
-.rdp-button {
-  width: 38px;
-  height: 38px;
-  font-size: 0.875rem;
-  border-radius: 9999px;
-  transition: all 0.2s;
-}
-
-.rdp-button:hover:not([disabled]) {
-  background-color: var(--rdp-background-color);
-}
-
-.rdp-button.rdp-day_selected {
-  background-color: var(--rdp-accent-color);
-  color: white;
-}
-
-.rdp-button.rdp-day_selected:hover {
-  background-color: var(--rdp-accent-color);
-}
-
-/* Estilos para el rango de fechas */
-.rdp-day_range_start,
-.rdp-day_range_end {
-  background-color: var(--rdp-accent-color) !important;
-  color: white !important;
-}
-
-.rdp-day_range_middle {
-  background-color: var(--rdp-background-color) !important;
-  color: var(--rdp-accent-color) !important;
-}
-
-.rdp-day_range_start:not(.rdp-day_range_end) {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.rdp-day_range_end:not(.rdp-day_range_start) {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-}
-
-.rdp-day_range_middle {
-  border-radius: 0;
-}
-
-@import 'react-day-picker/dist/style.css';
-
 /* Estilos específicos para el contenedor de reservaciones */
 .bookings-scroll-container {
   scrollbar-width: none !important;
@@ -307,3 +275,4 @@
 .bookings-scroll-container::-webkit-scrollbar-thumb {
   display: none !important;
 }
+

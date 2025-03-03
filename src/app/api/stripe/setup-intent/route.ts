@@ -6,7 +6,7 @@ import { stripeCustomerService } from '@/services/stripe-customer.service';
 
 // Inicializar Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia'
+  apiVersion: '2025-01-27.acacia'
 });
 
 // Por ahora, usar un usuario por defecto
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   console.log(`🔄 [${requestId}] Iniciando creación de SetupIntent`);
 
   try {
-    const { stripeAccountId } = await request.json();
+    const { stripeAccountId, customerId, userId } = await request.json();
 
     if (!stripeAccountId) {
       console.warn(`⚠️ [${requestId}] No se proporcionó el ID de cuenta de Stripe`);
@@ -33,10 +33,13 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!DEFAULT_USER_ID) {
-      console.warn(`⚠️ [${requestId}] DEFAULT_USER_ID no está configurado`);
+    // Usar el userId proporcionado o el valor por defecto
+    const userIdToUse = userId || DEFAULT_USER_ID;
+    
+    if (!userIdToUse) {
+      console.warn(`⚠️ [${requestId}] No se proporcionó userId ni existe DEFAULT_USER_ID`);
       return NextResponse.json(
-        { error: 'DEFAULT_USER_ID no está configurado' },
+        { error: 'Se requiere un ID de usuario' },
         { status: 500 }
       );
     }
@@ -134,15 +137,49 @@ export async function POST(request: Request) {
     }
 
     // 3. Obtener o crear el customer
-    console.log(`✅ [${requestId}] Obteniendo customer para:`, {
-      userId: DEFAULT_USER_ID,
-      stripeAccountId
-    });
-
-    const customer = await stripeCustomerService.getOrCreateCustomer(
-      DEFAULT_USER_ID,
-      stripeAccountId
-    );
+    let customer;
+    
+    // Si se proporciona customerId, verificarlo primero
+    if (customerId) {
+      console.log(`✅ [${requestId}] Usando customerId proporcionado:`, customerId);
+      try {
+        // Verificar que el cliente existe y es válido
+        const stripeCustomer = await stripe.customers.retrieve(customerId, {
+          stripeAccount: stripeAccountId
+        });
+        
+        if (!stripeCustomer || stripeCustomer.deleted) {
+          console.warn(`⚠️ [${requestId}] El customerId proporcionado no es válido, creando uno nuevo`);
+          customer = await stripeCustomerService.getOrCreateCustomer(
+            userIdToUse,
+            stripeAccountId
+          );
+        } else {
+          // El cliente existe y es válido
+          customer = {
+            stripeCustomerId: customerId,
+            status: 'active'
+          };
+        }
+      } catch (error) {
+        console.warn(`⚠️ [${requestId}] Error al verificar customerId, creando uno nuevo:`, error);
+        customer = await stripeCustomerService.getOrCreateCustomer(
+          userIdToUse,
+          stripeAccountId
+        );
+      }
+    } else {
+      // No se proporcionó customerId, obtener o crear uno
+      console.log(`✅ [${requestId}] Obteniendo customer para:`, {
+        userId: userIdToUse,
+        stripeAccountId
+      });
+      
+      customer = await stripeCustomerService.getOrCreateCustomer(
+        userIdToUse,
+        stripeAccountId
+      );
+    }
 
     console.log(`✅ [${requestId}] Customer obtenido:`, {
       customerId: customer.stripeCustomerId,

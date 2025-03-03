@@ -1,8 +1,10 @@
+import { StaticImageData } from 'next/image';
+
 // Tipos de método de pago disponibles
-export type PaymentMethodEnum = 'card' | 'cash' | 'transfer';
+export type PaymentMethodEnum = 'stripe' | 'cash' | 'transfer' | 'card';
 
 // Tipos de pago disponibles
-export type PaymentTypeEnum = 'card' | 'cash' | 'club' | 'full' | 'advance' | 'guarantee';
+export type PaymentTypeEnum = 'booking' | 'deposit' | 'guarantee' | 'full';
 
 export interface PaymentMethod {
   id: string;
@@ -39,21 +41,21 @@ export interface PaymentType {
 
 export const PAYMENT_TYPES: PaymentType[] = [
   {
-    id: 'card',
+    id: 'booking',
     name: 'Tarjeta de crédito/débito',
     description: 'Pago seguro con tarjeta',
     icon: 'credit-card',
     details: ['Pago seguro con tarjeta']
   },
   {
-    id: 'cash',
+    id: 'booking',
     name: 'Efectivo',
     description: 'Pago en efectivo al llegar',
     icon: 'cash',
     details: ['Pago en efectivo al llegar']
   },
   {
-    id: 'club',
+    id: 'booking',
     name: 'Pago en el Club',
     description: 'Pagar al llegar al club',
     details: ['Realiza el pago directamente en las instalaciones del club']
@@ -65,7 +67,7 @@ export const PAYMENT_TYPES: PaymentType[] = [
     details: ['Realiza el pago completo ahora y asegura tu reserva inmediatamente']
   },
   {
-    id: 'advance',
+    id: 'deposit',
     name: 'Pago con Seña',
     description: 'Pagar solo la seña ahora',
     details: ['Paga una seña del 30% ahora y el resto al llegar al club']

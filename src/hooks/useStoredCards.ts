@@ -12,9 +12,9 @@ interface StoredCard {
   expYear: number;
 }
 
-export function useStoredCards(refreshTrigger = 0) {
+export function useStoredCards(refreshTrigger = 0, options = { autoLoad: true }) {
   const [cards, setCards] = useState<StoredCard[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(options.autoLoad);
   const [error, setError] = useState<Error | null>(null);
   const { user } = useAuth();
   let stripeContext;
@@ -152,13 +152,16 @@ export function useStoredCards(refreshTrigger = 0) {
   useEffect(() => {
     mountedRef.current = true;
     retryCountRef.current = 0;
-    setIsLoading(true);
-    loadCards();
+    
+    if (options.autoLoad) {
+      setIsLoading(true);
+      loadCards();
+    }
 
     return () => {
       mountedRef.current = false;
     };
-  }, [loadCards]);
+  }, [loadCards, options.autoLoad]);
 
   const deleteCard = async (cardId: string) => {
     if (!stripeAccountId || !user) {

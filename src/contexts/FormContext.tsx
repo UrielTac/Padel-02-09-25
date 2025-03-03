@@ -97,33 +97,32 @@ function formReducer(state: FormState, action: FormAction): FormState {
       console.log('FormContext: Estado antes de actualización:', {
         current: state.payment,
         incoming: action.payload,
-        hasSelectedMethod: !!action.payload.selectedPaymentMethod
+        hasSelectedMethod: !!action.payload.selectedPaymentMethod,
+        incomingMethod: action.payload.method,
+        incomingType: action.payload.type
       });
       
-      const paymentType = action.payload.type as PaymentTypeEnum;
-      const paymentMapping = paymentType ? PAYMENT_TYPE_MAPPINGS[paymentType] : null;
+      // Si no viene un tipo de pago, mantener el actual
+      const paymentType = action.payload.type || state.payment.type;
+      const paymentMapping = paymentType ? PAYMENT_TYPE_MAPPINGS[paymentType as PaymentTypeEnum] : null;
+      
+      // Si viene un selectedPaymentMethod, usarlo para completar la información
+      const selectedMethod = action.payload.selectedPaymentMethod;
       
       // Mantener el método de pago seleccionado si es una garantía
       const newPaymentState = {
-        method: paymentType === 'guarantee' ? 'stripe' : (paymentMapping?.defaultMethod || action.payload.method),
-        type: action.payload.type,
-        selectedPaymentMethod: paymentType === 'guarantee' 
-          ? (action.payload.selectedPaymentMethod || action.payload.config?.paymentMethodId 
-              ? {
-                  id: action.payload.selectedPaymentMethod?.id || action.payload.config?.paymentMethodId,
-                  brand: action.payload.selectedPaymentMethod?.brand || action.payload.config?.brand,
-                  last4: action.payload.selectedPaymentMethod?.last4 || action.payload.config?.last4,
-                  expMonth: action.payload.selectedPaymentMethod?.expMonth || 0,
-                  expYear: action.payload.selectedPaymentMethod?.expYear || 0
-                }
-              : undefined)
-          : undefined
+        method: paymentType === 'guarantee' ? 'stripe' : (action.payload.method || paymentMapping?.defaultMethod || state.payment.method),
+        type: paymentType,
+        selectedPaymentMethod: selectedMethod || state.payment.selectedPaymentMethod,
+        config: action.payload.config || state.payment.config
       };
 
       console.log('FormContext: Estado después de transformación:', {
         newState: newPaymentState,
         hasSelectedMethod: !!newPaymentState.selectedPaymentMethod,
-        selectedMethod: newPaymentState.selectedPaymentMethod
+        selectedMethod: newPaymentState.selectedPaymentMethod,
+        paymentType: newPaymentState.type,
+        paymentMethod: newPaymentState.method
       });
 
       return {

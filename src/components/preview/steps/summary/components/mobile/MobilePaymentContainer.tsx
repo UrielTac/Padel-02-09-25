@@ -4,7 +4,7 @@ import { PriceBreakdown } from "../PriceBreakdown";
 import { PaymentTypeSection } from "../PaymentTypeSection";
 import { PaymentSection } from "../PaymentSection";
 import { withResponsiveView } from "../../hoc/withResponsiveView";
-import { PaymentMethod, PaymentTypeEnum, SelectedItem, PaymentType, PAYMENT_TYPES } from "../../types";
+import { PaymentType, PaymentTypeEnum, PaymentMethod, PaymentMethodEnum, SelectedItem, PAYMENT_TYPES } from "../../types";
 import { MobileNavigation } from "@/components/preview/layout/MobileNavigation";
 import { MobileNextButton } from "@/components/preview/layout/MobileNextButton";
 import { MobileReservationHeader } from "./MobileReservationHeader";
@@ -41,7 +41,8 @@ interface MobilePaymentContainerProps {
   onShowPaymentMethods: () => void;
   onRemovePaymentType: () => void;
   onRemovePaymentMethod: () => void;
-  onNext: () => void;
+  onSelectPaymentMethod: (method: PaymentMethod) => void;
+  onNext: (paymentData?: any) => void;
   onPrev?: () => void;
   isPublicView?: boolean;
   empresaId: string;
@@ -174,7 +175,7 @@ function PaymentTypeDropdown({
         theme === 'dark' ? "border-neutral-700" : "border-gray-200"
       )}
     >
-      <div className="max-h-[300px] overflow-y-auto py-2 space-y-1">
+      <div className="max-h-[300px] overflow-y-auto scrollbar-hide py-2 space-y-1">
         {FILTERED_PAYMENT_TYPES.map((type) => (
           <PaymentTypeItem
             key={type.id}
@@ -211,220 +212,203 @@ function PaymentTypeSelector({
   onRemovePaymentType?: () => void;
 }) {
   const [showOptions, setShowOptions] = useState(false);
-  const { isConnected, isLoading, error } = useStripeConnection(empresaId);
-  const [verifyingToast, setVerifyingToast] = useState<string | null>(null);
   
   // Buscar el tipo de pago seleccionado para mostrar su nombre
   const selectedPaymentTypeData = selectedType 
     ? FILTERED_PAYMENT_TYPES.find(type => type.id === selectedType) 
     : null;
 
-  // Limpiar toast al cerrar las opciones
-  useEffect(() => {
-    if (!showOptions && verifyingToast) {
-      toast.dismiss(verifyingToast);
-      setVerifyingToast(null);
-    }
-  }, [showOptions, verifyingToast]);
-
-  // Actualizar estado cuando cambia la conexión
-  useEffect(() => {
-    if (verifyingToast && !isLoading) {
-      toast.dismiss(verifyingToast);
-      setVerifyingToast(null);
-
-      if (error) {
-        toast.error('Error al verificar la conexión con Stripe');
-      } else if (!isConnected) {
-        toast.error('El club debe configurar Stripe para aceptar garantías');
-      } else {
-        // Establecemos directamente el tipo, igual que en PaymentTypeModal
-        console.log("[PaymentTypeSelector] Conexión Stripe verificada, seleccionando garantía");
-        onSelect('guarantee');
-        
-        // Mostramos inmediatamente el modal de tarjeta, replicando el comportamiento de PaymentTypeModal
-        if (onShowCardModal) {
-          setTimeout(() => {
-            console.log("[PaymentTypeSelector] Mostrando modal de tarjeta para garantía");
-            onShowCardModal();
-            
-            toast.success('Configurando garantía', {
-              description: 'Por favor, completa los datos de tu tarjeta para continuar',
-              duration: 5000
-            });
-          }, 150); // Tiempo suficiente para que se actualice el estado
-        } else {
-          toast.error('No se puede completar el proceso de garantía sin configurar una tarjeta');
-        }
-      }
-    }
-  }, [isLoading, error, isConnected, verifyingToast, onSelect, onShowCardModal]);
-
   const handleSelectType = (type: PaymentTypeEnum) => {
     // Para tipo garantía que requiere validación especial
     if (type === 'guarantee') {
-      // Si está cargando la conexión, mostrar loading y salir
-      if (isLoading) {
-        const toastId = toast.loading('Verificando conexión con Stripe...').toString();
-        setVerifyingToast(toastId);
+      if (!empresaId) {
         return;
       }
 
-      // Validaciones de errores
-      if (error) {
-        toast.error('Error al verificar la conexión con Stripe');
-        return;
-      }
-
-      if (!isConnected) {
-        toast.error('El club debe configurar Stripe para aceptar garantías');
-        return;
-      }
-
-      console.log(`[PaymentTypeSelector] Seleccionando garantía directamente`);
-      
-      // Informar al usuario que sigue un paso adicional
-      toast.success('Tipo de pago seleccionado: Garantía', {
-        description: 'A continuación deberás configurar una tarjeta para completar el proceso.'
-      });
-
-      // FLUJO CRÍTICO: Replicar exactamente el comportamiento de PaymentTypeModal.tsx
-      // 1. Primero establecemos el tipo de pago (como hace el modal)
+      // FLUJO CRÍTICO: Adaptado para el nuevo comportamiento sin modal
+      // 1. Primero establecemos el tipo de pago
       onSelect(type);
       
       // 2. Cerramos las opciones de tipos de pago
       setShowOptions(false);
       
-      // 3. Mostramos el modal de tarjeta con un pequeño retraso para asegurar
-      // que el tipo se haya establecido correctamente
-      if (onShowCardModal) {
-        setTimeout(() => {
-          console.log("[PaymentTypeSelector] Mostrando modal de tarjeta para garantía");
-          onShowCardModal();
-        }, 150);
-      } else {
-        toast.error('No se puede completar el proceso de garantía sin configurar una tarjeta');
-      }
+      // 3. Ya no mostramos el modal ni informamos al usuario
+      // Mensaje eliminado
+      /* 
+      toast.info('Selecciona una tarjeta para continuar', {
+        duration: 4000,
+        description: 'La lista de tarjetas se ha expandido automáticamente'
+      });
+      */
+      
+      // La expansión de la lista de tarjetas ahora se maneja en handlePaymentTypeSelect
+      // a través del estado expandCardList
     } else {
       // Para otros tipos de pago, selección directa
-      console.log(`[PaymentTypeSelector] Seleccionando tipo: ${type}`);
       onSelect(type);
-      
-      // Mostrar confirmación al usuario
-      const typeName = FILTERED_PAYMENT_TYPES.find(t => t.id === type)?.name || type;
-      toast.success(`Tipo de pago seleccionado: ${typeName}`);
-      
-      // Cerrar las opciones
       setShowOptions(false);
     }
   };
 
   return (
-    <div className="relative">
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-3">
+      {/* Título para la sección de tipo de pago */}
+      <div className="flex items-center justify-between">
         <p className={cn(
           "text-sm font-medium",
           theme === 'dark' ? "text-gray-300" : "text-gray-700"
         )}>
           Elige cómo deseas realizar el pago
         </p>
-        <button
-          onClick={() => setShowOptions(!showOptions)}
-          className={cn(
-            "text-sm transition-colors relative",
-            theme === 'dark' ? "text-gray-400" : "text-gray-600",
-            "group flex flex-col items-center"
-          )}
-        >
-          <span className="flex items-center">
-            {selectedPaymentTypeData ? 'Cambiar' : 'Seleccionar'}
-            <ChevronDown className={cn(
-              "ml-1 h-4 w-4 transition-transform",
-              showOptions && "transform rotate-180"
-            )} />
-          </span>
-          <span className={cn(
-            "absolute -bottom-1 left-0 right-0",
-            "border-b border-dashed", 
-            theme === 'dark' ? "border-gray-400/50" : "border-gray-600/50",
-            "group-hover:border-opacity-100"
-          )}></span>
-        </button>
       </div>
 
-      {/* Mostrar el tipo seleccionado solamente si hay uno seleccionado */}
-      {selectedPaymentTypeData && !showOptions && (
-        <div
+      {!selectedType ? (
+        // Si no hay tipo seleccionado, mostrar un área clickeable para seleccionar
+        <motion.div
+          whileHover={{ scale: 1.0, boxShadow: "none" }}
+          whileTap={{ scale: 1.0, boxShadow: "none" }}
+          onClick={() => setShowOptions(!showOptions)}
           className={cn(
-            "p-4 rounded-lg transition-all",
-            "border mt-1",
-            theme === 'dark' ? "border-neutral-700 bg-neutral-800" : "border-gray-200 bg-gray-50"
+            "w-full rounded-lg cursor-pointer",
+            "transition-all duration-200",
+            "bg-white dark:bg-neutral-900",
+            "border border-gray-100 dark:border-neutral-800",
+            "hover:border-gray-200 dark:hover:border-neutral-700",
+            "shadow-none",
+            "h-[52px] flex items-center px-4"
+          )}
+        >
+          <div className="flex items-center gap-3 w-full justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-1.5 rounded-md transition-colors",
+                theme === 'dark' 
+                  ? "bg-neutral-800" 
+                  : "bg-gray-50"
+              )}>
+                <ChevronRight className={cn(
+                  "h-4 w-4",
+                  theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                )} />
+              </div>
+              <span className={cn(
+                "text-[15px]",
+                theme === 'dark' ? "text-gray-400" : "text-gray-500"
+              )}>
+                Seleccionar tipo de pago
+              </span>
+            </div>
+            <ChevronDown className={cn(
+              "h-4 w-4 transition-transform duration-300",
+              showOptions && "transform rotate-180",
+              theme === 'dark' ? "text-gray-400" : "text-gray-500"
+            )} />
+          </div>
+        </motion.div>
+      ) : (
+        // Si hay un tipo seleccionado, mostrar la información con opciones
+        <motion.div
+          whileHover={{ scale: 1.0, boxShadow: "none" }}
+          whileTap={{ scale: 1.0, boxShadow: "none" }}
+          onClick={() => setShowOptions(!showOptions)}
+          className={cn(
+            "w-full rounded-lg cursor-pointer",
+            "transition-all duration-200",
+            "p-3",
+            "bg-white dark:bg-neutral-900",
+            "border border-gray-100 dark:border-neutral-800",
+            "hover:border-gray-200 dark:hover:border-neutral-700",
+            "shadow-none"
           )}
         >
           <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className={cn(
-                "text-sm",
-                theme === 'dark' ? "text-white" : "text-gray-900"
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "p-1.5 rounded-md transition-colors",
+                theme === 'dark' 
+                  ? "bg-neutral-800" 
+                  : "bg-gray-50"
               )}>
-                {selectedPaymentTypeData.name}
-              </p>
-              <p className={cn(
-                "text-xs",
-                theme === 'dark' ? "text-gray-400" : "text-gray-500"
-              )}>
-                {selectedPaymentTypeData.description}
-              </p>
+                <Check className={cn(
+                  "h-4 w-4",
+                  theme === 'dark' ? "text-green-400" : "text-green-500"
+                )} />
+              </div>
+              <div className="flex flex-col">
+                <span className={cn(
+                  "text-sm font-medium",
+                  theme === 'dark' ? "text-gray-200" : "text-gray-900"
+                )}>
+                  {selectedPaymentTypeData?.name || selectedType}
+                </span>
+                <span className={cn(
+                  "text-xs",
+                  theme === 'dark' ? "text-gray-400" : "text-gray-500"
+                )}>
+                  {selectedPaymentTypeData?.description || ''}
+                </span>
+              </div>
             </div>
             
-            {/* Botón para eliminar el tipo de pago seleccionado */}
-            <button
-              onClick={() => {
-                // Aquí llamamos a onRemovePaymentType que viene de las props del componente padre
-                // Para mantener consistencia con el comportamiento anterior
-                if (onRemovePaymentType) {
-                  onRemovePaymentType();
-                  // Mostrar notificación de éxito al usuario
-                  toast.success('Tipo de pago eliminado');
-                }
-              }}
-              className={cn(
-                "p-1.5 rounded-lg transition-colors",
-                theme === 'dark' 
-                  ? "text-gray-400 hover:bg-neutral-700"
-                  : "text-gray-400 hover:bg-gray-100"
-              )}
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <ChevronDown className={cn(
+                "h-4 w-4 transition-transform duration-300",
+                showOptions && "transform rotate-180",
+                theme === 'dark' ? "text-gray-400" : "text-gray-500"
+              )} />
+              {/* Botón para eliminar el tipo de pago seleccionado */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation(); // Evitar que se propague al contenedor y abra las opciones
+                  if (onRemovePaymentType) {
+                    onRemovePaymentType();
+                  }
+                }}
+                className={cn(
+                  "p-1.5 rounded-lg transition-colors",
+                  theme === 'dark' 
+                    ? "text-gray-400 hover:bg-neutral-700"
+                    : "text-gray-400 hover:bg-gray-100"
+                )}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Mostrar la lista de opciones si está abierta */}
-      {showOptions && (
-        <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          transition={{ duration: 0.2 }}
-          className={cn(
-            "mt-2 rounded-lg",
-            theme === 'dark' 
-              ? "bg-neutral-900 border-neutral-800" 
-              : "bg-white border-gray-100",
-            "border-[0.5px]",
-            "shadow-sm"
-          )}
-        >
-          <PaymentTypeList
-            theme={theme}
-            selectedType={selectedType}
-            onSelect={handleSelectType}
-            paymentTypes={FILTERED_PAYMENT_TYPES}
-          />
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {showOptions && (
+          <motion.div
+            initial={{ opacity: 0, y: -5, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -5, height: 0 }}
+            transition={{ 
+              duration: 0.2,
+              ease: [0.32, 0.72, 0, 1] // Curva de animación más suave
+            }}
+            className={cn(
+              "rounded-lg overflow-hidden mt-1",
+              theme === 'dark' 
+                ? "bg-neutral-900 border-neutral-800" 
+                : "bg-white border-gray-100",
+              "border",
+              "shadow-none"
+            )}
+          >
+            <PaymentTypeList
+              theme={theme}
+              selectedType={selectedType}
+              onSelect={handleSelectType}
+              paymentTypes={FILTERED_PAYMENT_TYPES}
+              isExpanded={true}
+              noContainer={true}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -440,6 +424,7 @@ function MobilePaymentContainerBase({
   onShowPaymentMethods,
   onRemovePaymentType,
   onRemovePaymentMethod,
+  onSelectPaymentMethod,
   onNext,
   onPrev,
   isPublicView = false,
@@ -448,6 +433,7 @@ function MobilePaymentContainerBase({
   const [currentView, setCurrentView] = useState<ViewStep>('details');
   const [localSelectedType, setLocalSelectedType] = useState<PaymentTypeEnum | null>(selectedPaymentType);
   const [localSelectedMethod, setLocalSelectedMethod] = useState<PaymentMethod | null>(selectedPaymentMethod);
+  const [expandCardList, setExpandCardList] = useState(false);
 
   // Sincronizar estados locales con props
   useEffect(() => {
@@ -458,31 +444,68 @@ function MobilePaymentContainerBase({
     setLocalSelectedMethod(selectedPaymentMethod);
   }, [selectedPaymentMethod]);
 
-  // Función para actualizar el método de pago
-  const handleMethodSelect = useCallback((method: PaymentMethod) => {
-    try {
-      console.log('Seleccionando método de pago:', method);
-
-      // 1. Actualizar estado local
-      setLocalSelectedMethod(method);
-
-      // 2. Actualizar estado global directamente
-      // Esta es la clave: llamar a la misma función que usa el modal
-      if (onShowPaymentMethods) {
-        onShowPaymentMethods();
+  // Método para actualizar el método de pago
+  const handleMethodUpdate = async (method: PaymentMethod & { __selectedPaymentType?: PaymentTypeEnum }) => {
+    console.log(`[MobilePaymentContainer] handleMethodUpdate: ${method?.id}`);
+    
+    // Extraer el tipo de pago si existe (y luego eliminarlo del objeto para evitar problemas)
+    const selectedPaymentType = method.__selectedPaymentType;
+    // Crear una copia limpia del método sin la propiedad personalizada
+    const { __selectedPaymentType, ...cleanMethod } = method as any;
+    
+    // Actualizar el estado local
+    setLocalSelectedMethod(cleanMethod);
+    
+    // Propagar al componente padre para actualizar el estado global
+    if (onSelectPaymentMethod) {
+      console.log(`[MobilePaymentContainer] Propagando método al contexto global:`, cleanMethod);
+      
+      // Verificar que el método contiene todas las propiedades necesarias
+      if (!cleanMethod.id || !cleanMethod.type || !cleanMethod.brand || !cleanMethod.last4) {
+        console.error('[MobilePaymentContainer] Método de pago incompleto:', cleanMethod);
+        return Promise.reject(new Error('Método de pago incompleto'));
       }
-
-      // 3. Notificar éxito
-      toast.success('Método de pago seleccionado correctamente');
-    } catch (error) {
-      console.error('Error al seleccionar método de pago:', error);
-      toast.error('Error al seleccionar método de pago');
+      
+      // Asegurar que type sea compatible con PaymentMethodEnum
+      const methodWithValidType = {
+        ...cleanMethod,
+        type: cleanMethod.type === 'card' ? 'stripe' : cleanMethod.type as any // Usar 'any' para evitar problemas de tipado
+      };
+      
+      // Si tenemos un tipo de pago seleccionado, propagarlo junto con el método
+      if (selectedPaymentType) {
+        console.log(`[MobilePaymentContainer] Incluyendo tipo de pago seleccionado: ${selectedPaymentType}`);
+        
+        // Aquí creamos un objeto con propiedades adicionales para el componente padre
+        // Esto permitirá que el componente padre actualice tanto el método como el tipo
+        onSelectPaymentMethod({
+          ...methodWithValidType,
+          // Esta es solo una señal para el componente padre, no afecta al objeto PaymentMethod
+          __paymentContext: {
+            selectedPaymentType: selectedPaymentType
+          }
+        } as any);
+      } else {
+        // Llamada normal sin tipo de pago adicional
+        onSelectPaymentMethod(methodWithValidType as any);
+      }
+      
+      // Verificar que el método se ha propagado correctamente
+      console.log('[MobilePaymentContainer] Método propagado con éxito');
+    } else {
+      console.warn(`[MobilePaymentContainer] onSelectPaymentMethod no disponible`);
+      // Mensaje eliminado
+      // toast.warning('No se pudo actualizar el estado global del pago');
     }
-  }, [onShowPaymentMethods]);
+    
+    // Mensaje eliminado
+    // toast.success(`Tarjeta seleccionada: ${cleanMethod.brand} ****${cleanMethod.last4}`);
+    return Promise.resolve();
+  };
 
   // Manejadores de selección
   const paymentHandlers: PaymentSelectionHandlers = {
-    onMethodSelect: handleMethodSelect,
+    onMethodSelect: handleMethodUpdate,
     onMethodRemove: useCallback(() => {
       setLocalSelectedMethod(null);
       onRemovePaymentMethod();
@@ -505,16 +528,47 @@ function MobilePaymentContainerBase({
 
     // Verificar selecciones
     if (!localSelectedType || !localSelectedMethod) {
-      toast.error('Por favor, selecciona un tipo y método de pago');
       return;
     }
 
     // Asegurar que el estado global está actualizado
-    handleMethodSelect(localSelectedMethod);
+    // Ya no necesitamos actualizar el estado global explícitamente porque ya se está
+    // manejando a través de los métodos de selección individuales
+    
+    console.log('[MobilePaymentContainer] Avanzando al siguiente paso con:', {
+      localSelectedMethod,
+      localSelectedType
+    });
 
-    // Continuar al siguiente paso
+    // Si el tipo de pago es "full" (pago completo), necesitamos preparar los datos
+    // para procesar el cargo completo
+    if (localSelectedType === 'full' && localSelectedMethod) {
+      // Crear un objeto con los datos de pago que necesitaremos en el siguiente paso
+      const paymentData = {
+        paymentType: localSelectedType,
+        paymentMethod: localSelectedMethod,
+        amount: calculations.total,
+        itemsTotal: calculations.itemsTotal,
+        courtPrice: calculations.courtPrice,
+        discount: calculations.discount,
+        selectedItems: calculations.selectedItems,
+        // El tipo de pago "full" indica que debemos cobrar la totalidad
+        shouldChargeFullAmount: true,
+        // Datos adicionales para el procesamiento del pago
+        stripePaymentMethodId: localSelectedMethod.id,
+        empresaId: empresaId
+      };
+
+      console.log('[MobilePaymentContainer] Preparando cobro total:', paymentData);
+      
+      // Pasar los datos al siguiente paso a través del evento onNext
+      onNext(paymentData);
+      return;
+    }
+
+    // Continuar al siguiente paso inmediatamente para otros tipos de pago
     onNext();
-  }, [currentView, localSelectedType, localSelectedMethod, handleMethodSelect, onNext]);
+  }, [currentView, localSelectedType, localSelectedMethod, onNext, calculations, empresaId]);
 
   if (viewType !== 'mobile') return null;
 
@@ -524,79 +578,83 @@ function MobilePaymentContainerBase({
     // Actualizar el estado local inmediatamente
     setLocalSelectedType(type);
     
-    // El tipo 'guarantee' requiere un tratamiento especial
-    const isGuaranteeType = type === 'guarantee';
+    // El tipo 'guarantee' y 'full' requieren un tratamiento especial
+    const isSpecialType = type === 'guarantee' || type === 'full';
 
-    // Paso 1: Eliminamos cualquier tipo seleccionado previamente si es diferente
+    // Limpieza de estados previos si es necesario
     if (selectedPaymentType && selectedPaymentType.toString() !== type.toString()) {
       console.log(`[MobilePaymentContainer] Removiendo tipo actual: ${selectedPaymentType}`);
       onRemovePaymentType();
     }
     
-    // ---------------------------------------------------------------
-    // La clave para la solución está en entender el flujo completo:
-    // 1. En PaymentTypeModal.tsx, al seleccionar garantía:
-    //    - Se llama a onSelect('guarantee')
-    //    - Se llama a onShowCardModal()
-    // 2. En MobilePaymentContainer, esto se traduce en:
-    //    - Se actualiza selectedPaymentType a 'guarantee'
-    //    - Se muestra el modal de tarjeta con onShowPaymentMethods()
-    // ---------------------------------------------------------------
+    // IMPORTANTE: Actualizar el estado global con el tipo de pago
+    console.log(`[MobilePaymentContainer] Actualizando tipo de pago global: ${type}`);
     
-    // Solución: Acceder directamente al PaymentTypeModal.tsx desde el exterior
-    if (isGuaranteeType) {
-      console.log(`[MobilePaymentContainer] Procesando selección de garantía`);
-      
-      // Paso 1: Informar al usuario que estamos procesando
-      toast.loading('Verificando sistema de pago...', { id: 'guarantee-setup' });
-      
-      // Paso 2: Añadir un marcador en localStorage para que el PaymentTypeModal
-      // sepa que debe seleccionar 'guarantee' automáticamente cuando se abra
-      window.localStorage.setItem('auto_select_guarantee', 'true');
-      window.localStorage.setItem('guarantee_selection_timestamp', Date.now().toString());
-      
-      // Paso 3: Abrir el modal de tipos de pago, que ahora verificará localStorage
-      // y seleccionará automáticamente 'guarantee', realizando las acciones necesarias
+    // SOLUCIÓN: Para los casos especiales, NO abrimos el modal
+    // y en su lugar forzamos la actualización del estado global manualmente
+    if (!isSpecialType) {
+      // Solo para tipos de pago normales, permitimos que se abra el modal si es necesario
+      console.log(`[MobilePaymentContainer] Notificando al padre sobre tipo seleccionado: ${type}`);
       onShowPaymentTypes();
-      
-      // Paso 4: Añadir un listener global para detectar cuando se complete el proceso
-      const handleGuaranteeSelected = () => {
-        console.log('[MobilePaymentContainer] Evento guarantee-selection-completed capturado');
-        
-        // Limpiar el localStorage una vez completado
-        window.localStorage.removeItem('auto_select_guarantee');
-        window.localStorage.removeItem('guarantee_selection_timestamp');
-        
-        // Actualizar el toast
-        toast.success('Garantía configurada correctamente', { id: 'guarantee-setup' });
-        
-        // Limpiar los listeners
-        document.removeEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-        window.removeEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-      };
-      
-      // Registrar el listener en ambos contextos para garantizar compatibilidad
-      document.addEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-      window.addEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-      
-      // Establecer un tiempo máximo para los listeners y cerrar el toast automáticamente
-      // para evitar que quede abierto indefinidamente si algo falla
-      setTimeout(() => {
-        document.removeEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-        window.removeEventListener('guarantee-selection-completed', handleGuaranteeSelected);
-        
-        // Verificar si el toast sigue activo y cerrarlo con un mensaje apropiado
-        // Esto ocurrirá solo si el evento no se disparó correctamente
-        if (window.localStorage.getItem('auto_select_guarantee')) {
-          console.log('[MobilePaymentContainer] Tiempo máximo alcanzado, limpiando recursos');
-          window.localStorage.removeItem('auto_select_guarantee');
-          window.localStorage.removeItem('guarantee_selection_timestamp');
-          toast.success('Proceso completado', { id: 'guarantee-setup' });
-        }
-      }, 5000); // 5 segundos como timeout, reducido de 10 segundos para una mejor experiencia
     } else {
-      // Para otros tipos, abrir el modal normalmente
-      onShowPaymentTypes();
+      console.log(`[MobilePaymentContainer] Flujo directo para tipo especial: ${type}, evitando modal`);
+      // NOTA IMPORTANTE: Aquí no llamamos a onShowPaymentTypes para evitar abrir el modal
+      
+      // En su lugar, forzamos la actualización del tipo de pago en el estado global
+      // a través de cualquier método de pago existente o creando un evento especial
+      if (!localSelectedMethod) {
+        console.log(`[MobilePaymentContainer] No hay método seleccionado, forzando actualización de tipo = ${type}`);
+        
+        // SOLUCIÓN CRÍTICA: Crear un evento especial de actualización de tipo
+        // que será capturado en SummaryPreview para actualizar el estado global
+        if (onSelectPaymentMethod) {
+          console.log(`[MobilePaymentContainer] Enviando evento especial de tipo de pago: ${type}`);
+          
+          // Crear un objeto especial que será interpretado por onSelectPaymentMethod
+          // como una instrucción para actualizar solo el tipo de pago
+          onSelectPaymentMethod({
+            id: `special_type_update_${Date.now()}`,  // ID único para este evento
+            type: 'special',  // Marca este objeto como especial
+            brand: 'none',  // Valores requeridos pero no usados
+            last4: '0000',
+            expMonth: 1,
+            expYear: 2030,
+            name: 'Actualización de tipo',
+            description: 'Evento especial para actualizar tipo de pago',
+            // La información crítica que necesitamos propagar:
+            __paymentContext: {
+              selectedPaymentType: type,
+              isTypeOnlyUpdate: true  // Marca esto como actualización solo de tipo
+            }
+          } as any);
+        }
+        
+        // Expandir lista de tarjetas solo para tipo garantía
+        setExpandCardList(type === 'guarantee');
+      }
+    }
+    
+    // 2. Forzar la actualización del método actual (si existe) para que incluya el nuevo tipo
+    if (localSelectedMethod) {
+      console.log(`[MobilePaymentContainer] Actualizando método existente con nuevo tipo: ${type}`);
+      handleMethodUpdate({
+        ...localSelectedMethod,
+        // Asegurarnos de que el tipo de pago seleccionado se incluya en la próxima actualización
+        // del método de pago (esto es clave para la solución)
+        __selectedPaymentType: type
+      });
+    }
+    
+    // Si es garantía, podemos mostrar un mensaje informativo
+    if (type === 'guarantee') {
+      console.log(`[MobilePaymentContainer] Procesando selección de garantía sin modal`);
+      
+      // Expandir la lista de tarjetas solo para garantía
+      setExpandCardList(true);
+    } else {
+      // Para otros tipos, simplemente actualizamos el estado local
+      const typeName = FILTERED_PAYMENT_TYPES.find(t => t.id === type)?.name || type;
+      setExpandCardList(false); // No necesitamos expandir la lista para otros tipos
     }
   };
 
@@ -606,7 +664,11 @@ function MobilePaymentContainerBase({
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
+      transition={{ 
+        duration: 0.3, 
+        delay: 0.3, 
+        ease: "easeOut" 
+      }}
       className="fixed inset-0 flex flex-col bg-white dark:bg-neutral-900 overflow-hidden"
     >
       {isMobilePublic && (
@@ -631,8 +693,12 @@ function MobilePaymentContainerBase({
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.1, ease: "easeOut" }}
-        className="flex-1 overflow-y-auto"
+        transition={{ 
+          duration: 0.3, 
+          delay: 0.4, 
+          ease: "easeOut" 
+        }}
+        className="flex-1 overflow-y-auto scrollbar-hide"
       >
         <div className="min-h-full flex flex-col">
           <MobileReservationHeader
@@ -644,8 +710,8 @@ function MobilePaymentContainerBase({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{
-              duration: 0.4,
-              delay: 0.2,
+              duration: 0.3,
+              delay: 0.5,
               ease: "easeOut"
             }}
             className={cn(
@@ -752,13 +818,16 @@ function MobilePaymentContainerBase({
                     
                     <PaymentSection
                       theme={theme}
-                      selectedMethod={localSelectedMethod}
-                      onShowMethods={() => {}} // No necesitamos el modal
-                      onUpdateMethod={handleMethodSelect} // Usar la misma función para actualizar
+                      selectedMethod={localSelectedMethod || selectedPaymentMethod}
+                      onShowMethods={onShowPaymentMethods}
+                      onUpdateMethod={handleMethodUpdate}
                       onRemoveMethod={paymentHandlers.onMethodRemove}
                       viewType={viewType}
                       empresaId={empresaId}
+                      directCardSelect={true}
+                      disableModal={true}
                       showModalOnSelect={false}
+                      expandCardList={expandCardList}
                     />
                   </div>
                 </motion.div>

@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useStripe as useStripeContext } from '@/contexts/StripeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface CardSetupFormProps {
   onSuccess: (paymentMethodId: string) => void;
@@ -26,6 +27,7 @@ export function CardSetupForm({
   const stripe = useStripe();
   const elements = useElements();
   const { stripeAccountId, isConnected } = useStripeContext();
+  const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -42,15 +44,50 @@ export function CardSetupForm({
       return;
     }
 
+    if (!user) {
+      setError('Necesitas iniciar sesión para guardar una tarjeta');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Crear SetupIntent
+      // 1. Obtener el customerId del usuario actual
+      console.log('[CardSetupForm] Obteniendo customerId para:', {
+        userId: user.id,
+        stripeAccountId
+      });
+      
+      const customerResponse = await fetch('/api/stripe/customer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stripeAccountId,
+          userId: user.id,
+          email: user.email
+        })
+      });
+
+      if (!customerResponse.ok) {
+        const errorData = await customerResponse.json();
+        throw new Error(errorData.error || 'Error al obtener la información del cliente');
+      }
+
+      const customerData = await customerResponse.json();
+      console.log('[CardSetupForm] Customer obtenido:', {
+        customerId: customerData.stripeCustomerId
+      });
+
+      // 2. Crear SetupIntent con el customerId obtenido
       const setupResponse = await fetch('/api/stripe/setup-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stripeAccountId })
+        body: JSON.stringify({ 
+          stripeAccountId,
+          customerId: customerData.stripeCustomerId,
+          userId: user.id
+        })
       });
 
       if (!setupResponse.ok) {
@@ -60,7 +97,7 @@ export function CardSetupForm({
 
       const { clientSecret } = await setupResponse.json();
 
-      // Confirmar SetupIntent
+      // 3. Confirmar SetupIntent
       const result = await stripe.confirmCardSetup(clientSecret, {
         payment_method: {
           card: elements.getElement(CardElement)!,

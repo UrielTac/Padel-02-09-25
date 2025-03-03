@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 
@@ -50,16 +49,11 @@ export function MobileNextButton({
         "px-6 mx-auto w-full max-w-[430px]",
         className
       )}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ 
-            duration: 0.2
-          }}
+        <div
           style={{
             willChange: 'opacity',
-            backfaceVisibility: 'hidden'
+            backfaceVisibility: 'hidden',
+            opacity: 1
           }}
         >
           <Button
@@ -80,12 +74,12 @@ export function MobileNextButton({
             style={{
               transform: 'translate3d(0, 0, 0)',
               willChange: 'transform',
-              opacity: '1 !important'
+              opacity: 1
             }}
           >
             Continuar
           </Button>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

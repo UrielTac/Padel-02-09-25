@@ -89,6 +89,7 @@ export function SummaryPreview({
   });
 
   const [showPopup, setShowPopup] = useState(false);
+  const [paymentIntent, setPaymentIntent] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const validateStep = () => {
@@ -116,24 +117,44 @@ export function SummaryPreview({
 
   useEffect(() => {
     if (selectedPaymentMethod && selectedPaymentType) {
-      setPayment({
-        method: selectedPaymentMethod.type as PaymentMethodEnum,
-        type: selectedPaymentType as PaymentTypeEnum,
+      console.log('[SummaryPreview] Actualizando estado global de pago:', {
+        method: selectedPaymentMethod,
+        type: selectedPaymentType,
+        currentState: state.payment
+      });
+      
+      // Crear un objeto de pago completo con todos los datos necesarios
+      const paymentUpdate = {
+        method: selectedPaymentMethod.type === 'card' ? 'stripe' : selectedPaymentMethod.type as any,
+        type: selectedPaymentType as any,
         config: {
           paymentMethodId: selectedPaymentMethod.id,
           brand: selectedPaymentMethod.brand,
-          last4: selectedPaymentMethod.last4
-        }
-      });
+          last4: selectedPaymentMethod.last4,
+          expMonth: selectedPaymentMethod.expMonth,
+          expYear: selectedPaymentMethod.expYear
+        },
+        // Agregar selectedPaymentMethod completo para tener todas las propiedades
+        selectedPaymentMethod: selectedPaymentMethod
+      };
+      
+      console.log('[SummaryPreview] Objeto de pago a actualizar:', paymentUpdate);
+      
+      // Actualizar el estado global con el objeto completo
+      setPayment(paymentUpdate);
+      
+      console.log('[SummaryPreview] Estado global actualizado');
     }
   }, [selectedPaymentMethod, selectedPaymentType, setPayment]);
 
-  const handleNext = useCallback(() => {
+  const handleNext = useCallback((paymentData?: any) => {
     console.log('[SummaryPreview] Intentando avanzar:', {
       isValid,
       hasWarnings,
       selectedPaymentType,
-      selectedPaymentMethod
+      selectedPaymentMethod,
+      hasPaymentData: !!paymentData,
+      shouldChargeFullAmount: paymentData?.shouldChargeFullAmount
     });
 
     if (!isValid) {
@@ -160,6 +181,68 @@ export function SummaryPreview({
       return;
     }
 
+    // Verificar si debemos procesar un pago completo
+    if (paymentData?.shouldChargeFullAmount) {
+      console.log('[SummaryPreview] Procesando pago completo:', paymentData);
+      
+      // Mostrar indicador de carga
+      toast.loading('Procesando pago...', { id: 'payment-processing' });
+      
+      // Importar dinámicamente el servicio de pago para evitar errores de SSR
+      import('@/services/paymentService').then(async ({ paymentService }) => {
+        try {
+          // Crear un ID temporal para la reserva (será reemplazado por el real)
+          const tempBookingId = `temp_${Date.now()}`;
+          
+          // Procesar el pago usando el servicio
+          const result = await paymentService.processFullPayment({
+            bookingId: tempBookingId, // Se asignará el ID real en el backend
+            paymentMethodId: paymentData.stripePaymentMethodId || paymentData.paymentMethod.id,
+            amount: paymentData.amount,
+            description: 'Pago completo de reserva',
+            paymentType: 'full'
+          });
+          
+          // Limpiar toast de carga
+          toast.dismiss('payment-processing');
+          
+          if (result.success) {
+            // Guardar ID del PaymentIntent para referencia en la creación de la reserva
+            setPaymentIntent(result.paymentIntentId);
+            
+            // Actualizar el estado global para garantizar que se use 'stripe' como método
+            setPayment({
+              method: 'stripe',
+              type: 'full' as PaymentTypeEnum,
+              selectedPaymentMethod: paymentData.paymentMethod
+            });
+            
+            toast.success('Pago procesado correctamente');
+            console.log('[SummaryPreview] Pago exitoso, avanzando:', result);
+            onNext();
+          } else {
+            // Si el pago falla, mostrar error y no avanzar
+            toast.error(`Error al procesar el pago: ${result.message || 'Error desconocido'}`);
+            console.error('[SummaryPreview] Error en el pago:', result);
+          }
+        } catch (error: any) {
+          // Limpiar toast de carga
+          toast.dismiss('payment-processing');
+          
+          console.error('[SummaryPreview] Error al procesar pago:', error);
+          toast.error(`Error al procesar el pago: ${error.message || 'Error desconocido'}`);
+        }
+      }).catch(err => {
+        toast.dismiss('payment-processing');
+        console.error('[SummaryPreview] Error al cargar el servicio de pago:', err);
+        toast.error('Error al inicializar el proceso de pago');
+      });
+      
+      // Importante: detener la ejecución aquí para no avanzar automáticamente
+      return;
+    }
+
+    // Para otros tipos de pago, continuar con el flujo normal
     console.log('[SummaryPreview] Configuración válida, permitiendo navegación');
     onNext();
   }, [
@@ -247,6 +330,79 @@ export function SummaryPreview({
                       onShowPaymentMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
                       onRemovePaymentType={() => handleSelectPaymentType(null)}
                       onRemovePaymentMethod={() => handleSelectPaymentMethod(null)}
+                      onSelectPaymentMethod={(method) => {
+                        console.log('[SummaryPreview] onSelectPaymentMethod de MobilePaymentContainer llamado:', method);
+                        
+                        // Verificar si se incluye un contexto de pago con un tipo
+                        const paymentContext = (method as any).__paymentContext;
+                        const paymentType = paymentContext?.selectedPaymentType || selectedPaymentType;
+                        const isTypeOnlyUpdate = paymentContext?.isTypeOnlyUpdate === true;
+                        
+                        // PASO 1: Manejar la actualización del tipo de pago
+                        if (paymentContext?.selectedPaymentType) {
+                          console.log('[SummaryPreview] Actualizando tipo de pago:', {
+                            prevType: selectedPaymentType,
+                            newType: paymentContext.selectedPaymentType,
+                            isTypeOnlyUpdate
+                          });
+                          
+                          // Actualizar siempre el tipo de pago en el estado local
+                          handleSelectPaymentType(paymentContext.selectedPaymentType);
+                          
+                          // Si es solo actualización de tipo, no procesamos el método de pago
+                          if (isTypeOnlyUpdate) {
+                            console.log('[SummaryPreview] Evento especial de actualización solo de tipo de pago');
+                            
+                            // En este caso, solo actualizamos el tipo de pago en el estado global
+                            setPayment(prevState => ({
+                              ...prevState,
+                              type: paymentContext.selectedPaymentType as any,
+                              // Mantener otros valores del estado actual
+                              method: prevState.method,
+                              selectedPaymentMethod: prevState.selectedPaymentMethod,
+                              config: prevState.config
+                            }));
+                            
+                            console.log('[SummaryPreview] Tipo de pago actualizado en estado global');
+                            return; // Salir para no procesar el método ficticio
+                          }
+                        }
+                        
+                        // PASO 2: Solo si no es actualización solo de tipo, procesar el método de pago
+                        if (!isTypeOnlyUpdate) {
+                          // Extraer y eliminar el contexto para trabajar con un método limpio
+                          const { __paymentContext, ...cleanMethod } = method as any;
+                          
+                          // Actualizar estado local primero
+                          handleSelectPaymentMethod(cleanMethod);
+                          
+                          // Construir un objeto de pago completo para el estado global
+                          const paymentToUpdate = {
+                            method: cleanMethod.type === 'card' ? 'stripe' : cleanMethod.type as any,
+                            // Usar el tipo de pago del contexto o el seleccionado actualmente
+                            type: paymentType as any,
+                            config: {
+                              paymentMethodId: cleanMethod.id,
+                              brand: cleanMethod.brand,
+                              last4: cleanMethod.last4,
+                              expMonth: cleanMethod.expMonth,
+                              expYear: cleanMethod.expYear
+                            },
+                            selectedPaymentMethod: cleanMethod
+                          };
+                          
+                          console.log('[SummaryPreview] Actualizando estado global con:', {
+                            method: paymentToUpdate.method,
+                            type: paymentToUpdate.type,
+                            hasType: !!paymentToUpdate.type
+                          });
+                          
+                          // Actualizar el estado global directamente
+                          setPayment(paymentToUpdate);
+                        }
+                        
+                        console.log('[SummaryPreview] Estado de pago actualizado desde MobilePaymentContainer');
+                      }}
                       onNext={handleReservar}
                       onPrev={onPrev}
                       isPublicView={isPublicView}
@@ -272,6 +428,11 @@ export function SummaryPreview({
                         selectedMethod={selectedPaymentMethod}
                         onShowMethods={() => handleModalAction(() => setShowPaymentMethods(true))}
                         onRemoveMethod={() => handleSelectPaymentMethod(null)}
+                        onUpdateMethod={async (method) => {
+                          console.log('[SummaryPreview] onUpdateMethod llamado con:', method);
+                          handleSelectPaymentMethod(method);
+                          return Promise.resolve();
+                        }}
                         viewType={viewType}
                         empresaId={empresaId}
                       />

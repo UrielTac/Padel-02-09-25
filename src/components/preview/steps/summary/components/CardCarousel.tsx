@@ -101,6 +101,7 @@ export function CardCarousel({ cards, onSelect, theme, selectedCardId, onAddCard
               <div className="absolute top-3 left-3">
                 <CardBrandIcon 
                   brand={card.brand} 
+                  theme={theme}
                   className={cn(
                     theme === 'dark' 
                       ? "text-white bg-neutral-700"

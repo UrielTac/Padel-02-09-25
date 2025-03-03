@@ -1,0 +1,1052 @@
+[
+  {
+    "type": "log",
+    "message": [
+      "Log capturing started. Use save() in the console to download logs."
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[MobilePaymentContainer] Avanzando al siguiente paso con:",
+      {
+        "localSelectedMethod": {
+          "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+          "brand": "mastercard",
+          "last4": "4444",
+          "expMonth": 5,
+          "expYear": 2032,
+          "type": "stripe",
+          "name": "mastercard terminada en 4444",
+          "description": "Expira: 05/2032"
+        },
+        "localSelectedType": "full"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[MobilePaymentContainer] Preparando cobro total:",
+      {
+        "paymentType": "full",
+        "paymentMethod": {
+          "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+          "brand": "mastercard",
+          "last4": "4444",
+          "expMonth": 5,
+          "expYear": 2032,
+          "type": "stripe",
+          "name": "mastercard terminada en 4444",
+          "description": "Expira: 05/2032"
+        },
+        "amount": 50,
+        "itemsTotal": 20,
+        "courtPrice": 30,
+        "discount": 0,
+        "selectedItems": [
+          {
+            "id": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+            "name": "Artículo 5",
+            "price": 10,
+            "quantity": 1,
+            "total": 10
+          },
+          {
+            "id": "5088e195-5053-4160-8997-4786ba61b873",
+            "name": "Artículo 4",
+            "price": 10,
+            "quantity": 1,
+            "total": 10
+          }
+        ],
+        "shouldChargeFullAmount": true,
+        "stripePaymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+        "empresaId": "99f78081-24fa-4892-aae2-823816e7d132"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Formulario válido, procediendo a farewell"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[Navigation] Iniciando navegación:",
+      {
+        "from": "summary",
+        "currentType": "summary",
+        "currentStep": 3,
+        "nextStep": 4,
+        "hasNextField": true,
+        "totalFields": 5
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "summary",
+        "systemType": "summary",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepOrder] Validando orden:",
+      {
+        "currentType": "summary",
+        "nextType": "farewell",
+        "STEP_ORDER": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ],
+        "totalSteps": 6
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepOrder] Resultado de validación:",
+      {
+        "currentOrder": 4,
+        "nextOrder": 5,
+        "isValid": true,
+        "isSummaryToFarewell": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[Navigation] Iniciando navegación:",
+      {
+        "from": "summary",
+        "currentType": "summary",
+        "currentStep": 3,
+        "nextStep": 4,
+        "hasNextField": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[Navigation] Navegación completada al paso:",
+      4
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormContent] Estado actual:",
+      {
+        "currentStep": 4,
+        "totalSteps": 4,
+        "showNextButton": false,
+        "isNextDisabled": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Validando configuración de pago:",
+      {
+        "payment": {
+          "method": "stripe",
+          "type": "full",
+          "selectedPaymentMethod": {
+            "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032,
+            "type": "stripe",
+            "name": "mastercard terminada en 4444",
+            "description": "Expira: 05/2032"
+          },
+          "config": {
+            "paymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032
+          }
+        },
+        "selectedMethod": {
+          "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+          "brand": "mastercard",
+          "last4": "4444",
+          "expMonth": 5,
+          "expYear": 2032,
+          "type": "stripe",
+          "name": "mastercard terminada en 4444",
+          "description": "Expira: 05/2032"
+        },
+        "type": "full",
+        "hasMethod": true,
+        "hasSelectedMethod": true,
+        "hasType": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Método de pago válido encontrado"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Tipo de pago válido:",
+      "full"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[FarewellPreview] Iniciando creación de reserva",
+      {
+        "isValid": true,
+        "validationErrors": [],
+        "currentPayment": {
+          "method": "stripe",
+          "type": "full",
+          "selectedPaymentMethod": {
+            "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032,
+            "type": "stripe",
+            "name": "mastercard terminada en 4444",
+            "description": "Expira: 05/2032"
+          },
+          "config": {
+            "paymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032
+          }
+        },
+        "isCreating": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Iniciando creación de reserva con estado:",
+      {
+        "payment": {
+          "method": "stripe",
+          "type": "full",
+          "selectedPaymentMethod": {
+            "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032,
+            "type": "stripe",
+            "name": "mastercard terminada en 4444",
+            "description": "Expira: 05/2032"
+          },
+          "config": {
+            "paymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032
+          }
+        },
+        "calculations": {
+          "selectedItems": [
+            {
+              "id": "a54f254d-1cc4-40bd-bdad-3d182ebc304e",
+              "name": "Artículo 5",
+              "price": 10,
+              "quantity": 1,
+              "total": 10
+            },
+            {
+              "id": "5088e195-5053-4160-8997-4786ba61b873",
+              "name": "Artículo 4",
+              "price": 10,
+              "quantity": 1,
+              "total": 10
+            }
+          ],
+          "courtPrice": 30,
+          "itemsTotal": 20,
+          "subtotal": 50,
+          "discount": 0,
+          "total": 50
+        },
+        "validationErrors": [],
+        "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+        "empresa_id": "99f78081-24fa-4892-aae2-823816e7d132",
+        "rentals": [],
+        "selectedItems": {
+          "a54f254d-1cc4-40bd-bdad-3d182ebc304e": 1,
+          "5088e195-5053-4160-8997-4786ba61b873": 1
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Validando configuración de pago:",
+      {
+        "payment": {
+          "method": "stripe",
+          "type": "full",
+          "selectedPaymentMethod": {
+            "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032,
+            "type": "stripe",
+            "name": "mastercard terminada en 4444",
+            "description": "Expira: 05/2032"
+          },
+          "config": {
+            "paymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032
+          }
+        },
+        "selectedMethod": {
+          "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+          "brand": "mastercard",
+          "last4": "4444",
+          "expMonth": 5,
+          "expYear": 2032,
+          "type": "stripe",
+          "name": "mastercard terminada en 4444",
+          "description": "Expira: 05/2032"
+        },
+        "type": "full",
+        "hasMethod": true,
+        "hasSelectedMethod": true,
+        "hasType": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Método de pago válido encontrado"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Tipo de pago válido:",
+      "full"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Datos de reserva preparados:",
+      {
+        "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "date": "2025-03-03",
+        "startTime": "09:30",
+        "endTime": "10:30",
+        "courtPrice": 30,
+        "rentalItemsPrice": 20,
+        "paymentMethod": "cash",
+        "paymentType": "booking",
+        "paymentStatus": "pending",
+        "depositAmount": 50,
+        "participants": [
+          {
+            "id": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "role": "player"
+          }
+        ],
+        "rentalItems": [],
+        "empresa_id": "99f78081-24fa-4892-aae2-823816e7d132",
+        "rentals": [],
+        "paymentConfig": {
+          "type": "booking",
+          "defaultMethod": "cash",
+          "defaultStatus": "pending"
+        },
+        "originalPaymentType": "full"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Verificando disponibilidad para:",
+      {
+        "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "date": "2025-03-03",
+        "startTime": "09:30",
+        "endTime": "10:30"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Validando configuración de pago:",
+      {
+        "payment": {
+          "method": "stripe",
+          "type": "full",
+          "selectedPaymentMethod": {
+            "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032,
+            "type": "stripe",
+            "name": "mastercard terminada en 4444",
+            "description": "Expira: 05/2032"
+          },
+          "config": {
+            "paymentMethodId": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+            "brand": "mastercard",
+            "last4": "4444",
+            "expMonth": 5,
+            "expYear": 2032
+          }
+        },
+        "selectedMethod": {
+          "id": "pm_1Qy2jKC4oQv4vCtFbLHgXCs5",
+          "brand": "mastercard",
+          "last4": "4444",
+          "expMonth": 5,
+          "expYear": 2032,
+          "type": "stripe",
+          "name": "mastercard terminada en 4444",
+          "description": "Expira: 05/2032"
+        },
+        "type": "full",
+        "hasMethod": true,
+        "hasSelectedMethod": true,
+        "hasType": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Método de pago válido encontrado"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[useSummaryBooking] Tipo de pago válido:",
+      "full"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[Fast Refresh] rebuilding"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "No hay reservas existentes para esta fecha y cancha"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📝 Creando reserva con datos:",
+      {
+        "courtId": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "date": "2025-03-03",
+        "startTime": "09:30",
+        "endTime": "10:30",
+        "courtPrice": 30,
+        "rentalItemsPrice": 20,
+        "paymentMethod": "cash",
+        "paymentType": "booking",
+        "paymentStatus": "pending",
+        "depositAmount": 50,
+        "participants": [
+          {
+            "id": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "role": "player"
+          }
+        ],
+        "rentalItems": [],
+        "empresa_id": "99f78081-24fa-4892-aae2-823816e7d132"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[Fast Refresh] done in 1014ms"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "✅ Zona horaria de la sede:",
+      "Europe/Madrid"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🕒 Conversión de horarios:",
+      {
+        "local": {
+          "date": "2025-03-03",
+          "start": "09:30",
+          "end": "10:30",
+          "timezone": "Europe/Madrid",
+          "localStart": "2025-03-03T09:30:00.000+01:00",
+          "localEnd": "2025-03-03T10:30:00.000+01:00"
+        },
+        "utc": {
+          "date": "2025-03-03",
+          "start": "08:30:00",
+          "end": "09:30:00",
+          "fullStartUTC": "2025-03-03T08:30:00.000Z",
+          "fullEndUTC": "2025-03-03T09:30:00.000Z"
+        }
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Participantes transformados:",
+      {
+        "original": [
+          {
+            "id": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "userId": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "role": "player"
+          }
+        ],
+        "transformed": [
+          {
+            "user_id": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "role": "player"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "📦 Parámetros de la reserva:",
+      {
+        "p_court_id": "54aca0f1-2f00-45d4-b662-094defa9c704",
+        "p_date": "2025-03-03",
+        "p_start_time": "08:30:00",
+        "p_end_time": "09:30:00",
+        "p_court_price": 30,
+        "p_rental_items_price": 20,
+        "p_payment_method": "cash",
+        "p_payment_status": "pending",
+        "p_payment_type": "booking",
+        "p_deposit_amount": 50,
+        "p_title": null,
+        "p_description": null,
+        "p_participants": [
+          {
+            "user_id": "3860596c-080b-416c-a3a0-5070ea0bbd5a",
+            "role": "player"
+          }
+        ],
+        "p_rental_items": [],
+        "p_empresa_id": "99f78081-24fa-4892-aae2-823816e7d132"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "message": [
+      {}
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Cambio en estado de autenticación:",
+      {
+        "event": "SIGNED_IN",
+        "timestamp": "2025-03-03T07:19:55.437Z",
+        "storageKey": "sb-padel-auth-token"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sesión iniciada"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sesión iniciada"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "⏭️ Usando organización en caché"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "⏭️ Usando organización en caché"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "🔄 Cambio en estado de autenticación:",
+      {
+        "event": "SIGNED_IN",
+        "timestamp": "2025-03-03T07:20:17.164Z",
+        "storageKey": "sb-padel-auth-token"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sesión iniciada"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "Sesión iniciada"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "hasMapping": false
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[PublicFormLayout] Renderizando con:",
+      {
+        "currentStep": 4,
+        "slug": "formulario-03",
+        "isNextDisabled": false,
+        "showNextButton": false,
+        "nextLabel": "Siguiente"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[StepType] Normalizando tipo:",
+      {
+        "original": "farewell",
+        "systemType": "farewell",
+        "hasMapping": true
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Mapeando componente:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "availableTypes": [
+          "greeting",
+          "location",
+          "shifts",
+          "items",
+          "summary",
+          "farewell"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "[ComponentMapper] Componente encontrado:",
+      {
+        "originalType": "farewell",
+        "systemType": "farewell",
+        "component": "FarewellPreview"
+      }
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "⏭️ Usando organización en caché"
+    ]
+  },
+  {
+    "type": "log",
+    "message": [
+      "⏭️ Usando organización en caché"
+    ]
+  }
+]

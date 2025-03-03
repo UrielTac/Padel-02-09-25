@@ -270,5 +270,103 @@ export const paymentService = {
       });
       return null;
     }
+  },
+
+  /**
+   * Procesa un pago completo para una reserva utilizando la tarjeta seleccionada
+   * @param bookingId ID de la reserva
+   * @param paymentMethodId ID del método de pago (tarjeta)
+   * @param amount Monto total a cobrar
+   * @returns Resultado del pago
+   */
+  async processFullPayment(params: {
+    bookingId: string;
+    paymentMethodId: string;
+    amount: number;
+    description?: string;
+    paymentType?: string;
+  }): Promise<{
+    success: boolean;
+    paymentIntentId?: string;
+    message?: string;
+    error?: any;
+  }> {
+    try {
+      const { bookingId, paymentMethodId, amount, description, paymentType = 'full' } = params;
+      
+      console.log('🔄 Iniciando procesamiento de pago completo:', {
+        bookingId,
+        paymentMethodId,
+        amount,
+        paymentType,
+        timestamp: new Date().toISOString()
+      });
+
+      // 1. Obtener los datos necesarios para procesar el pago con Stripe
+      const stripeData = await this.getStripePaymentData(bookingId);
+      
+      if (!stripeData) {
+        console.error('❌ No se pudieron obtener los datos de Stripe para la reserva:', bookingId);
+        return {
+          success: false,
+          message: 'No se pudieron obtener los datos de pago'
+        };
+      }
+
+      // Mapeo de tipos de pago para asegurar compatibilidad con la BD
+      const dbPaymentType = paymentType === 'full' ? 'booking' : paymentType;
+
+      console.log('🔄 Tipo de pago mapeado para API:', {
+        original: paymentType,
+        mapped: dbPaymentType
+      });
+
+      // 3. Procesar el pago a través de la API
+      const response = await fetch('/api/stripe/process-full-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId,
+          amount,
+          stripePaymentMethodId: paymentMethodId,
+          stripeAccountId: stripeData.accountId,
+          stripeCustomerId: stripeData.customerId,
+          description: description || 'Pago completo de reserva',
+          paymentType: dbPaymentType,
+          paymentMethod: 'stripe'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        console.error('❌ Error al procesar el pago completo:', result.error);
+        return {
+          success: false,
+          message: result.error?.message || 'Error al procesar el pago',
+          error: result.error
+        };
+      }
+
+      console.log('✅ Pago completo procesado exitosamente:', {
+        bookingId,
+        paymentIntentId: result.paymentIntentId,
+        status: result.chargeStatus,
+        type: dbPaymentType
+      });
+
+      return {
+        success: true,
+        paymentIntentId: result.paymentIntentId,
+        message: 'Pago procesado exitosamente'
+      };
+    } catch (error: any) {
+      console.error('❌ Error inesperado al procesar pago completo:', error);
+      return {
+        success: false,
+        message: error.message || 'Error inesperado al procesar el pago',
+        error
+      };
+    }
   }
 }

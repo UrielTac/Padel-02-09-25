@@ -248,11 +248,11 @@ const ItemListRow = memo(({
       exit={{ opacity: 0 }}
       className={cn(
         "flex items-center justify-between py-4 px-3 relative",
-        // Línea divisoria más sutil y elegante
-        "border-b",
-        theme === 'dark' 
-          ? "border-neutral-800/30" 
-          : "border-gray-100",
+        // Línea divisoria - eliminada para evitar duplicación con divide-y
+        // "border-b",
+        // theme === 'dark' 
+        //   ? "border-neutral-800/30" 
+        //   : "border-gray-100",
         // Resaltar suavemente cuando está seleccionado
         isSelected && (theme === 'dark' 
           ? "bg-neutral-800/20" 

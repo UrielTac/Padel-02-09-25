@@ -61,7 +61,9 @@ export function PaymentMethodModal({
     charges_enabled: false
   };
 
-  const { cards, isLoading: isCardsLoading, error: cardsError, deleteCard } = useStoredCards(refreshTrigger);
+  const { cards, isLoading: isCardsLoading, error: cardsError, deleteCard } = useStoredCards(refreshTrigger, {
+    autoLoad: isOpen
+  });
 
   useEffect(() => {
     if (!isStripeAvailable) {
@@ -188,15 +190,26 @@ export function PaymentMethodModal({
   };
 
   if (isLoading || isCardsLoading) {
-    return <div className="p-4 text-center">Cargando configuración de pagos...</div>;
+    if (isOpen) {
+      return <div className="p-4 text-center">Cargando configuración de pagos...</div>;
+    }
+    return null;
   }
 
   if (error || cardsError) {
-    return (
-      <div className="p-4 text-center text-red-600">
-        Error: {(error || cardsError)?.message}
-      </div>
-    );
+    if (isOpen) {
+      const errorMessage = error?.message || 
+        (cardsError && typeof cardsError === 'object' && 'message' in cardsError 
+          ? String(cardsError.message) 
+          : 'Error desconocido');
+          
+      return (
+        <div className="p-4 text-center text-red-600">
+          Error: {errorMessage}
+        </div>
+      );
+    }
+    return null;
   }
 
   return (

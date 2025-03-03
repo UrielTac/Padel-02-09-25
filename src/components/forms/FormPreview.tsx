@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { UsersPreview } from "@/components/preview/steps/UsersPreview";
 import { LocationPreview } from "@/components/preview/steps/LocationPreview";
 import { PreviewContainer } from "@/components/preview/layout/PreviewContainer";
-import { ShiftsPreview } from "@/components/preview/steps/ShiftsPreview";
+import { ShiftsPreview } from "@/components/preview/steps/Shifts/ShiftsPreview";
 import { ItemsPreview } from "@/components/preview/steps/Items/ItemsPreview";
 import { SummaryPreview } from "@/components/preview/steps/summary/SummaryPreview";
 import { FarewellPreview } from "@/components/preview/steps/FarewellPreview";

@@ -38,41 +38,88 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
     if (selectedPaymentType) {
       console.log('Sincronizando estado de pago:', {
         type: selectedPaymentType,
-        mapping: PAYMENT_TYPE_MAPPINGS[selectedPaymentType as PaymentTypeEnum]
+        mapping: PAYMENT_TYPE_MAPPINGS[selectedPaymentType as PaymentTypeEnum],
+        currentType: state.payment.type
       });
+      
+      // Verificar si el tipo ya está establecido para evitar ciclos
+      if (state.payment.type !== selectedPaymentType) {
+        console.log('Actualizando tipo de pago en el contexto global:', selectedPaymentType);
+        
+        // Actualizar el estado global con el tipo seleccionado
+        setPayment({
+          type: selectedPaymentType as PaymentTypeEnum,
+          method: state.payment.method,  // Mantener el método existente
+          selectedPaymentMethod: state.payment.selectedPaymentMethod  // Mantener el método seleccionado
+        });
+
+        console.log('Estado actualizado después de sincronización:', {
+          payment: state.payment,
+          mapping: PAYMENT_TYPE_MAPPINGS[selectedPaymentType as PaymentTypeEnum]
+        });
+      } else {
+        console.log('El tipo de pago ya está sincronizado con el contexto global');
+      }
+    }
+  }, [selectedPaymentType, setPayment, state.payment]);
+
+  // También sincronizar cuando cambia el método seleccionado
+  useEffect(() => {
+    if (selectedPaymentMethod && selectedPaymentType && !state.payment.type) {
+      console.log('Detectado método seleccionado sin tipo en contexto global. Sincronizando tipo:', selectedPaymentType);
       
       setPayment({
         type: selectedPaymentType as PaymentTypeEnum,
-        method: null
-      });
-
-      console.log('Estado actual después de actualización:', {
-        payment: state.payment,
-        mapping: PAYMENT_TYPE_MAPPINGS[selectedPaymentType as PaymentTypeEnum]
+        method: state.payment.method,
+        selectedPaymentMethod: state.payment.selectedPaymentMethod
       });
     }
-  }, [selectedPaymentType, setPayment, state]);
+  }, [selectedPaymentMethod, selectedPaymentType, state.payment, setPayment]);
 
   // Validar la configuración del pago
   const validatePaymentConfig = useCallback((): ValidationError[] => {
     const errors: ValidationError[] = [];
 
-    // Validar método de pago
-    if (!state.payment.method) {
+    console.log('[useSummaryBooking] Validando configuración de pago:', {
+      payment: state.payment,
+      selectedMethod: state.payment.selectedPaymentMethod,
+      type: state.payment.type,
+      hasMethod: !!state.payment.method,
+      hasSelectedMethod: !!state.payment.selectedPaymentMethod,
+      hasType: !!state.payment.type
+    });
+
+    // Verificación detallada del método de pago
+    const hasValidMethod = !!state.payment.method || 
+                          (state.payment.selectedPaymentMethod && 
+                           !!state.payment.selectedPaymentMethod.id);
+    
+    if (!hasValidMethod) {
+      console.error('[useSummaryBooking] Método de pago inválido o faltante:', {
+        method: state.payment.method,
+        selectedMethod: state.payment.selectedPaymentMethod
+      });
+      
       errors.push({
         field: 'paymentMethod',
         message: 'Selecciona un método de pago',
         severity: 'error'
       });
+    } else {
+      console.log('[useSummaryBooking] Método de pago válido encontrado');
     }
 
-    // Validar tipo de pago
+    // Verificación detallada del tipo de pago
     if (!state.payment.type) {
+      console.error('[useSummaryBooking] Tipo de pago faltante');
+      
       errors.push({
         field: 'paymentType',
         message: 'Selecciona un tipo de pago',
         severity: 'error'
       });
+    } else {
+      console.log('[useSummaryBooking] Tipo de pago válido:', state.payment.type);
     }
 
     // Validar montos
@@ -157,8 +204,17 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         throw new Error('Tipo de pago no seleccionado');
       }
 
-      const paymentConfig = PAYMENT_TYPE_MAPPINGS[paymentType];
+      // Mapear 'full' a 'booking' si es necesario
+      const normalizedPaymentType = paymentType === 'full' as any ? 'booking' : paymentType as PaymentTypeEnum;
+      
+      // Buscar configuración basada en el tipo normalizado
+      const paymentConfig = PAYMENT_TYPE_MAPPINGS[normalizedPaymentType as PaymentTypeEnum];
       if (!paymentConfig) {
+        console.error('Configuración de tipo de pago no válida:', {
+          originalType: paymentType,
+          normalizedType: normalizedPaymentType,
+          availableMappings: Object.keys(PAYMENT_TYPE_MAPPINGS)
+        });
         throw new Error('Configuración de tipo de pago no válida');
       }
 
@@ -171,9 +227,9 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         courtPrice: state.shift.price || 0,
         rentalItemsPrice: calculations.itemsTotal,
         paymentMethod: paymentConfig.defaultMethod,
-        paymentType: paymentType,
+        paymentType: normalizedPaymentType,
         paymentStatus: paymentConfig.defaultStatus,
-        depositAmount: calculateDeposit(paymentType, calculations.total),
+        depositAmount: calculateDeposit(normalizedPaymentType, calculations.total),
         participants: [{ 
           id: user.id,
           userId: user.id,
@@ -186,7 +242,7 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
           totalPrice: rental.totalPrice
         })),
         empresa_id: state.empresa_id,
-        stripe_payment_method_id: paymentType === 'guarantee' ? state.payment.selectedPaymentMethod?.id : undefined
+        stripe_payment_method_id: normalizedPaymentType === 'guarantee' ? state.payment.selectedPaymentMethod?.id : undefined
       };
 
       console.log('Datos de reserva preparados:', {

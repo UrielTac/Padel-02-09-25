@@ -60,12 +60,28 @@ export function useSummaryState() {
     setState(prev => ({ ...prev, showCouponsPanel: show }));
 
   const handleSelectPaymentMethod = (method: PaymentMethod | null) => {
-    console.log('Actualizando método de pago:', method);
+    console.log('[useSummaryState] Actualizando método de pago:', method);
+    
+    // Actualizar el estado local
     setState(prev => ({ ...prev, selectedPaymentMethod: method }));
+    
+    // Aquí podríamos agregar lógica adicional si fuera necesario
+    // para sincronizar con otros estados o contextos
+    
+    return method; // Devolver el método para que pueda ser usado por el componente padre
   };
 
-  const handleSelectPaymentType = (typeId: string | null) =>
+  const handleSelectPaymentType = (typeId: string | null) => {
+    console.log('[useSummaryState] Actualizando tipo de pago:', {
+      prevType: state.selectedPaymentType,
+      newType: typeId,
+      source: 'handleSelectPaymentType'
+    });
+    
     setState(prev => ({ ...prev, selectedPaymentType: typeId }));
+    
+    return typeId; // Devolver el tipo seleccionado para facilitar el encadenamiento
+  };
 
   const handleApplyCoupon = (coupon: Coupon) =>
     setState(prev => ({ 
