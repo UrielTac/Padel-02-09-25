@@ -12,6 +12,7 @@ export default function UpgradeLayout({
       <AnimatePresence mode="wait">
         {/* Overlay con fondo semi-transparente */}
         <motion.div
+          key="overlay"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -20,6 +21,7 @@ export default function UpgradeLayout({
         
         {/* Contenedor del popup */}
         <motion.div
+          key="popup"
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ 
             opacity: 1, 

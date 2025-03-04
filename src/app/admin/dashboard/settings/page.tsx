@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, Suspense } from 'react'
 import { CompanySettings } from "@/components/settings/CompanySettings"
 import { BranchSettings } from "@/components/settings/BranchSettings"
 import { BillingSettings } from "@/components/settings/BillingSettings"
@@ -18,6 +19,14 @@ const SETTINGS_COMPONENTS = {
 } as const
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <SettingsPageContent />
+    </Suspense>
+  )
+}
+
+function SettingsPageContent() {
   const { isLoading: isLoadingAuth } = useAuth()
   const { isLoading: isLoadingBranch } = useBranchContext()
   const searchParams = useSearchParams()

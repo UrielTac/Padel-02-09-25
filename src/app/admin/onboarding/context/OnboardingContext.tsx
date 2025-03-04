@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, Suspense, ReactNode } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { onboardingService } from '@/services/onboardingService'
 import { toast } from 'sonner'
@@ -69,6 +69,16 @@ interface FormData {
 const OnboardingContext = createContext<OnboardingContextType | undefined>(undefined)
 
 export function OnboardingProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <OnboardingProviderContent>
+        {children}
+      </OnboardingProviderContent>
+    </Suspense>
+  )
+}
+
+function OnboardingProviderContent({ children }: { children: ReactNode }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, signOut } = useAuth()

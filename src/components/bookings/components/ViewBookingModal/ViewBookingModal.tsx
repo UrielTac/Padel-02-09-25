@@ -598,230 +598,236 @@ export function ViewBookingModal({
   if (currentBooking && processedData) {
     return createPortal(
       <>
-        <AnimatePresence>
-          {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/10 z-40"
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ x: "100%", opacity: 0.5 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ 
-              x: "100%", 
-              opacity: 0,
-              transition: {
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }
-            }}
-            transition={{ 
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8
-            }}
-            className="fixed inset-y-2 right-2 w-[500px] bg-white rounded-2xl border z-50 overflow-hidden"
-          >
-            <div className="h-full flex flex-col">
-              {/* Encabezado */}
+        <AnimatePresence mode="wait">
+          {isOpen && (
+            <>
+              {/* Overlay */}
               <motion.div
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.1, duration: 0.3 }}
-                className="p-6 border-b"
+                key="view-booking-overlay"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                onClick={onClose}
+                className="fixed inset-0 bg-black/10 z-40"
+              />
+
+              {/* Modal */}
+              <motion.div
+                key="view-booking-modal"
+                initial={{ x: "100%", opacity: 0.5 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ 
+                  x: "100%", 
+                  opacity: 0,
+                  transition: {
+                    duration: 0.3,
+                    ease: [0.4, 0, 0.2, 1]
+                  }
+                }}
+                transition={{ 
+                  type: "spring",
+                  damping: 30,
+                  stiffness: 300,
+                  mass: 0.8
+                }}
+                className="fixed inset-y-2 right-2 w-[500px] bg-white rounded-2xl border z-50 overflow-hidden"
               >
-                <h2 className="text-xl font-semibold">Detalles de la Reservación</h2>
-              </motion.div>
+                <div className="h-full flex flex-col">
+                  {/* Encabezado */}
+                  <motion.div
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.3 }}
+                    className="p-6 border-b"
+                  >
+                    <h2 className="text-xl font-semibold">Detalles de la Reservación</h2>
+                  </motion.div>
 
-              {/* Contenido Principal */}
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.3 }}
-                className="flex-1 overflow-y-auto"
-              >
-                <div className="p-6 space-y-8">
-                  {/* Sección de resumen */}
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        Información de la reserva
-                      </h3>
-                      <p className="text-xs text-gray-500">
-                        {format(new Date(currentBooking.date), "dd 'de' MMMM, yyyy", { locale: es })} • {currentBooking.startTime} - {currentBooking.endTime}
-                      </p>
-                    </div>
+                  {/* Contenido Principal */}
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.3 }}
+                    className="flex-1 overflow-y-auto"
+                  >
+                    <div className="p-6 space-y-8">
+                      {/* Sección de resumen */}
+                      <div className="space-y-4">
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-medium text-gray-900">
+                            Información de la reserva
+                          </h3>
+                          <p className="text-xs text-gray-500">
+                            {format(new Date(currentBooking.date), "dd 'de' MMMM, yyyy", { locale: es })} • {currentBooking.startTime} - {currentBooking.endTime}
+                          </p>
+                        </div>
 
-                    <div className="space-y-1.5">
-                      {processedData.participants.map((participant, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className={cn(
-                            "flex items-center py-1.5",
-                            "group transition-colors duration-200"
-                          )}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center mr-3">
-                            <span className="text-sm font-medium text-gray-900">
-                              {processedData.getInitial(participant)}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">{processedData.formatParticipantName(participant)}</p>
-                            {participant.email && (
-                              <p className="text-xs text-gray-400">{participant.email}</p>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Detalles principales */}
-                  <div className="space-y-6">
-                    {/* Sección de Pistas */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        Pistas reservadas
-                      </h3>
-                      <div className="space-y-1.5">
-                        {processedData.courtName && (
-                          <div className="flex items-center justify-between py-1.5">
-                            <span className="text-sm text-gray-600">{processedData.courtName}</span>
-                            <span className="text-sm text-gray-900 font-mono">€{processedData.courtPrice}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Sección de Items Rentados */}
-                    {processedData.hasRentedItems && (
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-medium text-gray-900">
-                          Equipamiento rentado
-                        </h3>
                         <div className="space-y-1.5">
-                          {processedData.rentedItems.map((item, index) => (
-                            <div 
+                          {processedData.participants.map((participant, index) => (
+                            <motion.div
                               key={index}
-                              className="flex items-center justify-between py-1.5"
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className={cn(
+                                "flex items-center py-1.5",
+                                "group transition-colors duration-200"
+                              )}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600">
-                                  {item.name} ({item.quantity}x)
+                              <div className="w-8 h-8 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center mr-3">
+                                <span className="text-sm font-medium text-gray-900">
+                                  {processedData.getInitial(participant)}
                                 </span>
                               </div>
-                              <span className="text-sm text-gray-900 font-mono">
-                                €{(item.pricePerUnit * item.quantity).toFixed(2)}
-                              </span>
-                            </div>
+                              <div>
+                                <p className="text-sm text-gray-600">{processedData.formatParticipantName(participant)}</p>
+                                {participant.email && (
+                                  <p className="text-xs text-gray-400">{participant.email}</p>
+                                )}
+                              </div>
+                            </motion.div>
                           ))}
                         </div>
                       </div>
-                    )}
 
-                    {/* Estado del Pago */}
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        Estado del pago
-                      </h3>
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between py-1.5">
-                          <span className="text-sm text-gray-600">Método de pago</span>
-                          <span className="text-sm text-gray-900">{processedData.paymentMethod}</span>
-                        </div>
-                        <div className="flex items-center justify-between py-1.5">
-                          <span className="text-sm text-gray-600">Estado</span>
-                          <span className={cn(
-                            "text-sm font-medium",
-                            processedData.paymentStatus === 'completed' && "text-gray-600",
-                            processedData.paymentStatus === 'pending' && "text-gray-600",
-                            processedData.paymentStatus === 'partial' && "text-gray-600"
-                          )}>
-                            {getStatusText(processedData.paymentStatus)}
-                          </span>
-                        </div>
-                        {processedData.paymentStatus === 'partial' && (
-                          <>
-                            <div className="flex items-center justify-between py-1.5">
-                              <span className="text-sm text-gray-600">Seña pagada</span>
-                              <span className="text-sm text-gray-900 font-mono">
-                                €{processedData.depositAmount}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between py-1.5">
-                              <span className="text-sm text-gray-600">Restante</span>
-                              <span className="text-sm text-gray-900 font-mono">
-                                €{processedData.totalAmount - processedData.depositAmount}
-                              </span>
-                            </div>
-                          </>
-                        )}
-                        <div className="flex items-center justify-between py-1.5 border-t border-gray-100">
-                          <span className="text-sm font-medium text-gray-900">Total</span>
-                          <span className="text-sm font-medium text-gray-900 font-mono">
-                            €{processedData.totalAmount}
-                          </span>
-                        </div>
-                        
-                        {/* Botón de pago para reservas señadas */}
-                        {processedData.paymentStatus === 'partial' && (
-                          <button
-                            onClick={() => setShowPaymentModal(true)}
-                            className={cn(
-                              "w-full mt-6 px-4 py-2.5 rounded-lg",
-                              "text-sm font-medium",
-                              "border border-zinc-200",
-                              "bg-white text-zinc-900",
-                              "hover:bg-zinc-50 hover:border-zinc-300",
-                              "transition-all duration-200"
+                      {/* Detalles principales */}
+                      <div className="space-y-6">
+                        {/* Sección de Pistas */}
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-gray-900">
+                            Pistas reservadas
+                          </h3>
+                          <div className="space-y-1.5">
+                            {processedData.courtName && (
+                              <div className="flex items-center justify-between py-1.5">
+                                <span className="text-sm text-gray-600">{processedData.courtName}</span>
+                                <span className="text-sm text-gray-900 font-mono">€{processedData.courtPrice}</span>
+                              </div>
                             )}
-                          >
-                            Completar pago
-                          </button>
+                          </div>
+                        </div>
+
+                        {/* Sección de Items Rentados */}
+                        {processedData.hasRentedItems && (
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-medium text-gray-900">
+                              Equipamiento rentado
+                            </h3>
+                            <div className="space-y-1.5">
+                              {processedData.rentedItems.map((item, index) => (
+                                <div 
+                                  key={index}
+                                  className="flex items-center justify-between py-1.5"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">
+                                      {item.name} ({item.quantity}x)
+                                    </span>
+                                  </div>
+                                  <span className="text-sm text-gray-900 font-mono">
+                                    €{(item.pricePerUnit * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         )}
+
+                        {/* Estado del Pago */}
+                        <div className="space-y-2">
+                          <h3 className="text-sm font-medium text-gray-900">
+                            Estado del pago
+                          </h3>
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between py-1.5">
+                              <span className="text-sm text-gray-600">Método de pago</span>
+                              <span className="text-sm text-gray-900">{processedData.paymentMethod}</span>
+                            </div>
+                            <div className="flex items-center justify-between py-1.5">
+                              <span className="text-sm text-gray-600">Estado</span>
+                              <span className={cn(
+                                "text-sm font-medium",
+                                processedData.paymentStatus === 'completed' && "text-gray-600",
+                                processedData.paymentStatus === 'pending' && "text-gray-600",
+                                processedData.paymentStatus === 'partial' && "text-gray-600"
+                              )}>
+                                {getStatusText(processedData.paymentStatus)}
+                              </span>
+                            </div>
+                            {processedData.paymentStatus === 'partial' && (
+                              <>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-sm text-gray-600">Seña pagada</span>
+                                  <span className="text-sm text-gray-900 font-mono">
+                                    €{processedData.depositAmount}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between py-1.5">
+                                  <span className="text-sm text-gray-600">Restante</span>
+                                  <span className="text-sm text-gray-900 font-mono">
+                                    €{processedData.totalAmount - processedData.depositAmount}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                            <div className="flex items-center justify-between py-1.5 border-t border-gray-100">
+                              <span className="text-sm font-medium text-gray-900">Total</span>
+                              <span className="text-sm font-medium text-gray-900 font-mono">
+                                €{processedData.totalAmount}
+                              </span>
+                            </div>
+                            
+                            {/* Botón de pago para reservas señadas */}
+                            {processedData.paymentStatus === 'partial' && (
+                              <button
+                                onClick={() => setShowPaymentModal(true)}
+                                className={cn(
+                                  "w-full mt-6 px-4 py-2.5 rounded-lg",
+                                  "text-sm font-medium",
+                                  "border border-zinc-200",
+                                  "bg-white text-zinc-900",
+                                  "hover:bg-zinc-50 hover:border-zinc-300",
+                                  "transition-all duration-200"
+                                )}
+                              >
+                                Completar pago
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
+                  </motion.div>
 
-              {/* Pie del Modal */}
-              <motion.div 
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.35, duration: 0.3 }}
-                className="p-6 border-t bg-white"
-              >
-                <div className="flex gap-3">
-                  <Button
-                    onClick={onClose}
-                    variant="outline"
-                    className="flex-1 bg-gray-50 hover:bg-gray-100"
+                  {/* Pie del Modal */}
+                  <motion.div 
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.35, duration: 0.3 }}
+                    className="p-6 border-t bg-white"
                   >
-                    Cerrar
-                  </Button>
-                  <Button
-                    onClick={() => setShowCancelModal(true)}
-                    variant="outline"
-                    className="flex-1 border-gray-200 hover:border-red-100 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
-                  >
-                    Cancelar Reserva
-                  </Button>
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={onClose}
+                        variant="outline"
+                        className="flex-1 bg-gray-50 hover:bg-gray-100"
+                      >
+                        Cerrar
+                      </Button>
+                      <Button
+                        onClick={() => setShowCancelModal(true)}
+                        variant="outline"
+                        className="flex-1 border-gray-200 hover:border-red-100 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
+                      >
+                        Cancelar Reserva
+                      </Button>
+                    </div>
+                  </motion.div>
                 </div>
               </motion.div>
-            </div>
-          </motion.div>
+            </>
+          )}
         </AnimatePresence>
 
         {/* Modal de Pago */}

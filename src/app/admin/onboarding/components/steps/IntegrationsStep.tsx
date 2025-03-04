@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -83,6 +83,14 @@ const initiateStripeConnect = async () => {
 }
 
 export function IntegrationsStep() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <IntegrationsStepContent />
+    </Suspense>
+  )
+}
+
+function IntegrationsStepContent() {
   const { completeAndAdvance, completedSteps } = useOnboarding()
   const [isConnecting, setIsConnecting] = useState(false)
   const [isConnected, setIsConnected] = useState(false)

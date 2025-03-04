@@ -27,7 +27,7 @@ import {
   Network,
   UserCircle2
 } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import { useBranches } from '@/hooks/useBranches'
 import { Branch } from '@/types/branch'
 import { IconLoader } from '@tabler/icons-react'
@@ -369,8 +369,25 @@ function shouldHideSidebar(pathname: string): boolean {
          pathname.startsWith('/admin/page')
 }
 
-// Añadir el componente de configuración
 function SettingsView({ 
+  onBack, 
+  activeTab,
+  onTabChange
+}: { 
+  onBack: () => void
+  activeTab: string
+  onTabChange: (tab: string) => void
+}) {
+  const router = useRouter()
+  
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <SettingsContent onBack={onBack} activeTab={activeTab} onTabChange={onTabChange} />
+    </Suspense>
+  )
+}
+
+function SettingsContent({ 
   onBack, 
   activeTab,
   onTabChange

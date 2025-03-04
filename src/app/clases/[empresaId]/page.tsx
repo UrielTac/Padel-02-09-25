@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, use } from 'react'
 import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -25,16 +25,19 @@ interface ClassesPageProps {
 export default function ClassesPage({ params }: ClassesPageProps) {
   const router = useRouter()
   const { user, isLoading } = useAuth()
+  
+  // Desenvuelve params de forma segura con tipado correcto
+  const { empresaId } = use(params as any) as ClassesPageProps['params'];
 
   // Solo verificar sesión
   useEffect(() => {
     if (!isLoading && !user) {
-      const currentPath = `/clases/${params.empresaId}`
+      const currentPath = `/clases/${empresaId}`
       const loginUrl = `/clases/login?returnUrl=${encodeURIComponent(currentPath)}`
       console.log('Redirigiendo a login:', loginUrl)
       router.push(loginUrl)
     }
-  }, [user, isLoading, router, params.empresaId])
+  }, [user, isLoading, router, empresaId])
 
   // Mostrar loading mientras se valida la autenticación
   if (isLoading) {
@@ -47,9 +50,9 @@ export default function ClassesPage({ params }: ClassesPageProps) {
   }
 
   return (
-    <ClassRegistrationProvider empresaId={params.empresaId}>
+    <ClassRegistrationProvider empresaId={empresaId}>
       <Suspense fallback={<LoadingState />}>
-        <ClassesContent empresaId={params.empresaId} />
+        <ClassesContent empresaId={empresaId} />
       </Suspense>
     </ClassRegistrationProvider>
   )

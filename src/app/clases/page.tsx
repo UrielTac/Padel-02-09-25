@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createSupabaseClient } from '@/lib/supabase'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import ClassRegistrationForm from '@/components/class-registration-form'
+import { ClassRegistrationForm } from '@/components/classes-registration'
 
 export default function ClasesPage() {
   const [empresas, setEmpresas] = useState<Array<{ id: string; name: string }>>([])

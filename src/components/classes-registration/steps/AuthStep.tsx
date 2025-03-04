@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -29,6 +29,14 @@ interface AuthStepProps {
 }
 
 export function AuthStep({ onLoginSuccess }: AuthStepProps) {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <AuthStepContent onLoginSuccess={onLoginSuccess} />
+    </Suspense>
+  )
+}
+
+function AuthStepContent({ onLoginSuccess }: AuthStepProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [authView, setAuthView] = useState<'login' | 'register'>('login')
   const { signIn } = useClassRegistrationAuth()

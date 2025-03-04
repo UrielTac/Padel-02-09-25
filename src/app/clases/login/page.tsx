@@ -5,8 +5,18 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClassRegistrationProvider } from '@/components/classes-registration'
 import { AuthStep } from '@/components/classes-registration/steps/AuthStep'
+import { LoginForm } from '@/components/auth/LoginForm'
+import { Suspense } from 'react'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <LoginPageContent />
+    </Suspense>
+  )
+}
+
+function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isLoading } = useAuth()

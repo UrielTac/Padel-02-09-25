@@ -1,12 +1,20 @@
-'use client'
+"use client"
 
-import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AdminLoginForm } from '@/components/auth/AdminLoginForm'
 import { useAuth } from '@/contexts/AuthContext'
+import { useEffect, Suspense } from 'react'
+import { AdminLoginForm } from '@/components/auth/AdminLoginForm'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <AdminLoginPageContent />
+    </Suspense>
+  )
+}
+
+function AdminLoginPageContent() {
   const { user, isLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()

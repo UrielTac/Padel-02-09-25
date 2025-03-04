@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ClassRegistrationProvider, ClassRegistrationForm } from '@/components/classes-registration'
@@ -18,13 +18,16 @@ export default function ClassRegistrationPage({ params }: Props) {
   const router = useRouter()
   const { user, isLoading: isLoadingAuth } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Desenvolver params de forma segura con tipado
+  const { empresaId, classId } = use(params as any) as Props['params'];
 
   // Efecto para manejar la autenticación y el estado inicial
   useEffect(() => {
     if (!isLoadingAuth) {
       if (!user) {
         // Si no hay usuario, redirigir al login con returnUrl
-        const currentPath = `/clases/${params.empresaId}/${params.classId}`
+        const currentPath = `/clases/${empresaId}/${classId}`
         const loginUrl = `/clases/login?returnUrl=${encodeURIComponent(currentPath)}`
         router.push(loginUrl)
       } else {
@@ -32,7 +35,7 @@ export default function ClassRegistrationPage({ params }: Props) {
         setIsLoading(false)
       }
     }
-  }, [user, isLoadingAuth, router, params])
+  }, [user, isLoadingAuth, router, empresaId, classId])
 
   // Estado de carga
   if (isLoading || isLoadingAuth) {
@@ -52,8 +55,8 @@ export default function ClassRegistrationPage({ params }: Props) {
       "py-12",
       "overflow-hidden"
     )}>
-      <ClassRegistrationProvider empresaId={params.empresaId}>
-        <ClassRegistrationForm selectedClassId={params.classId} />
+      <ClassRegistrationProvider empresaId={empresaId}>
+        <ClassRegistrationForm selectedClassId={classId} />
       </ClassRegistrationProvider>
     </div>
   )

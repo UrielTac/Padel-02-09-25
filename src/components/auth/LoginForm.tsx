@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,6 +23,14 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onLoginSuccess }: LoginFormProps) {
+  return (
+    <Suspense fallback={<div>Cargando...</div>}>
+      <LoginFormContent onLoginSuccess={onLoginSuccess} />
+    </Suspense>
+  )
+}
+
+function LoginFormContent({ onLoginSuccess }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [authView, setAuthView] = useState<'login' | 'register'>('login')
   const router = useRouter()

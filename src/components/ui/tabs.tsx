@@ -167,9 +167,19 @@ const TabsTrigger = React.forwardRef<
 
     )}
 
+    asChild
+
     {...props}
 
-  />
+  >
+
+    <div role="button" tabIndex={0}>
+
+      {props.children}
+
+    </div>
+
+  </TabsPrimitive.Trigger>
 
 ))
 

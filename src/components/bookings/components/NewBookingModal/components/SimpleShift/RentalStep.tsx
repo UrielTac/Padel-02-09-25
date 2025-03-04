@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { format } from 'date-fns'
 import { IconPlus, IconMinus } from '@tabler/icons-react'
@@ -103,7 +105,7 @@ export function RentalStep({
       const existingRental = prev.find(r => r.itemId === itemId);
       if (!existingRental) return prev;
 
-      const updatedRentals = prev.map(r =>
+      return prev.map(r =>
         r.itemId === itemId
           ? {
               ...r,
@@ -113,12 +115,17 @@ export function RentalStep({
             }
           : r
       );
-
-      // Actualizar el contexto
-      updateRentals(updatedRentals);
-      return updatedRentals;
     });
-  }, [updateRentals]);
+    // No actualizamos el contexto aquí para evitar el error
+  }, []);
+
+  // Efecto para sincronizar los rentals locales con el contexto global
+  useEffect(() => {
+    // Solo actualizar el contexto cuando los rentals locales cambien
+    if (JSON.stringify(localRentals) !== JSON.stringify(rentals)) {
+      updateRentals(localRentals);
+    }
+  }, [localRentals, rentals, updateRentals]);
 
   // Renderizar el input de precio personalizado
   const renderCustomPriceInput = useCallback((item: Item) => {
