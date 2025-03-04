@@ -17,70 +17,103 @@ export class StripePaymentDataService {
     empresaId?: string;
     existingCustomerId?: string;
     existingAccountId?: string;
-  }): Promise<StripePaymentData> {
+  }): Promise<StripePaymentData | null> {
     const requestId = createId();
-    console.log(`[${requestId}] Obteniendo datos de pago:`, {
+    console.log(`🔍 [${requestId}] Obteniendo datos de pago Stripe:`, {
       paymentMethodId: params.paymentMethodId,
+      empresaId: params.empresaId,
       hasExistingCustomerId: !!params.existingCustomerId,
       hasExistingAccountId: !!params.existingAccountId,
       timestamp: new Date().toISOString()
     });
 
     try {
-      // Si ya tenemos los IDs, los usamos directamente
+      // Si ya tenemos customerId y accountId, no necesitamos hacer consultas adicionales
       if (params.existingCustomerId && params.existingAccountId) {
-        console.log(`[${requestId}] ✅ Usando datos existentes de Stripe`);
-        
-        // Obtener el usuario actual solo para el userId
-        const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-        if (!user || userError) {
-          throw new Error('Usuario no autenticado');
-        }
-
+        console.log(`✅ [${requestId}] Usando datos existentes de Stripe`);
         return {
           customerId: params.existingCustomerId,
           accountId: params.existingAccountId,
-          userId: user.id,
+          userId: '', // Se podría buscar si es necesario
           paymentMethodId: params.paymentMethodId
         };
       }
-
-      // Si no tenemos los IDs, los buscamos en la base de datos
-      const { data: { user }, error: userError } = await this.supabase.auth.getUser();
-      if (!user || userError) {
-        console.error(`[${requestId}] Error: Usuario no autenticado`);
-        throw new Error('Usuario no autenticado');
+      
+      // 1. Buscar información del método de pago para obtener customerId
+      console.log(`🔍 [${requestId}] Buscando información del método de pago:`, params.paymentMethodId);
+      const { data: paymentMethod } = await this.supabase
+        .from('stripe_payment_methods')
+        .select('stripe_customer_id, user_id')
+        .eq('stripe_payment_method_id', params.paymentMethodId)
+        .single();
+      
+      if (!paymentMethod?.stripe_customer_id) {
+        console.error(`❌ [${requestId}] Método de pago no encontrado o sin customer_id:`, params.paymentMethodId);
+        return null;
       }
-
-      const { data: stripeCustomer, error: customerError } = await this.supabase
-        .from('stripe_customers')
-        .select('stripe_customer_id, stripe_account_id, status')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-        .maybeSingle();
-
-      if (customerError || !stripeCustomer) {
-        console.error(`[${requestId}] Error: Cliente Stripe no encontrado`);
-        throw new Error('Cliente Stripe no encontrado');
+      
+      console.log(`✅ [${requestId}] Método de pago encontrado, customer_id:`, paymentMethod.stripe_customer_id);
+      
+      // 2. Obtener accountId de la empresa
+      let accountId = '';
+      
+      if (params.empresaId) {
+        console.log(`🔍 [${requestId}] Buscando cuenta Stripe de empresa:`, params.empresaId);
+        const { data: empresa } = await this.supabase
+          .from('empresas')
+          .select('stripe_account_id')
+          .eq('id', params.empresaId)
+          .single();
+          
+        if (!empresa?.stripe_account_id) {
+          console.error(`❌ [${requestId}] Empresa no encontrada o sin account_id:`, params.empresaId);
+          return null;
+        }
+        
+        accountId = empresa.stripe_account_id;
+        console.log(`✅ [${requestId}] Cuenta Stripe de empresa encontrada:`, accountId);
+      } else {
+        // Alternativa: buscar por el customer y su cuenta asociada
+        console.log(`🔍 [${requestId}] Buscando account_id para customer:`, paymentMethod.stripe_customer_id);
+        const { data: customer } = await this.supabase
+          .from('stripe_customers')
+          .select('stripe_account_id')
+          .eq('stripe_customer_id', paymentMethod.stripe_customer_id)
+          .single();
+          
+        if (!customer?.stripe_account_id) {
+          console.error(`❌ [${requestId}] No se pudo determinar account_id para el customer:`, paymentMethod.stripe_customer_id);
+          return null;
+        }
+        
+        accountId = customer.stripe_account_id;
+        console.log(`✅ [${requestId}] Cuenta asociada al customer encontrada:`, accountId);
       }
-
-      console.log(`[${requestId}] ✅ Datos de Stripe obtenidos:`, {
-        hasCustomerId: !!stripeCustomer.stripe_customer_id,
-        hasAccountId: !!stripeCustomer.stripe_account_id,
-        userId: user.id,
-        timestamp: new Date().toISOString()
+      
+      console.log(`✅ [${requestId}] Datos de Stripe completos:`, {
+        customerId: paymentMethod.stripe_customer_id,
+        accountId,
+        userId: paymentMethod.user_id || ''
       });
-
+      
       return {
-        customerId: stripeCustomer.stripe_customer_id,
-        accountId: stripeCustomer.stripe_account_id,
-        userId: user.id,
+        customerId: paymentMethod.stripe_customer_id,
+        accountId: accountId,
+        userId: paymentMethod.user_id || '',
         paymentMethodId: params.paymentMethodId
       };
-    } catch (error: any) {
-      console.error(`[${requestId}] ❌ Error al obtener datos de pago:`, error);
-      throw error;
+    } catch (error) {
+      console.error(`❌ [${requestId}] Error al obtener datos de pago:`, error);
+      
+      if (error instanceof Error) {
+        console.error(`❌ [${requestId}] Detalles del error:`, {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        });
+      }
+      
+      return null;
     }
   }
 } 

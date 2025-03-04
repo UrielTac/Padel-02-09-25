@@ -255,20 +255,87 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
 
       // Validar configuración especial para pago completo
       if (state.payment.type === 'full') {
-        if (!state.payment.stripe_payment_intent_id) {
-          console.error('[useSummaryBooking] Pago completo sin PaymentIntent:', state.payment);
-          throw new Error('No se encontró confirmación del pago con Stripe');
+        // Añadir logs detallados para diagnóstico
+        console.log('[useSummaryBooking] Verificando pago completo:', {
+          paymentIntentId: state.payment.paymentIntentId,
+          method: state.payment.method,
+          hasPaymentMethod: !!state.payment.method,
+          hasSelectedPaymentMethod: !!state.payment.selectedPaymentMethod,
+          processed: state.payment.processed
+        });
+        
+        // Intentar obtener el paymentIntentId de diferentes fuentes
+        let effectivePaymentIntentId = state.payment.paymentIntentId;
+        
+        // Si no tenemos un paymentIntentId, buscar en otros lugares
+        if (!effectivePaymentIntentId) {
+          console.warn('[useSummaryBooking] PaymentIntentId no encontrado en la ubicación principal, buscando alternativas');
+          
+          // 1. Verificar si está en selectedPaymentMethod
+          if (state.payment.selectedPaymentMethod && 
+              (state.payment.selectedPaymentMethod as any).paymentIntentId) {
+            effectivePaymentIntentId = (state.payment.selectedPaymentMethod as any).paymentIntentId;
+            console.info('[useSummaryBooking] PaymentIntentId encontrado en selectedPaymentMethod:', effectivePaymentIntentId);
+          }
+          // 2. Verificar si está en config
+          else if (state.payment.config && (state.payment.config as any).paymentIntentId) {
+            effectivePaymentIntentId = (state.payment.config as any).paymentIntentId;
+            console.info('[useSummaryBooking] PaymentIntentId encontrado en config:', effectivePaymentIntentId);
+          }
+          // 3. Recuperar desde localStorage como último recurso
+          else {
+            try {
+              const storedPaymentIntentId = localStorage.getItem('lastPaymentIntentId');
+              const timestamp = localStorage.getItem('lastPaymentTimestamp');
+              
+              if (storedPaymentIntentId && timestamp) {
+                // Verificar que el timestamp no sea muy antiguo (5 minutos máximo)
+                const storedTime = new Date(timestamp).getTime();
+                const now = new Date().getTime();
+                const fiveMinutes = 5 * 60 * 1000;
+                
+                if (now - storedTime < fiveMinutes) {
+                  effectivePaymentIntentId = storedPaymentIntentId;
+                  console.info('[useSummaryBooking] PaymentIntentId recuperado de localStorage:', effectivePaymentIntentId);
+                } else {
+                  console.warn('[useSummaryBooking] PaymentIntentId en localStorage es demasiado antiguo:', timestamp);
+                }
+              }
+            } catch (storageError) {
+              console.warn('[useSummaryBooking] Error al acceder a localStorage:', storageError);
+            }
+          }
+          
+          // Verificación final: si aún no tenemos un paymentIntentId, lanzar error
+          if (!effectivePaymentIntentId) {
+            console.error('[useSummaryBooking] Pago completo sin PaymentIntent después de buscar en todas las fuentes:', state.payment);
+            throw new Error('Es necesario procesar el pago antes de crear la reserva');
+          } else {
+            console.log('[useSummaryBooking] PaymentIntentId recuperado correctamente:', effectivePaymentIntentId);
+          }
+        }
+        
+        if (state.payment.method !== 'stripe') {
+          console.error('[useSummaryBooking] Pago completo con método incorrecto:', state.payment.method);
+          throw new Error('El pago completo debe realizarse con método "stripe"');
         }
 
         // Forzar configuración correcta para pago con Stripe
         bookingData.paymentMethod = 'stripe';
         bookingData.paymentStatus = 'completed';
-        bookingData.stripe_payment_intent_id = state.payment.stripe_payment_intent_id;
         
-        console.log('[useSummaryBooking] Datos de pago Stripe configurados:', {
+        // Asignar el paymentIntentId recuperado
+        if ('stripe_payment_intent_id' in bookingData) {
+          bookingData.stripe_payment_intent_id = effectivePaymentIntentId;
+        } else {
+          // Si el campo no existe en bookingData, añadirlo
+          (bookingData as any).stripe_payment_intent_id = effectivePaymentIntentId;
+        }
+        
+        console.log('[useSummaryBooking] Reserva configurada con PaymentIntentId:', {
+          paymentIntentId: effectivePaymentIntentId,
           method: bookingData.paymentMethod,
-          status: bookingData.paymentStatus,
-          paymentIntentId: bookingData.stripe_payment_intent_id
+          status: bookingData.paymentStatus
         });
       }
 
@@ -285,7 +352,11 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
         throw new Error(result.error.message);
       }
 
-      options.onSuccess?.();
+      // Llamar al callback con el resultado de la creación
+      if (options.onSuccess) {
+        options.onSuccess(result as BookingPaymentData);
+      }
+      
       return result;
 
     } catch (error) {
@@ -311,7 +382,12 @@ export function useSummaryBooking(options: UseSummaryBookingOptions = {}) {
     if (errors.length === 0) {
       console.log('[SummaryBooking] Configuración válida, permitiendo navegación');
       setIsConfigurationStep(false);
-      options.onSuccess?.();
+      
+      // No hay un booking específico en este punto, pasar un objeto vacío que cumpla con la interfaz
+      if (options.onSuccess) {
+        options.onSuccess({} as BookingPaymentData);
+      }
+      
       return true;
     }
 

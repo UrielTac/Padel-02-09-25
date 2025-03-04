@@ -1,5 +1,5 @@
 import { getAuthenticatedSupabaseClient } from '@/lib/supabase/client'
-import type { PaymentMethod, StripePaymentResult, FullPaymentRequest } from '@/types/payments'
+import type { PaymentMethod, StripePaymentResult } from '@/types/payments'
 import { createId } from '@paralleldrive/cuid2'
 import type { Database } from '@/types/supabase'
 
@@ -231,8 +231,8 @@ export const paymentService = {
 
       // 3. Obtener el payment_method_id del pago más reciente con Stripe
       const validPayment = booking.payments
-        ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        ?.find(payment => 
+        ?.sort((a: Payment, b: Payment) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        ?.find((payment: Payment) => 
           payment.payment_method === 'stripe' && 
           payment.stripe_payment_method_id
         );
@@ -242,7 +242,7 @@ export const paymentService = {
           bookingId,
           userId: booking.booking_participants[0].user_id,
           paymentsCount: booking.payments?.length,
-          hasStripePayments: booking.payments?.some(p => p.payment_method === 'stripe'),
+          hasStripePayments: booking.payments?.some((p: Payment) => p.payment_method === 'stripe'),
           context: isServer ? 'server' : 'client'
         });
         return null;
@@ -273,64 +273,6 @@ export const paymentService = {
         timestamp: new Date().toISOString()
       });
       return null;
-    }
-  },
-
-  /**
-   * Procesa un pago completo para una reserva utilizando la tarjeta seleccionada
-   * @param bookingId ID de la reserva
-   * @param paymentMethodId ID del método de pago (tarjeta)
-   * @param amount Monto total a cobrar
-   * @returns Resultado del pago
-   */
-  async processFullPayment(params: FullPaymentRequest): Promise<StripePaymentResult> {
-    const requestId = createId();
-    try {
-      console.log('🔄 Iniciando procesamiento de pago completo:', {
-        amount: params.amount,
-        hasStripeAccount: !!params.stripeAccountId,
-        hasCustomer: !!params.stripeCustomerId,
-        timestamp: new Date().toISOString(),
-        requestId
-      });
-
-      const response = await fetch('/api/stripe/process-full-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: params.amount,
-          stripePaymentMethodId: params.stripePaymentMethodId,
-          stripeAccountId: params.stripeAccountId,
-          stripeCustomerId: params.stripeCustomerId,
-          empresaId: params.empresaId,
-          description: params.description || 'Pago completo de reserva',
-          paymentType: params.paymentType || 'full',
-          metadata: params.metadata
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error?.message || 'Error al procesar el pago');
-      }
-
-      return {
-        success: true,
-        paymentIntentId: result.paymentIntentId,
-        message: 'Pago procesado correctamente'
-      };
-    } catch (error: any) {
-      console.error(`❌ [${requestId}] Error al procesar pago:`, error);
-      return {
-        success: false,
-        message: error.message || 'Error al procesar el pago',
-        error: {
-          code: error.code || 'UNKNOWN_ERROR',
-          message: error.message || 'Error desconocido',
-          details: error.details || error
-        }
-      };
     }
   }
 }

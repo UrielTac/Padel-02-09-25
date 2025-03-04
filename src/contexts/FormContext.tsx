@@ -28,12 +28,20 @@ export interface PaymentState {
     last4: string;
     expMonth: number;
     expYear: number;
+    type?: string;
+    name?: string;
+    description?: string;
   };
   config?: {
     paymentMethodId?: string;
     brand?: string;
     last4?: string;
+    expMonth?: number;
+    expYear?: number;
   };
+  paymentIntentId?: string;
+  processed?: boolean;
+  status?: string;
 }
 
 interface FormState {
@@ -109,20 +117,20 @@ function formReducer(state: FormState, action: FormAction): FormState {
       // Si viene un selectedPaymentMethod, usarlo para completar la información
       const selectedMethod = action.payload.selectedPaymentMethod;
       
-      // Mantener el método de pago seleccionado si es una garantía
+      // IMPORTANTE: Preservar el paymentIntentId si existe en el estado actual y no viene en el payload
+      const paymentIntentId = action.payload.paymentIntentId || state.payment.paymentIntentId;
+      
+      // Crear un nuevo estado de pago que combine el estado actual con el nuevo
       const newPaymentState = {
-        method: paymentType === 'guarantee' ? 'stripe' : (action.payload.method || paymentMapping?.defaultMethod || state.payment.method),
-        type: paymentType,
-        selectedPaymentMethod: selectedMethod || state.payment.selectedPaymentMethod,
-        config: action.payload.config || state.payment.config
+        ...state.payment,
+        ...action.payload,
+        paymentIntentId: paymentIntentId // Asegurar que el paymentIntentId se preserve
       };
-
-      console.log('FormContext: Estado después de transformación:', {
-        newState: newPaymentState,
-        hasSelectedMethod: !!newPaymentState.selectedPaymentMethod,
-        selectedMethod: newPaymentState.selectedPaymentMethod,
-        paymentType: newPaymentState.type,
-        paymentMethod: newPaymentState.method
+      
+      console.log('FormContext: Estado después de actualización:', {
+        current: state.payment,
+        updated: newPaymentState,
+        hasPaymentIntentId: !!newPaymentState.paymentIntentId
       });
 
       return {

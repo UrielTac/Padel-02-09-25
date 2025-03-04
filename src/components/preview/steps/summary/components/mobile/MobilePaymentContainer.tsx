@@ -15,6 +15,9 @@ import { PaymentTypeList } from "../PaymentTypeList";
 import { useStripeConnection } from "@/hooks/useStripeConnection";
 import { toast } from "sonner";
 import { PaymentUpdateEvent, PaymentSelectionHandlers } from "../../types";
+import { useStoredCards } from "@/hooks/useStoredCards";
+import { useStripe } from "@/contexts/StripeContext";
+import { useForm } from "@/contexts/FormContext";
 
 // Filtrar solo los tipos de pago que queremos mostrar
 const FILTERED_PAYMENT_TYPES = PAYMENT_TYPES.filter(type => 
@@ -413,7 +416,7 @@ function PaymentTypeSelector({
   );
 }
 
-function MobilePaymentContainerBase({
+export function MobilePaymentContainerBase({
   theme,
   viewType,
   calculations,
@@ -427,99 +430,64 @@ function MobilePaymentContainerBase({
   onSelectPaymentMethod,
   onNext,
   onPrev,
-  isPublicView = false,
+  isPublicView,
   empresaId
 }: MobilePaymentContainerProps) {
   const [currentView, setCurrentView] = useState<ViewStep>('details');
   const [localSelectedType, setLocalSelectedType] = useState<PaymentTypeEnum | null>(selectedPaymentType);
   const [localSelectedMethod, setLocalSelectedMethod] = useState<PaymentMethod | null>(selectedPaymentMethod);
   const [expandCardList, setExpandCardList] = useState(false);
-
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  
+  // Obtener datos de tarjetas guardadas que incluyen el customerId
+  const { cards, isLoading: cardsLoading, customerInfo } = useStoredCards();
+  
+  // Obtener el stripeAccountId directamente del contexto de Stripe
+  const stripeContext = useStripe();
+  const stripeAccountId = stripeContext?.stripeAccountId;
+  
+  // Obtener acceso al contexto del formulario para actualizar el estado de pago
+  const { setPayment } = useForm();
+  
+  // Estado para customerId (usando el valor del hook useStoredCards)
+  const [stripeData, setStripeData] = useState<{
+    customerId?: string | null;
+    loaded: boolean;
+  }>({ 
+    customerId: null,
+    loaded: false 
+  });
+  
+  // Efecto para sincronizar el customerId desde useStoredCards
+  useEffect(() => {
+    console.log('[MobilePaymentContainer] Estado de customerInfo:', customerInfo);
+    
+    if (customerInfo?.customerId && !stripeData.loaded) {
+      console.log('[MobilePaymentContainer] Usando customerId desde useStoredCards:', customerInfo.customerId);
+      setStripeData({
+        customerId: customerInfo.customerId,
+        loaded: true
+      });
+    } else if (customerInfo?.stripeCustomerId && !stripeData.loaded) {
+      // Usar stripeCustomerId como fallback
+      console.log('[MobilePaymentContainer] Usando stripeCustomerId como fallback:', customerInfo.stripeCustomerId);
+      setStripeData({
+        customerId: customerInfo.stripeCustomerId,
+        loaded: true
+      });
+    }
+  }, [customerInfo, stripeData.loaded]);
+  
   // Sincronizar estados locales con props
   useEffect(() => {
     setLocalSelectedType(selectedPaymentType);
   }, [selectedPaymentType]);
-
+  
   useEffect(() => {
     setLocalSelectedMethod(selectedPaymentMethod);
   }, [selectedPaymentMethod]);
-
-  // Método para actualizar el método de pago
-  const handleMethodUpdate = async (method: PaymentMethod & { __selectedPaymentType?: PaymentTypeEnum }) => {
-    console.log(`[MobilePaymentContainer] handleMethodUpdate: ${method?.id}`);
-    
-    // Extraer el tipo de pago si existe (y luego eliminarlo del objeto para evitar problemas)
-    const selectedPaymentType = method.__selectedPaymentType;
-    // Crear una copia limpia del método sin la propiedad personalizada
-    const { __selectedPaymentType, ...cleanMethod } = method as any;
-    
-    // Actualizar el estado local
-    setLocalSelectedMethod(cleanMethod);
-    
-    // Propagar al componente padre para actualizar el estado global
-    if (onSelectPaymentMethod) {
-      console.log(`[MobilePaymentContainer] Propagando método al contexto global:`, cleanMethod);
-      
-      // Verificar que el método contiene todas las propiedades necesarias
-      if (!cleanMethod.id || !cleanMethod.type || !cleanMethod.brand || !cleanMethod.last4) {
-        console.error('[MobilePaymentContainer] Método de pago incompleto:', cleanMethod);
-        return Promise.reject(new Error('Método de pago incompleto'));
-      }
-      
-      // Asegurar que type sea compatible con PaymentMethodEnum
-      const methodWithValidType = {
-        ...cleanMethod,
-        type: cleanMethod.type === 'card' ? 'stripe' : cleanMethod.type as any // Usar 'any' para evitar problemas de tipado
-      };
-      
-      // Si tenemos un tipo de pago seleccionado, propagarlo junto con el método
-      if (selectedPaymentType) {
-        console.log(`[MobilePaymentContainer] Incluyendo tipo de pago seleccionado: ${selectedPaymentType}`);
-        
-        // Aquí creamos un objeto con propiedades adicionales para el componente padre
-        // Esto permitirá que el componente padre actualice tanto el método como el tipo
-        onSelectPaymentMethod({
-          ...methodWithValidType,
-          // Esta es solo una señal para el componente padre, no afecta al objeto PaymentMethod
-          __paymentContext: {
-            selectedPaymentType: selectedPaymentType
-          }
-        } as any);
-      } else {
-        // Llamada normal sin tipo de pago adicional
-        onSelectPaymentMethod(methodWithValidType as any);
-      }
-      
-      // Verificar que el método se ha propagado correctamente
-      console.log('[MobilePaymentContainer] Método propagado con éxito');
-    } else {
-      console.warn(`[MobilePaymentContainer] onSelectPaymentMethod no disponible`);
-      // Mensaje eliminado
-      // toast.warning('No se pudo actualizar el estado global del pago');
-    }
-    
-    // Mensaje eliminado
-    // toast.success(`Tarjeta seleccionada: ${cleanMethod.brand} ****${cleanMethod.last4}`);
-    return Promise.resolve();
-  };
-
-  // Manejadores de selección
-  const paymentHandlers: PaymentSelectionHandlers = {
-    onMethodSelect: handleMethodUpdate,
-    onMethodRemove: useCallback(() => {
-      setLocalSelectedMethod(null);
-      onRemovePaymentMethod();
-    }, [onRemovePaymentMethod]),
-    onTypeSelect: useCallback((type: PaymentTypeEnum) => {
-      setLocalSelectedType(type);
-      onShowPaymentTypes(); // Actualizar estado global del tipo
-    }, [onShowPaymentTypes]),
-    onTypeRemove: useCallback(() => {
-      setLocalSelectedType(null);
-      onRemovePaymentType();
-    }, [onRemovePaymentType])
-  };
-
+  
+  // Manejadores para procesamiento de pago
   const handleNext = useCallback(async () => {
     if (currentView === 'details') {
       setCurrentView('payment');
@@ -530,90 +498,195 @@ function MobilePaymentContainerBase({
       return;
     }
 
-    console.log('[MobilePaymentContainer] Avanzando al siguiente paso con:', {
-      localSelectedMethod,
-      localSelectedType
+    console.log('[MobilePaymentContainer] Gestión de siguiente paso:', {
+      currentView,
+      selectedType: localSelectedType,
+      selectedMethodId: localSelectedMethod.id,
+      hasStripeCustomerId: !!stripeData.customerId,
+      timestamp: new Date().toISOString()
     });
 
-    // Si el tipo de pago es "full" (pago completo), necesitamos preparar los datos
-    // para procesar el cargo completo
+    // Si el tipo de pago es "full", procesamos el pago antes de avanzar
     if (localSelectedType === 'full' && localSelectedMethod) {
+      console.log('[MobilePaymentContainer] Iniciando procesamiento de pago completo');
+      
       try {
-        // 1. Obtener datos de conexión Stripe
-        const { stripeConnectionService } = await import('@/services/stripeConnectionService');
-        const stripeConnection = await stripeConnectionService.getConnection(empresaId);
+        // 1. Mostrar indicador de carga
+        toast.loading('Procesando pago...', { id: 'payment-processing' });
         
-        if (!stripeConnection?.charges_enabled) {
-          throw new Error('La cuenta de Stripe no está habilitada para cobros');
-        }
-
-        // 2. Obtener datos del cliente Stripe usando el endpoint centralizado
-        const response = await fetch('/api/stripe/payment-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            paymentMethodId: localSelectedMethod.id,
-            empresaId,
-            existingCustomerId: stripeConnection.stripe_customer_id,
-            existingAccountId: stripeConnection.stripe_account_id
-          })
+        // 2. Verificar que tengamos los datos necesarios
+        // Buscar el customerId en todas las fuentes posibles
+        const effectiveCustomerId = 
+          stripeData.customerId || 
+          customerInfo?.customerId || 
+          customerInfo?.stripeCustomerId;
+        
+        // Log para depuración
+        console.log('[MobilePaymentContainer] Datos de customerId:', {
+          fromState: stripeData.customerId,
+          fromHook: customerInfo?.customerId,
+          fromHookAlt: customerInfo?.stripeCustomerId,
+          effective: effectiveCustomerId
         });
-
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          console.error('❌ Error al obtener datos de pago:', result.error);
-          throw new Error(result.error?.message || 'Error al obtener datos de pago');
+        
+        if (!effectiveCustomerId) {
+          console.error('[MobilePaymentContainer] No se encontró customer_id en ninguna de las fuentes disponibles');
+          throw new Error('No se encontró información del cliente de Stripe necesaria para procesar el pago');
         }
-
-        // 3. Preparar datos con validación
+        
+        // 3. Importar el servicio de pago
+        const { fullPaymentService } = await import('@/services/full-payment-client.service');
+        
+        // 4. Procesar el pago
+        setIsProcessingPayment(true);
+        
+        console.log('Procesando pago on-session con tarjeta guardada:', {
+          cardId: localSelectedMethod.id,
+          last4: localSelectedMethod.last4,
+          brand: localSelectedMethod.brand,
+          amount: calculations.total,
+          stripeCustomerId: effectiveCustomerId,
+          stripeAccountId: stripeAccountId
+        });
+        
+        const result = await fullPaymentService.processPayment({
+          paymentMethodId: localSelectedMethod.id,
+          amount: calculations.total,
+          empresaId: empresaId,
+          description: 'Pago completo de reserva',
+          stripeCustomerId: effectiveCustomerId,   // Usar el dato ya disponible
+          stripeAccountId: stripeAccountId as string  // Asegurarnos de que sea string
+        });
+        
+        // 5. Limpiar indicador de carga
+        toast.dismiss('payment-processing');
+        
+        // 6. Manejar el resultado
+        if (!result.success) {
+          console.error('[MobilePaymentContainer] Error al procesar pago:', result.error);
+          toast.error(result.message || 'Error al procesar el pago');
+          return; // No avanzar si hay error
+        }
+        
+        console.log('[MobilePaymentContainer] Pago procesado exitosamente:', {
+          paymentIntentId: result.paymentIntentId,
+          status: result.chargeStatus
+        });
+        
+        // 7. Actualizar tipo de pago seleccionado
+        setLocalSelectedType(localSelectedType);
+        
+        // 8. Notificar éxito
+        toast.success('Pago procesado correctamente');
+        
+        // IMPORTANTE: Guardar el paymentIntentId en localStorage como respaldo
+        if (result.paymentIntentId) {
+          try {
+            localStorage.setItem('lastPaymentIntentId', result.paymentIntentId);
+            localStorage.setItem('lastPaymentTimestamp', new Date().toISOString());
+            console.log('[MobilePaymentContainer] PaymentIntentId guardado en localStorage como respaldo');
+          } catch (storageError) {
+            console.warn('[MobilePaymentContainer] No se pudo guardar en localStorage:', storageError);
+          }
+        }
+        
+        // 9. Preparar datos para siguiente paso
         const paymentData = {
           paymentType: localSelectedType,
           paymentMethod: localSelectedMethod,
           amount: calculations.total,
-          shouldChargeFullAmount: true,
-          stripePaymentMethodId: result.data.paymentMethodId,
-          stripeAccountId: result.data.accountId,
-          stripeCustomerId: result.data.customerId,
+          stripePaymentMethodId: localSelectedMethod.id,
           empresaId: empresaId,
-          metadata: {
-            type: 'full_payment',
-            description: 'Pago completo de reserva',
-            userId: result.data.userId
+          paymentIntentId: result.paymentIntentId,    // Incluir el PaymentIntent
+          processed: true,
+          paymentStatus: 'completed'
+        };
+        
+        // IMPORTANTE: Estos pasos son fundamentales para que la creación de la reserva funcione correctamente
+        // 1. Asegurar que el componente reconozca el tipo y método de pago seleccionados
+        onRemovePaymentType();
+        onRemovePaymentMethod();
+        onSelectPaymentMethod(localSelectedMethod);
+        
+        // 2. Actualizar el contexto global del formulario con el paymentIntentId
+        // Esto es CRÍTICO: use-summary-booking.ts verifica este valor antes de crear la reserva
+        setPayment({
+          method: 'stripe',
+          type: 'full',
+          processed: true,
+          paymentIntentId: result.paymentIntentId,
+          status: 'completed',
+          selectedPaymentMethod: localSelectedMethod
+        });
+        
+        // Agregar paymentIntentId a localSelectedMethod para que se propague mejor
+        const enhancedMethod = {
+          ...localSelectedMethod,
+          // Usar una propiedad adicional segura para evitar errores de tipo
+          _additionalData: {
+            paymentIntentId: result.paymentIntentId
           }
         };
-
-        console.log('✅ Datos de pago preparados:', {
-          amount: calculations.total,
-          paymentMethodId: result.data.paymentMethodId,
-          hasStripeAccount: !!result.data.accountId,
-          hasCustomer: !!result.data.customerId,
-          timestamp: new Date().toISOString()
-        });
-
-        // 4. Propagar los datos al siguiente paso
-        onNext(paymentData);
-      } catch (error: any) {
-        console.error('❌ Error preparando pago:', error);
-        toast.error(error.message || 'Error al preparar el pago');
         
-        // Log detallado del error
-        console.error('[MobilePaymentContainer] Error detallado:', {
-          error,
-          selectedMethod: localSelectedMethod,
-          selectedType: localSelectedType,
-          empresaId,
+        // Llamar de nuevo a onSelectPaymentMethod con el método enriquecido
+        onSelectPaymentMethod(enhancedMethod);
+        
+        // Log adicional para verificar la actualización
+        console.log('[MobilePaymentContainer] Estado de pago global actualizado con PaymentIntent:', {
+          paymentIntentId: result.paymentIntentId,
+          method: 'stripe', 
+          type: 'full'
+        });
+        
+        // 10. Avanzar al siguiente paso
+        console.log('[MobilePaymentContainer] Avanzando al siguiente paso con pago procesado:', {
+          paymentIntentId: result.paymentIntentId
+        });
+        
+        // Avanzar al siguiente paso con los datos de pago enriquecidos
+        onNext({
+          ...paymentData,
+          selectedPaymentMethod: enhancedMethod  // Usar el método enriquecido
+        });
+      } catch (error: any) {
+        // Manejar errores
+        toast.dismiss('payment-processing');
+        console.error('[MobilePaymentContainer] Error procesando pago:', error);
+        
+        // Log detallado para depuración
+        console.error('[MobilePaymentContainer] Detalles completos:', {
+          stack: error.stack,
+          message: error.message,
           timestamp: new Date().toISOString()
         });
+        
+        toast.error(`Error al procesar el pago: ${error.message || 'Error desconocido'}`);
       }
+      
       return;
     }
 
-    // Continuar al siguiente paso inmediatamente para otros tipos de pago
+    // Para otros tipos de pago, continuar normalmente
+    console.log('[MobilePaymentContainer] Avanzando normalmente sin procesar pago');
     onNext();
-  }, [currentView, localSelectedType, localSelectedMethod, onNext, calculations, empresaId]);
+  }, [
+    currentView, 
+    localSelectedType, 
+    localSelectedMethod, 
+    onNext, 
+    calculations, 
+    empresaId, 
+    setLocalSelectedType,
+    toast,
+    stripeData,  // Incluir stripeData como dependencia
+    customerInfo,  // Incluir customerInfo como dependencia
+    stripeAccountId,  // Incluir stripeAccountId como dependencia
+    setIsProcessingPayment,
+    onRemovePaymentType,
+    onRemovePaymentMethod,
+    onSelectPaymentMethod,
+    useForm
+  ]);
 
   if (viewType !== 'mobile') return null;
 
@@ -682,12 +755,13 @@ function MobilePaymentContainerBase({
     // 2. Forzar la actualización del método actual (si existe) para que incluya el nuevo tipo
     if (localSelectedMethod) {
       console.log(`[MobilePaymentContainer] Actualizando método existente con nuevo tipo: ${type}`);
-      handleMethodUpdate({
+      // Usar casting a any para evitar el error de TypeScript
+      onSelectPaymentMethod({
         ...localSelectedMethod,
         // Asegurarnos de que el tipo de pago seleccionado se incluya en la próxima actualización
         // del método de pago (esto es clave para la solución)
         __selectedPaymentType: type
-      });
+      } as any);
     }
     
     // Si es garantía, podemos mostrar un mensaje informativo
@@ -865,8 +939,12 @@ function MobilePaymentContainerBase({
                       theme={theme}
                       selectedMethod={localSelectedMethod || selectedPaymentMethod}
                       onShowMethods={onShowPaymentMethods}
-                      onUpdateMethod={handleMethodUpdate}
-                      onRemoveMethod={paymentHandlers.onMethodRemove}
+                      onUpdateMethod={method => {
+                        // Wrapper para convertir a Promise<void> y cumplir con el tipo esperado
+                        onSelectPaymentMethod(method);
+                        return Promise.resolve();
+                      }}
+                      onRemoveMethod={onRemovePaymentMethod}
                       viewType={viewType}
                       empresaId={empresaId}
                       directCardSelect={true}

@@ -16,6 +16,7 @@ export function useStoredCards(refreshTrigger = 0, options = { autoLoad: true })
   const [cards, setCards] = useState<StoredCard[]>([]);
   const [isLoading, setIsLoading] = useState(options.autoLoad);
   const [error, setError] = useState<Error | null>(null);
+  const [customerId, setCustomerId] = useState<string | null>(null);
   const { user } = useAuth();
   let stripeContext;
   let isConnected = false;
@@ -79,6 +80,9 @@ export function useStoredCards(refreshTrigger = 0, options = { autoLoad: true })
 
       const customerData = await customerResponse.json();
       
+      // Guardar el customerId - corregir para usar stripeCustomerId
+      setCustomerId(customerData.stripeCustomerId);
+      
       // Luego, cargar las tarjetas
       const response = await fetch('/api/stripe/payment-methods', {
         method: 'POST',
@@ -108,10 +112,21 @@ export function useStoredCards(refreshTrigger = 0, options = { autoLoad: true })
       console.log('[StoredCards] ✅ Respuesta recibida:', {
         paymentMethods: data.paymentMethods,
         count: data.paymentMethods?.length || 0,
-        customerId: data.customerId
+        customerData: customerData,
+        customerId: data.customerId,
+        currentStoredCustomerId: customerId
       });
 
       const newCards = data.paymentMethods || [];
+      
+      // Actualizar el customerId de cualquier fuente disponible
+      if (data.customerId) {
+        console.log('[StoredCards] Actualizando customerId desde payment-methods:', data.customerId);
+        setCustomerId(data.customerId);
+      } else if (customerData?.stripeCustomerId && !customerId) {
+        console.log('[StoredCards] Usando customerData.stripeCustomerId como fallback:', customerData.stripeCustomerId);
+        setCustomerId(customerData.stripeCustomerId);
+      }
       
       // Solo reintentar si no hay tarjetas Y no hemos excedido los reintentos
       if (newCards.length === 0 && retryCountRef.current < MAX_RETRIES) {
@@ -224,6 +239,10 @@ export function useStoredCards(refreshTrigger = 0, options = { autoLoad: true })
     cards,
     isLoading,
     error,
-    deleteCard
+    deleteCard,
+    customerInfo: {
+      customerId,
+      stripeCustomerId: customerId  // Para compatibilidad con diferentes formatos
+    }
   };
 } 

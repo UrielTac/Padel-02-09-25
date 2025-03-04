@@ -17,7 +17,7 @@ import { TotalPrice } from "./components/TotalPrice";
 import { PreviewPopup } from "../../shared/PreviewPopup";
 import { useState, useEffect, useCallback } from "react";
 import { SummaryStepField } from "@/components/steps/summary/types";
-import { PaymentMethod, PaymentType, PaymentMethodEnum, PaymentTypeEnum } from "./types";
+import { PaymentMethod, PaymentType, PaymentMethodEnum } from "./types";
 import { StripeProvider } from "@/providers/StripeProvider";
 import { useFormConfig } from '@/hooks/useFormConfig';
 import { Loader2 } from "lucide-react";
@@ -28,6 +28,20 @@ import { Button } from "@/components/ui/button";
 import { useForm } from '@/contexts/FormContext';
 import { MobilePaymentContainer } from './components/mobile/MobilePaymentContainer';
 import { MobileNavigation } from "@/components/preview/layout/MobileNavigation";
+import { PaymentState } from '@/contexts/FormContext';
+import { PaymentTypeEnum } from './types';
+import { CalculationsColumn } from "./components/CalculationsColumn";
+import { ReservationDataColumn } from "./components/ReservationDataColumn";
+import { useSummaryState as useSummaryStateHook } from './hooks/use-summary-state';
+import { StepContainer } from '@/components/preview/layout/StepContainer';
+import { useSummaryBooking as useSummaryBookingHook } from './hooks/use-summary-booking';
+import { DetailsColumn } from "./components/DetailsColumn";
+import { StepHeader } from '@/components/preview/layout/StepHeader';
+import { StepNavigation } from '@/components/preview/layout/StepNavigation';
+import { PrimaryButton } from '@/components/preview/components/Button';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { DesktopGridLayout } from '@/components/preview/layout/DesktopGridLayout';
 
 interface SummaryPreviewProps {
   field: SummaryStepField;
@@ -148,13 +162,13 @@ export function SummaryPreview({
   }, [selectedPaymentMethod, selectedPaymentType, setPayment]);
 
   const handleNext = useCallback(async (paymentData?: any) => {
-    console.log('[SummaryPreview] Iniciando proceso de avance:', {
-      isValid,
-      hasWarnings,
-      selectedPaymentType,
-      selectedPaymentMethod,
+    // Log detallado al inicio para diagnóstico
+    console.log('[SummaryPreview] Datos recibidos para avance:', {
       hasPaymentData: !!paymentData,
-      shouldChargeFullAmount: paymentData?.shouldChargeFullAmount
+      paymentIntentId: paymentData?.paymentIntentId,
+      processed: paymentData?.processed,
+      paymentType: paymentData?.paymentType,
+      timestamp: new Date().toISOString()
     });
 
     // 1. Validaciones iniciales
@@ -169,100 +183,93 @@ export function SummaryPreview({
       return;
     }
 
-    // 2. Si no es pago completo, continuar normalmente
-    if (!paymentData?.shouldChargeFullAmount) {
-      console.log('[SummaryPreview] Avanzando sin procesamiento de pago');
+    // 2. Verificar si el pago ya fue procesado por MobilePaymentContainer
+    if (paymentData?.paymentIntentId && paymentData?.processed) {
+      console.log('[SummaryPreview] Pago ya procesado en MobilePaymentContainer:', {
+        paymentIntentId: paymentData.paymentIntentId,
+        status: paymentData.paymentStatus
+      });
+      
+      // Actualizar estado con el PaymentIntent recibido
+      setPaymentIntent(paymentData.paymentIntentId);
+      
+      // Actualizar el estado global del pago - CRUCIAL para la validación
+      setPayment({
+        method: 'stripe',
+        type: 'full',
+        processed: true,
+        paymentIntentId: paymentData.paymentIntentId,
+        status: 'completed',
+        selectedPaymentMethod: selectedPaymentMethod
+      });
+      
+      // Avanzar al siguiente paso
       onNext();
       return;
     }
 
-    // 3. Procesar pago completo
-    try {
-      // 3.1 Validar datos necesarios
-      if (!paymentData.stripePaymentMethodId || !paymentData.stripeAccountId || !paymentData.stripeCustomerId) {
-        console.error('[SummaryPreview] Datos de Stripe incompletos:', {
-          hasPaymentMethodId: !!paymentData.stripePaymentMethodId,
-          hasAccountId: !!paymentData.stripeAccountId,
-          hasCustomerId: !!paymentData.stripeCustomerId
-        });
-        throw new Error('Datos de pago incompletos');
-      }
-
-      // 3.2 Mostrar indicador de carga
+    // 3. Si tenemos shouldChargeFullAmount, procesar el pago aquí
+    if (paymentData?.shouldChargeFullAmount === true) {
+      console.log('[SummaryPreview] Procesando pago completo localmente');
+      
+      // Mostrar indicador de carga
       toast.loading('Procesando pago...', { id: 'payment-processing' });
-
-      // 3.3 Procesar el pago
-      const { paymentService } = await import('@/services/paymentService');
-      const result = await paymentService.processFullPayment({
-        paymentMethodId: paymentData.stripePaymentMethodId,
-        amount: paymentData.amount,
-        stripeAccountId: paymentData.stripeAccountId,
-        stripeCustomerId: paymentData.stripeCustomerId,
-        empresaId: empresaId || '',
-        description: 'Pago completo de reserva',
-        paymentType: 'full',
-        metadata: {
-          ...paymentData.metadata,
-          source: 'summary_preview',
-          timestamp: new Date().toISOString()
-        }
-      });
-
-      // 3.4 Limpiar indicador de carga
-      toast.dismiss('payment-processing');
-
-      if (!result.success) {
-        console.error('[SummaryPreview] Error en procesamiento de pago:', result.error);
-        throw new Error(result.message || 'Error al procesar el pago');
-      }
-
-      // 3.5 Actualizar estado global
-      const paymentUpdate = {
-        method: 'stripe' as const,
-        type: 'full' as const,
-        status: 'completed' as const,
-        paymentIntentId: result.paymentIntentId,
-        selectedPaymentMethod: paymentData.paymentMethod,
-        config: {
+      
+      try {
+        // Importar dinámicamente el servicio de pago
+        const { fullPaymentService } = await import('@/services/full-payment-client.service');
+        
+        // Procesar el pago
+        const result = await fullPaymentService.processPayment({
           paymentMethodId: paymentData.stripePaymentMethodId,
-          brand: paymentData.paymentMethod.brand,
-          last4: paymentData.paymentMethod.last4,
-          expMonth: paymentData.paymentMethod.expMonth,
-          expYear: paymentData.paymentMethod.expYear
+          amount: paymentData.amount,
+          empresaId: empresaId || '',
+          description: 'Pago completo de reserva'
+        });
+        
+        // Limpiar indicador de carga
+        toast.dismiss('payment-processing');
+        
+        if (!result.success) {
+          console.error('[SummaryPreview] Error al procesar pago:', result.error);
+          toast.error(result.message || 'Error al procesar el pago');
+          return; // No avanzar si hay error
         }
-      };
-
-      console.log('[SummaryPreview] Actualizando estado de pago:', {
-        ...paymentUpdate,
-        timestamp: new Date().toISOString()
-      });
-
-      await setPayment(paymentUpdate);
-
-      // 3.6 Guardar referencia y continuar
-      setPaymentIntent(result.paymentIntentId);
-      toast.success('Pago procesado correctamente');
-      console.log('[SummaryPreview] Pago exitoso, procediendo con la reserva');
-      onNext();
-    } catch (error: any) {
-      // 3.7 Manejar errores
-      toast.dismiss('payment-processing');
-      console.error('[SummaryPreview] Error al procesar pago:', {
-        error,
-        timestamp: new Date().toISOString()
-      });
-      toast.error(error.message || 'Error al procesar el pago');
+        
+        // Actualizar estado con el PaymentIntent
+        setPaymentIntent(result.paymentIntentId);
+        
+        // Actualizar el estado global del pago
+        setPayment(prevState => ({
+          ...prevState,
+          method: 'stripe',
+          type: 'full',
+          processed: true,
+          paymentIntentId: result.paymentIntentId,
+          status: 'completed'
+        }));
+        
+        // Notificar éxito
+        toast.success('Pago procesado correctamente');
+        
+        // Avanzar al siguiente paso
+        onNext();
+        return;
+      } catch (error: any) {
+        // Limpiar indicador de carga
+        toast.dismiss('payment-processing');
+        
+        // Log detallado del error
+        console.error('[SummaryPreview] Error al procesar pago:', error);
+        toast.error(`Error al procesar el pago: ${error.message || 'Error desconocido'}`);
+        return; // No avanzar si hay error
+      }
     }
-  }, [
-    isValid,
-    validationErrors,
-    hasWarnings,
-    selectedPaymentType,
-    selectedPaymentMethod,
-    onNext,
-    setPayment,
-    empresaId
-  ]);
+
+    // 4. Para otros tipos de pago, continuar normalmente
+    console.log('[SummaryPreview] Avanzando sin procesamiento de pago');
+    onNext();
+  }, [isValid, validationErrors, selectedPaymentType, selectedPaymentMethod, onNext, empresaId, setPayment]);
 
   const handleModalAction = (action: () => void) => {
     if (viewType === 'mobile' || isPublicView) {
